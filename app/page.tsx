@@ -1,113 +1,179 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useRef, useState } from 'react';
+
+import { useUIState, useActions } from 'ai/rsc';
+import { UserMessage } from '@/components/llm-stocks/message';
+
+import { type AI } from './action';
+import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor';
+import { FooterText } from '@/components/footer';
+import Textarea from 'react-textarea-autosize';
+import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
+import { Button } from '@/components/ui/button';
+import { ChatList } from '@/components/chat-list';
+import { EmptyScreen } from '@/components/empty-screen';
+
+export default function Page() {
+  const [messages, setMessages] = useUIState<typeof AI>();
+  const { submitUserMessage } = useActions<typeof AI>();
+  const [inputValue, setInputValue] = useState('');
+  const { formRef, onKeyDown } = useEnterSubmit();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/') {
+        if (
+          e.target &&
+          ['INPUT', 'TEXTAREA'].includes((e.target as any).nodeName)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        if (inputRef?.current) {
+          inputRef.current.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [inputRef]);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div>
+      <div className="pb-[200px] pt-4 md:pt-10">
+        {messages.length ? (
+          <>
+            <ChatList messages={messages} />
+          </>
+        ) : (
+          <EmptyScreen
+            submitMessage={async message => {
+              // Add user message UI
+              setMessages((currentMessages: any) => [
+                ...currentMessages,
+                {
+                  id: Date.now(),
+                  display: <UserMessage>{message}</UserMessage>,
+                },
+              ]);
+
+              // Submit and get response message
+              const responseMessage = await submitUserMessage(message);
+              setMessages((currentMessages: any) => [
+                ...currentMessages,
+                responseMessage,
+              ]);
+            }}
+          />
+        )}
+        <ChatScrollAnchor trackVisibility={true} />
+      </div>
+      <div className="fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80 peer-[[data-state=open]]:group-[]:lg:pl-[250px] peer-[[data-state=open]]:group-[]:xl:pl-[300px]">
+        <div className="mx-auto sm:max-w-2xl sm:px-4">
+          <div className="px-4 py-2 space-y-4 border-t shadow-lg bg-background sm:rounded-t-xl sm:border md:py-4">
+            <form
+              ref={formRef}
+              onSubmit={async (e: any) => {
+                e.preventDefault();
+
+                // Blur focus on mobile
+                if (window.innerWidth < 600) {
+                  e.target['message']?.blur();
+                }
+
+                const value = inputValue.trim();
+                setInputValue('');
+                if (!value) return;
+
+                // Add user message UI
+                setMessages((currentMessages: any) => [
+                  ...currentMessages,
+                  {
+                    id: Date.now(),
+                    display: <UserMessage>{value}</UserMessage>,
+                  },
+                ]);
+
+                try {
+                  // Submit and get response message
+                  const responseMessage = await submitUserMessage(value);
+                  setMessages((currentMessages: any) => [
+                    ...currentMessages,
+                    responseMessage,
+                  ]);
+                } catch (error) {
+                  // You may want to show a toast or trigger an error state.
+                  console.error(error);
+                }
+              }}
+            >
+              <div className="relative flex flex-col w-full px-8 overflow-hidden max-h-60 grow bg-background sm:rounded-md sm:border sm:px-12">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="absolute left-0 w-8 h-8 p-0 rounded-full top-4 bg-background sm:left-4"
+                      onClick={e => {
+                        e.preventDefault();
+                        window.location.reload();
+                      }}
+                    >
+                      <IconPlus />
+                      <span className="sr-only">New Chat</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>New Chat</TooltipContent>
+                </Tooltip>
+                <Textarea
+                  ref={inputRef}
+                  tabIndex={0}
+                  onKeyDown={onKeyDown}
+                  placeholder="Send a message."
+                  className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
+                  autoFocus
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  name="message"
+                  rows={1}
+                  value={inputValue}
+                  onChange={e => setInputValue(e.target.value)}
+                />
+                <div className="absolute right-0 top-4 sm:right-4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        disabled={inputValue === ''}
+                      >
+                        <IconArrowElbow />
+                        <span className="sr-only">Send message</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Send message</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </form>
+            <FooterText className="hidden sm:block" />
+          </div>
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }

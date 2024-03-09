@@ -10,15 +10,23 @@
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-tooltip": "^1.0.7",
+    "ai": "^3.0.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "d3-scale": "^4.0.2",
+    "date-fns": "^3.3.1",
     "lucide-react": "^0.352.0",
     "next": "14.2.0-canary.11",
     "next-themes": "^0.2.1",
+    "openai": "^4.28.4",
     "react": "^18",
     "react-dom": "^18",
+    "react-intersection-observer": "^9.8.1",
+    "react-textarea-autosize": "^8.5.3",
     "tailwind-merge": "^2.2.1",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "usehooks-ts": "^3.0.1"
   },
   "devDependencies": {
     "@types/node": "^20",
