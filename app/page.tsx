@@ -1,38 +1,40 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from "react";
+import { useUIState, useActions } from "ai/rsc";
+import { UserMessage } from "@/components/llm-stocks/message";
 
-import { useUIState, useActions } from 'ai/rsc';
-import { UserMessage } from '@/components/llm-stocks/message';
-
-import { type AI } from './action';
-import { ChatScrollAnchor } from '@/lib/hooks/chat-scroll-anchor';
-import { FooterText } from '@/components/footer';
-import Textarea from 'react-textarea-autosize';
-import { useEnterSubmit } from '@/lib/hooks/use-enter-submit';
+import { type AI } from "./action";
+import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
+import { FooterText } from "@/components/footer";
+import Textarea from "react-textarea-autosize";
+import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { IconArrowElbow, IconPlus } from '@/components/ui/icons';
-import { Button } from '@/components/ui/button';
-import { ChatList } from '@/components/chat-list';
-import { EmptyScreen } from '@/components/empty-screen';
+} from "@/components/ui/tooltip";
+import { IconArrowElbow, IconPlus } from "@/components/ui/icons";
+import { Button } from "@/components/ui/button";
+import { ChatList } from "@/components/chat-list";
+import { EmptyScreen } from "@/components/empty-screen";
+import { useMedplum } from "@medplum/react-hooks";
+import { SignInForm } from "@/components/medplum/auth/SignInForm";
 
 export default function Page() {
+  const medplum = useMedplum();
   const [messages, setMessages] = useUIState<typeof AI>();
   const { submitUserMessage } = useActions<typeof AI>();
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState("");
   const { formRef, onKeyDown } = useEnterSubmit();
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '/') {
+      if (e.key === "/") {
         if (
           e.target &&
-          ['INPUT', 'TEXTAREA'].includes((e.target as any).nodeName)
+          ["INPUT", "TEXTAREA"].includes((e.target as any).nodeName)
         ) {
           return;
         }
@@ -44,15 +46,16 @@ export default function Page() {
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [inputRef]);
 
   return (
     <div>
+      <SignInForm googleClientId={process.env.NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID} />
       <div className="pb-[200px] pt-4 md:pt-10">
         {messages.length ? (
           <>
@@ -60,7 +63,7 @@ export default function Page() {
           </>
         ) : (
           <EmptyScreen
-            submitMessage={async message => {
+            submitMessage={async (message) => {
               // Add user message UI
               setMessages((currentMessages: any) => [
                 ...currentMessages,
@@ -91,11 +94,11 @@ export default function Page() {
 
                 // Blur focus on mobile
                 if (window.innerWidth < 600) {
-                  e.target['message']?.blur();
+                  e.target["message"]?.blur();
                 }
 
                 const value = inputValue.trim();
-                setInputValue('');
+                setInputValue("");
                 if (!value) return;
 
                 // Add user message UI
@@ -127,7 +130,7 @@ export default function Page() {
                       variant="outline"
                       size="icon"
                       className="absolute left-0 w-8 h-8 p-0 rounded-full top-4 bg-background sm:left-4"
-                      onClick={e => {
+                      onClick={(e) => {
                         e.preventDefault();
                         window.location.reload();
                       }}
@@ -151,7 +154,7 @@ export default function Page() {
                   name="message"
                   rows={1}
                   value={inputValue}
-                  onChange={e => setInputValue(e.target.value)}
+                  onChange={(e) => setInputValue(e.target.value)}
                 />
                 <div className="absolute right-0 top-4 sm:right-4">
                   <Tooltip>
@@ -159,7 +162,7 @@ export default function Page() {
                       <Button
                         type="submit"
                         size="icon"
-                        disabled={inputValue === ''}
+                        disabled={inputValue === ""}
                       >
                         <IconArrowElbow />
                         <span className="sr-only">Send message</span>
