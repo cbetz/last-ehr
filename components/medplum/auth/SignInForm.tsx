@@ -54,7 +54,7 @@ export function SignInForm(props: SignInFormProps): JSX.Element {
       } else {
         medplum
           .processCode(code)
-          .then(() => {
+          .then((response) => {
             if (onSuccess) {
               onSuccess();
             }
@@ -109,6 +109,11 @@ export function SignInForm(props: SignInFormProps): JSX.Element {
         .catch((err) =>
           console.error("Error getting login status", normalizeErrorString(err))
         );
+    }
+    console.log("auth: ", medplum.getAccessToken());
+    const authToken = medplum.getAccessToken();
+    if (authToken) {
+      document.cookie = `medplum_access_token=${authToken}`;
     }
   }, [medplum, loginCode, login, handleAuthResponse]);
 

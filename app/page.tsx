@@ -55,7 +55,22 @@ export default function Page() {
 
   return (
     <div>
-      <SignInForm googleClientId={process.env.NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID} />
+      <SignInForm
+        googleClientId={process.env.NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID}
+        disableEmailAuth={true}
+      />
+      <Button onClick={() => medplum.signOut()}>Sign Out</Button>
+      <Button
+        onClick={async () => {
+          const patients = await medplum.searchResources(
+            "Patient",
+            "name=John Doe"
+          );
+          console.log("patients: ", patients);
+        }}
+      >
+        Search Patients
+      </Button>
       <div className="pb-[200px] pt-4 md:pt-10">
         {messages.length ? (
           <>

@@ -1,20 +1,20 @@
-'use client';
+"use client";
 
-import dynamic from 'next/dynamic';
-import { StockSkeleton } from './stock-skeleton';
-import { StocksSkeleton } from './stocks-skeleton';
-import { EventsSkeleton } from './events-skeleton';
+import dynamic from "next/dynamic";
+import { StockSkeleton } from "./stock-skeleton";
+import { StocksSkeleton } from "./stocks-skeleton";
+import { EventsSkeleton } from "./events-skeleton";
 
-export { spinner } from './spinner';
-export { BotCard, BotMessage, SystemMessage } from './message';
+export { spinner } from "./spinner";
+export { BotCard, BotMessage, SystemMessage } from "./message";
 
-const Stock = dynamic(() => import('./stock').then(mod => mod.Stock), {
+const Stock = dynamic(() => import("./stock").then((mod) => mod.Stock), {
   ssr: false,
   loading: () => <StockSkeleton />,
 });
 
 const Purchase = dynamic(
-  () => import('./stock-purchase').then(mod => mod.Purchase),
+  () => import("./stock-purchase").then((mod) => mod.Purchase),
   {
     ssr: false,
     loading: () => (
@@ -22,17 +22,25 @@ const Purchase = dynamic(
         Loading stock info...
       </div>
     ),
-  },
+  }
 );
 
-const Stocks = dynamic(() => import('./stocks').then(mod => mod.Stocks), {
+const Stocks = dynamic(() => import("./stocks").then((mod) => mod.Stocks), {
   ssr: false,
   loading: () => <StocksSkeleton />,
 });
 
-const Events = dynamic(() => import('./event').then(mod => mod.Events), {
+const Patients = dynamic(
+  () => import("./patients").then((mod) => mod.Patients),
+  {
+    ssr: false,
+    loading: () => <StocksSkeleton />,
+  }
+);
+
+const Events = dynamic(() => import("./event").then((mod) => mod.Events), {
   ssr: false,
   loading: () => <EventsSkeleton />,
 });
 
-export { Stock, Purchase, Stocks, Events };
+export { Stock, Purchase, Stocks, Patients, Events };

@@ -111,7 +111,7 @@ export function EmailForm(props: EmailFormProps): JSX.Element {
 
   return (
     <Form onSubmit={handleSubmit}>
-      <div className="flex flex-col items-center justify-center h-screen">
+      <div className="flex flex-col items-center justify-center">
         {children}
       </div>
       <OperationOutcomeAlert issues={issues} />
@@ -185,7 +185,7 @@ export function PasswordForm(props: PasswordFormProps): JSX.Element {
 
   return (
     <Form style={{ maxWidth: 400 }} onSubmit={handleSubmit}>
-      <div className="flex flex-col items-center justify-center h-screen">
+      <div className="flex flex-col items-center justify-center">
         {children}
       </div>
       <OperationOutcomeAlert issues={issues} />

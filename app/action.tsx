@@ -11,6 +11,7 @@ import {
   Stock,
   Purchase,
   Stocks,
+  Patients,
   Events,
 } from "@/components/llm-stocks";
 
@@ -24,9 +25,19 @@ import { z } from "zod";
 import { StockSkeleton } from "@/components/llm-stocks/stock-skeleton";
 import { EventsSkeleton } from "@/components/llm-stocks/events-skeleton";
 import { StocksSkeleton } from "@/components/llm-stocks/stocks-skeleton";
+import { MedplumClient } from "@medplum/core";
+import { cookies } from "next/headers";
+
+const cookieStore = cookies();
+const accessToken = cookieStore.get("medplum_access_token");
+console.log(accessToken);
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
+});
+
+const medplum = new MedplumClient({
+  accessToken: accessToken?.value,
 });
 
 async function confirmPurchase(symbol: string, price: number, amount: number) {
@@ -127,6 +138,7 @@ Messages inside [] means that it's a UI element or a user event. For example:
 - "[User has changed the amount of AAPL to 10]" means that the user has changed the amount of AAPL to 10 in the UI.
 
 If the user requests to lookup a patient, call \`show_patient_info\` to show the patient's information.
+If the user requests to lookup a patient by id, call \`show_patient_info_by_id\` to show the patient's information.
 If the user requests purchasing a stock, call \`show_stock_purchase_ui\` to show the purchase UI.
 If the user just wants the price, call \`show_stock_price\` to show the price.
 If you want to show trending stocks, call \`list_stocks\`.
@@ -349,7 +361,7 @@ Besides that, you can also chat with users.`,
     }
   );
 
-  completion.onFunctionCall("show_patient_info", ({ name }) => {
+  completion.onFunctionCall("show_patient_info", async ({ name }) => {
     if (name === " ") {
       reply.done(<BotMessage>Invalid name</BotMessage>);
       aiState.done([
@@ -363,13 +375,16 @@ Besides that, you can also chat with users.`,
       return;
     }
 
+    const bundle = await medplum.search("Patient", `name=${name}`);
+    console.log(bundle);
+
     reply.done(
       <>
         <BotMessage>
-          {"Choose the patient from the list below to view their information."}
+          {"Choose a patient from the list below to view their information."}
         </BotMessage>
         <BotCard showAvatar={false}>
-          <Stocks stocks={["AAPL"]}/>
+          <Patients patients={bundle.entry!} />
         </BotCard>
       </>
     );
