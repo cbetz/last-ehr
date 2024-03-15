@@ -132,10 +132,6 @@ Messages inside [] means that it's a UI element or a user event. For example:
 
 If the user requests to lookup a patient, call \`search_patients\` to show a list of patients that match the search criteria.
 If the user requests to lookup a patient by id, call \`show_patient_info_by_id\` to show view a patient's information by id.
-If the user requests purchasing a stock, call \`show_stock_purchase_ui\` to show the purchase UI.
-If the user just wants the price, call \`show_stock_price\` to show the price.
-If you want to show trending stocks, call \`list_stocks\`.
-If you want to show events, call \`get_events\`.
 If the user wants to complete an impossible task, respond that you are a demo and cannot do that.
 
 Besides that, you can also chat with users.`,
@@ -365,12 +361,6 @@ Besides that, you can also chat with users.`,
   );
 
   completion.onFunctionCall("search_patients", async ({ name }) => {
-    const cookieStore = cookies();
-    const accessToken = cookieStore.get("medplum_access_token");
-    const medplum = new MedplumClient({
-      accessToken: accessToken?.value,
-    });
-
     if (name === " ") {
       reply.done(<BotMessage>Invalid name</BotMessage>);
       aiState.done([
@@ -383,28 +373,37 @@ Besides that, you can also chat with users.`,
       ]);
       return;
     }
-    console.log("looking up patients with name", name);
-    const bundle = await medplum.search("Patient", `name=${name}`);
-    console.log(bundle);
 
-    reply.done(
-      <>
-        <BotMessage>
-          {"Choose a patient from the list below to view their information."}
-        </BotMessage>
-        <BotCard showAvatar={false}>
-          <Patients patients={bundle.entry!} />
-        </BotCard>
-      </>
-    );
-    aiState.done([
-      ...aiState.get(),
-      {
-        role: "function",
-        name: "search_patients",
-        content: `[UI for showing patient ${name}.]`,
-      },
-    ]);
+    try {
+      const cookieStore = cookies();
+      const accessToken = cookieStore.get("medplum_access_token");
+      const medplum = new MedplumClient({
+        accessToken: accessToken?.value,
+      });
+
+      const bundle = await medplum.search("Patient", `name=${name}`);
+
+      reply.done(
+        <>
+          <BotMessage>
+            {"Choose a patient from the list below to view their information."}
+          </BotMessage>
+          <BotCard showAvatar={false}>
+            <Patients patients={bundle.entry!} />
+          </BotCard>
+        </>
+      );
+      aiState.done([
+        ...aiState.get(),
+        {
+          role: "function",
+          name: "search_patients",
+          content: `[UI for showing patient ${name}.]`,
+        },
+      ]);
+    } catch (error) {
+      console.error(error);
+    }
   });
 
   completion.onFunctionCall("show_patient_info_by_id", async ({ id }) => {
