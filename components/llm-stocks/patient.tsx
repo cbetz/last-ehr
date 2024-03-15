@@ -6,7 +6,7 @@ import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 
-export function Patient({ patient }: { patient: Patient }) {
+export function PatientCard({ patient }: { patient: Patient }) {
   const firstName = patient.name ? patient.name[0].family : "";
   const lastName = patient.name ? patient.name[0].given : "";
   const birthDate = patient.birthDate ? patient.birthDate : "";

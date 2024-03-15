@@ -8,7 +8,6 @@ import {
   BotCard,
   BotMessage,
   SystemMessage,
-  Stock,
   Purchase,
   Stocks,
   Patients,
@@ -27,7 +26,7 @@ import { EventsSkeleton } from "@/components/llm-stocks/events-skeleton";
 import { StocksSkeleton } from "@/components/llm-stocks/stocks-skeleton";
 import { MedplumClient } from "@medplum/core";
 import { cookies } from "next/headers";
-import { Patient } from "@/components/llm-stocks/patient";
+import { PatientCard } from "@/components/llm-stocks/patient";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
@@ -287,34 +286,6 @@ Besides that, you can also chat with users.`,
   });
 
   completion.onFunctionCall(
-    "show_stock_price",
-    async ({ symbol, price, delta }) => {
-      reply.update(
-        <BotCard>
-          <StockSkeleton />
-        </BotCard>
-      );
-
-      await sleep(1000);
-
-      reply.done(
-        <BotCard>
-          <Stock name={symbol} price={price} delta={delta} />
-        </BotCard>
-      );
-
-      aiState.done([
-        ...aiState.get(),
-        {
-          role: "function",
-          name: "show_stock_price",
-          content: `[Price of ${symbol} = ${price}]`,
-        },
-      ]);
-    }
-  );
-
-  completion.onFunctionCall(
     "show_stock_purchase_ui",
     ({ symbol, price, numberOfShares = 100 }) => {
       if (numberOfShares <= 0 || numberOfShares > 1000) {
@@ -435,7 +406,7 @@ Besides that, you can also chat with users.`,
           {"Here is the information for the patient you requested."}
         </BotMessage>
         <BotCard showAvatar={false}>
-          <Patient patient={patient} />
+          <PatientCard patient={patient} />
         </BotCard>
       </>
     );

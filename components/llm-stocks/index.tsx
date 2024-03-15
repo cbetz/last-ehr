@@ -1,17 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { StockSkeleton } from "./stock-skeleton";
 import { StocksSkeleton } from "./stocks-skeleton";
 import { EventsSkeleton } from "./events-skeleton";
 
 export { spinner } from "./spinner";
 export { BotCard, BotMessage, SystemMessage } from "./message";
-
-const Stock = dynamic(() => import("./stock").then((mod) => mod.Stock), {
-  ssr: false,
-  loading: () => <StockSkeleton />,
-});
 
 const Purchase = dynamic(
   () => import("./stock-purchase").then((mod) => mod.Purchase),
@@ -43,4 +37,4 @@ const Events = dynamic(() => import("./event").then((mod) => mod.Events), {
   loading: () => <EventsSkeleton />,
 });
 
-export { Stock, Purchase, Stocks, Patients, Events };
+export { Purchase, Stocks, Patients, Events };
