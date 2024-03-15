@@ -27,17 +27,10 @@ import { EventsSkeleton } from "@/components/llm-stocks/events-skeleton";
 import { StocksSkeleton } from "@/components/llm-stocks/stocks-skeleton";
 import { MedplumClient } from "@medplum/core";
 import { cookies } from "next/headers";
-
-const cookieStore = cookies();
-const accessToken = cookieStore.get("medplum_access_token");
-console.log(accessToken);
+import { Patient } from "@/components/llm-stocks/patient";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "",
-});
-
-const medplum = new MedplumClient({
-  accessToken: accessToken?.value,
 });
 
 async function confirmPurchase(symbol: string, price: number, amount: number) {
@@ -137,8 +130,8 @@ Messages inside [] means that it's a UI element or a user event. For example:
 - "[Price of AAPL = 100]" means that an interface of the stock price of AAPL is shown to the user.
 - "[User has changed the amount of AAPL to 10]" means that the user has changed the amount of AAPL to 10 in the UI.
 
-If the user requests to lookup a patient, call \`show_patient_info\` to show the patient's information.
-If the user requests to lookup a patient by id, call \`show_patient_info_by_id\` to show the patient's information.
+If the user requests to lookup a patient, call \`search_patients\` to show a list of patients that match the search criteria.
+If the user requests to lookup a patient by id, call \`show_patient_info_by_id\` to show view a patient's information by id.
 If the user requests purchasing a stock, call \`show_stock_purchase_ui\` to show the purchase UI.
 If the user just wants the price, call \`show_stock_price\` to show the price.
 If you want to show trending stocks, call \`list_stocks\`.
@@ -187,11 +180,21 @@ Besides that, you can also chat with users.`,
         }),
       },
       {
-        name: "show_patient_info",
+        name: "search_patients",
         description:
-          "Show the UI to lookup a patient. Use this if the user wants to lookup a patient.",
+          "Show the UI of a list of patients. Use this if the user wants to search for a patient.",
         parameters: z.object({
           name: z
+            .string()
+            .describe("The name of the patient e.g. John Doe, Jane Doe, etc."),
+        }),
+      },
+      {
+        name: "show_patient_info_by_id",
+        description:
+          "Show the UI of a patient's details. Use this if the user wants to show a patient's details.",
+        parameters: z.object({
+          id: z
             .string()
             .describe("The name of the patient e.g. John Doe, Jane Doe, etc."),
         }),
@@ -361,20 +364,26 @@ Besides that, you can also chat with users.`,
     }
   );
 
-  completion.onFunctionCall("show_patient_info", async ({ name }) => {
+  completion.onFunctionCall("search_patients", async ({ name }) => {
+    const cookieStore = cookies();
+    const accessToken = cookieStore.get("medplum_access_token");
+    const medplum = new MedplumClient({
+      accessToken: accessToken?.value,
+    });
+
     if (name === " ") {
       reply.done(<BotMessage>Invalid name</BotMessage>);
       aiState.done([
         ...aiState.get(),
         {
           role: "function",
-          name: "show_patient_info",
+          name: "search_patients",
           content: `[Invalid name]`,
         },
       ]);
       return;
     }
-
+    console.log("looking up patients with name", name);
     const bundle = await medplum.search("Patient", `name=${name}`);
     console.log(bundle);
 
@@ -392,7 +401,50 @@ Besides that, you can also chat with users.`,
       ...aiState.get(),
       {
         role: "function",
-        name: "show_patient_info",
+        name: "search_patients",
+        content: `[UI for showing patient ${name}.]`,
+      },
+    ]);
+  });
+
+  completion.onFunctionCall("show_patient_info_by_id", async ({ id }) => {
+    const cookieStore = cookies();
+    const accessToken = cookieStore.get("medplum_access_token");
+    const medplum = new MedplumClient({
+      accessToken: accessToken?.value,
+    });
+
+    if (id === "") {
+      reply.done(<BotMessage>Invalid name</BotMessage>);
+      aiState.done([
+        ...aiState.get(),
+        {
+          role: "function",
+          name: "show_patient_info_by_id",
+          content: `[Invalid name]`,
+        },
+      ]);
+      return;
+    }
+
+    const patient = await medplum.readResource("Patient", id);
+    console.log(patient);
+
+    reply.done(
+      <>
+        <BotMessage>
+          {"Here is the information for the patient you requested."}
+        </BotMessage>
+        <BotCard showAvatar={false}>
+          <Patient patient={patient} />
+        </BotCard>
+      </>
+    );
+    aiState.done([
+      ...aiState.get(),
+      {
+        role: "function",
+        name: "search_patients",
         content: `[UI for showing patient ${name}.]`,
       },
     ]);
