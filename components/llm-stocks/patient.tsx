@@ -75,9 +75,8 @@ export function PatientCard({ patient }: { patient: Patient }) {
                 </CardHeader>
                 <CardContent>
                   <ul className="list-none list-inside space-y-2 p-2">
-                    <li>High blood pressure</li>
-                    <li>Asthma</li>
-                    <li>Diabetes</li>
+                    <li>Ulcerative Colitis</li>
+                    <li>Celiac Disease</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -88,7 +87,6 @@ export function PatientCard({ patient }: { patient: Patient }) {
                 <CardContent>
                   <ul className="list-none list-inside space-y-2 p-2">
                     <li>Penicillin</li>
-                    <li>Codeine</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -226,39 +224,6 @@ export function PatientCard({ patient }: { patient: Patient }) {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Diagnoses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Hypertension</h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
-                      High blood pressure
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Asthma</h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
-                      Chronic respiratory condition
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div>
-                    <h3 className="text-lg font-semibold">Diabetes</h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
-                      High blood sugar
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
               <CardTitle>Procedures</CardTitle>
             </CardHeader>
             <CardContent>
@@ -303,14 +268,6 @@ export function PatientCard({ patient }: { patient: Patient }) {
                     </h3>
                     <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
                       Patient advised to return in 3 months for a check-up.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start space-x-4">
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Prescription</h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
-                      Medication for pain management.
                     </p>
                   </div>
                 </div>

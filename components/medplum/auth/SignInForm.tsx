@@ -161,7 +161,7 @@ export function SignInForm(props: SignInFormProps): JSX.Element {
             />
           );
         }*/ else {
-          return <div>Success</div>;
+          return <div></div>;
         }
       })()}
     </div>
