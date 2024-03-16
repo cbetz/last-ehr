@@ -438,7 +438,7 @@ Besides that, you can also chat with users.`,
       {
         role: "function",
         name: "search_patients",
-        content: `[UI for showing patient ${name}.]`,
+        content: `[UI for showing patient ${id}.]`,
       },
     ]);
   });
