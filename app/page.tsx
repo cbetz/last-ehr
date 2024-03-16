@@ -31,9 +31,9 @@ export default function Component() {
         <Image
           alt="Hero"
           className="aspect-video overflow-hidden rounded-[24px] object-cover object-center xl:w-1/2 mr-4"
-          height="600"
+          height="225"
           src="/demo.png"
-          width="100"
+          width="400"
         />
         <div className="w-full max-w-[600px] space-y-4 xl:grid xl:gap-4 xl:w-1/2">
           <div className="space-y-2">
