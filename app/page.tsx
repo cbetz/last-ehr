@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { sql } from '@vercel/postgres';
+import Image from "next/image";
 
 async function create(formData: FormData) {
     'use server';
@@ -27,11 +28,11 @@ export default function Component() {
   return (
     <div key="1">
       <div className="container flex flex-col items-center justify-center min-h-screen py-12 space-y-4 md:py-24 xl:space-y-8 xl:flex-row xl:gap-0">
-        <img
+        <Image
           alt="Hero"
           className="aspect-video overflow-hidden rounded-[24px] object-cover object-center xl:w-1/2 mr-4"
           height="225"
-          src="/placeholder.svg"
+          src="/demo.png"
           width="400"
         />
         <div className="w-full max-w-[600px] space-y-4 xl:grid xl:gap-4 xl:w-1/2">
