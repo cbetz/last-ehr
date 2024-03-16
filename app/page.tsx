@@ -31,9 +31,9 @@ export default function Component() {
         <Image
           alt="Hero"
           className="aspect-video overflow-hidden rounded-[24px] object-cover object-center xl:w-1/2 mr-4"
-          height="225"
+          height="600"
           src="/demo.png"
-          width="400"
+          width="100"
         />
         <div className="w-full max-w-[600px] space-y-4 xl:grid xl:gap-4 xl:w-1/2">
           <div className="space-y-2">
@@ -41,7 +41,7 @@ export default function Component() {
               Last EHR
             </h1>
             <p className="text-gray-500 dark:text-gray-400">
-              Sign up to experience a new way to interact with your EHR.
+              Sign up to experience an AI powered EHR.
             </p>
           </div>
           <div className="space-y-2 xl:mt-8">

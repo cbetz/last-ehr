@@ -40,7 +40,7 @@ export function EmptyScreen({
           ))}
         </div>
       </div>
-      <FooterText />
+      {/*<FooterText />*/}
     </div>
   );
 }
