@@ -1,28 +1,30 @@
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { sql } from '@vercel/postgres';
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { sql } from "@vercel/postgres";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 async function create(formData: FormData) {
-    'use server';
+  "use server";
 
-    console.log('Creating waitlist entry');
+  console.log("Creating waitlist entry");
 
-    try {
-      const name = formData.get('name') as string;
-      const email = formData.get('email') as string;
-      console.log(formData);
-      if (!name || !email) {
-        return;
-      }
-      const { rows } = await sql`
+  try {
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    console.log(formData);
+    if (!name || !email) {
+      return;
+    }
+    const { rows } = await sql`
         INSERT INTO waitlist (name, email)
         VALUES (${name}, ${email})
       `;
-    } catch (err) {
-        console.error(err);
-        }
+  } catch (err) {
+    console.error(err);
   }
+}
 
 export default function Component() {
   return (
@@ -47,9 +49,18 @@ export default function Component() {
           <div className="space-y-2 xl:mt-8">
             <form className="grid gap-2" action={create}>
               <Input id="name" name="name" placeholder="Name" required />
-              <Input id="email" name="email" placeholder="Email" required type="email" />
+              <Input
+                id="email"
+                name="email"
+                placeholder="Email"
+                required
+                type="email"
+              />
               <Button type="submit">Sign Up</Button>
             </form>
+            <p className="px-2 text-center text-sm leading-normal text-muted-foreground">
+              <Link href="/demo">Already have access? Click here to access the live demo.</Link> 
+            </p>
             {/*<p className="text-xs text-gray-500 dark:text-gray-400">
               By providing your email, you agree to our {" "}
               <Link className="underline underline-offset-2" href="#">
@@ -65,6 +76,5 @@ export default function Component() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
