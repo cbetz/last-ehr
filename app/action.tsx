@@ -21,7 +21,6 @@ import {
   runOpenAICompletion,
 } from "@/lib/utils";
 import { z } from "zod";
-import { StockSkeleton } from "@/components/llm-stocks/stock-skeleton";
 import { EventsSkeleton } from "@/components/llm-stocks/events-skeleton";
 import { StocksSkeleton } from "@/components/llm-stocks/stocks-skeleton";
 import { MedplumClient } from "@medplum/core";
@@ -131,6 +130,7 @@ Messages inside [] means that it's a UI element or a user event. For example:
 
 If the user requests to lookup a patient, call \`search_patients\` to show a list of patients that match the search criteria.
 If the user requests to lookup a patient by id, call \`show_patient_info_by_id\` to show view a patient's information by id.
+If the user requests to add a new observation, call \`add_observation\` to add a new observation to the patient's chart.
 If the user wants to complete an impossible task, respond that you are a demo and cannot do that.
 
 Besides that, you can also chat with users.`,
@@ -192,6 +192,15 @@ Besides that, you can also chat with users.`,
           id: z
             .string()
             .describe("The name of the patient e.g. John Doe, Jane Doe, etc."),
+        }),
+      },
+      {
+        name: "add_observation",
+        description: "Add a new observation to the patient's chart.",
+        parameters: z.object({
+          text: z
+            .string()
+            .describe("The oberservation text to add to the patient's chart."),
         }),
       },
       {
@@ -348,6 +357,20 @@ Besides that, you can also chat with users.`,
     try {
       const cookieStore = cookies();
       const accessToken = cookieStore.get("medplum_access_token");
+
+      if (!accessToken) {
+        reply.done(<BotMessage>It looks like you&apos;re not signed in.</BotMessage>);
+        aiState.done([
+          ...aiState.get(),
+          {
+            role: "function",
+            name: "search_patients",
+            content: `[Invalid name]`,
+          },
+        ]);
+        return;
+      }
+
       const medplum = new MedplumClient({
         accessToken: accessToken?.value,
       });
