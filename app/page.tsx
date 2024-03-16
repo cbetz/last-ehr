@@ -1,6 +1,27 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { sql } from '@vercel/postgres';
+
+async function create(formData: FormData) {
+    'use server';
+
+    console.log('Creating waitlist entry');
+
+    try {
+      const name = formData.get('name') as string;
+      const email = formData.get('email') as string;
+      console.log(formData);
+      if (!name || !email) {
+        return;
+      }
+      const { rows } = await sql`
+        INSERT INTO waitlist (name, email)
+        VALUES (${name}, ${email})
+      `;
+    } catch (err) {
+        console.error(err);
+        }
+  }
 
 export default function Component() {
   return (
@@ -23,12 +44,12 @@ export default function Component() {
             </p>
           </div>
           <div className="space-y-2 xl:mt-8">
-            <form className="grid gap-2">
-              <Input id="name" placeholder="Name" required />
-              <Input id="email" placeholder="Email" required type="email" />
+            <form className="grid gap-2" action={create}>
+              <Input id="name" name="name" placeholder="Name" required />
+              <Input id="email" name="email" placeholder="Email" required type="email" />
               <Button type="submit">Sign Up</Button>
             </form>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            {/*<p className="text-xs text-gray-500 dark:text-gray-400">
               By providing your email, you agree to our {" "}
               <Link className="underline underline-offset-2" href="#">
                 Terms & Conditions
@@ -38,7 +59,7 @@ export default function Component() {
                 Privacy Policy
               </Link>
               .
-            </p>
+            </p>*/}
           </div>
         </div>
       </div>
