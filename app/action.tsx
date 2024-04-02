@@ -365,7 +365,7 @@ Besides that, you can also chat with users.`,
           {
             role: "function",
             name: "search_patients",
-            content: `[Invalid name]`,
+            content: `[User is not signed in]`,
           },
         ]);
         return;
