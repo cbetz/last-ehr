@@ -6,7 +6,7 @@ import { UserMessage } from "@/components/llm-stocks/message";
 
 import { type AI } from "../action";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
-import Textarea from "react-textarea-autosize";
+import Textarea from "react-textarea-autosize" ;
 import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
   Tooltip,

@@ -1,53 +1,41 @@
+"use client";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { sql } from "@vercel/postgres";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
+import Hero from "@/components/Hero";
+import { useFormState } from "react-dom";
+import { create } from "./form-actions";
+import AI from "@/components/AI";
 
-async function create(formData: FormData) {
-  "use server";
-
-  console.log("Creating waitlist entry");
-
-  try {
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    console.log(formData);
-    if (!name || !email) {
-      return;
-    }
-    const { rows } = await sql`
-        INSERT INTO waitlist (name, email)
-        VALUES (${name}, ${email})
-      `;
-  } catch (err) {
-    console.error(err);
-  }
-}
+const initialState = {
+  message: "",
+};
 
 export default function Component() {
+  const [state, formAction] = useFormState(create, initialState);
+
   return (
     <div key="1">
-      <div className="container flex flex-col items-center justify-center min-h-screen py-12 space-y-4 md:py-24 xl:space-y-8 xl:flex-row xl:gap-0">
-        <Image
-          alt="Hero"
-          className="aspect-video overflow-hidden rounded-[24px] object-cover object-center xl:w-1/2 mr-4"
-          height="225"
-          src="/demo.png"
-          width="400"
-        />
+      <Navbar />
+      <Hero />
+      <AI />
+      <div className="container py-24 sm:py-32">
         <div className="w-full max-w-[600px] space-y-4 xl:grid xl:gap-4 xl:w-1/2">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl xl:text-5xl/none">
-              Last EHR
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              Sign up to experience an AI powered EHR.
+            <h2 className="text-3xl md:text-4xl font-bold">
+              <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
+                Sign Up{" "}
+              </span>
+            </h2>
+
+            <p className="text-muted-foreground text-xl mt-4 mb-8 ">
+              Sign up to for early access to Last EHR.
             </p>
           </div>
           <div className="space-y-2 xl:mt-8">
-            <form className="grid gap-2" action={create}>
+            <form className="grid gap-2" action={formAction}>
               <Input id="name" name="name" placeholder="Name" required />
               <Input
                 id="email"
@@ -58,8 +46,13 @@ export default function Component() {
               />
               <Button type="submit">Sign Up</Button>
             </form>
+            <p className="text-sm text-center text-muted-foreground">
+              {state?.message}
+            </p>
             <p className="px-2 text-center text-sm leading-normal text-muted-foreground">
-              <Link href="/demo">Already have access? Click here to access the live demo.</Link> 
+              <Link href="/demo">
+                Already have access? Click here to access the live demo.
+              </Link>
             </p>
             {/*<p className="text-xs text-gray-500 dark:text-gray-400">
               By providing your email, you agree to our {" "}

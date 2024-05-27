@@ -32,7 +32,7 @@ export default function RootLayout({
         <AI>
           <Providers
             attribute="class"
-            defaultTheme="system"
+            defaultTheme="dark"
             enableSystem
             disableTransitionOnChange
           >
