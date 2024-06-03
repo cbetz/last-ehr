@@ -1,6 +1,9 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
 import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { IconSparkles } from "./ui/icons";
+import ReactPlayer from "react-player";
 
 interface ServiceProps {
   title: string;
@@ -18,16 +21,19 @@ const serviceList: ServiceProps[] = [
 ];
 
 const AI = () => {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   return (
     <section id="ai" className="container py-24 sm:py-32">
       <div className="grid lg:grid-cols-[1fr,1fr] gap-8 place-items-center">
-        <Image
-          src="/demo.png"
-          className="w-[300px] md:w-[500px] lg:w-[600px] object-contain"
-          alt="AI demo"
-          height="225"
-          width="400"
-        />
+        {isClient && (
+          <ReactPlayer url="https://youtube.com/shorts/IzNyf5qH2MA" />
+        )}
+
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
             <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
