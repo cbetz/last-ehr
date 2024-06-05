@@ -8,6 +8,7 @@ import Hero from "@/components/Hero";
 import { useFormState } from "react-dom";
 import { create } from "./form-actions";
 import AI from "@/components/AI";
+import { HowItWorks } from "@/components/HowItWorks";
 
 const initialState = {
   message: "",
@@ -20,6 +21,7 @@ export default function Component() {
     <div key="1">
       <Navbar />
       <Hero />
+      <HowItWorks />
       <AI />
       <div className="container py-24 sm:py-32">
         <div className="w-full max-w-[600px] space-y-4 xl:grid xl:gap-4 xl:w-1/2">

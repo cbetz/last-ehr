@@ -23,6 +23,10 @@ interface RouteProps {
 
 const routeList: RouteProps[] = [
   {
+    href: "#howItWorks",
+    label: "How It Works",
+  },
+  {
     href: "#ai",
     label: "AI Agents",
   },
