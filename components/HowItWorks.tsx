@@ -40,7 +40,7 @@ export const HowItWorks = () => {
       </h2>
       <p className="md:w-3/4 mx-auto mt-4 mb-8 text-xl text-muted-foreground">
         {
-          "You're not the first to do this. Pick your headless EHR, choose your integrations, and add AI agents. Focus on your secret sauce and let us handle the rest."
+          "Pick your headless EHR, choose your integrations, and add AI agents. Focus on your secret sauce and let us handle the rest."
         }
       </p>
 
