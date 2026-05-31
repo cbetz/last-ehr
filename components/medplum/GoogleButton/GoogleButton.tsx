@@ -19,7 +19,7 @@ export interface GoogleButtonProps {
   readonly handleGoogleCredential: (response: GoogleCredentialResponse) => void;
 }
 
-export function GoogleButton(props: GoogleButtonProps): JSX.Element | null {
+export function GoogleButton(props: GoogleButtonProps) {
   const medplum = useMedplum();
   const { googleClientId, handleGoogleCredential } = props;
   const parentRef = useRef<HTMLDivElement>(null);

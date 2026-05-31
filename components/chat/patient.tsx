@@ -1,43 +1,43 @@
 "use client";
 
 import { Patient } from "@medplum/fhirtypes";
-import { Link } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 
 export function PatientCard({ patient }: { patient: Patient }) {
-  const firstName = patient.name ? patient.name[0].family : "";
-  const lastName = patient.name ? patient.name[0].given : "";
-  const birthDate = patient.birthDate ? patient.birthDate : "";
-
-  let photo = "/avatar.png";
-  if (patient.photo) {
-    if (patient.photo[0].url) {
-      photo = patient.photo[0].url;
-    }
-  }
+  const family = patient.name?.[0]?.family ?? "";
+  const given = patient.name?.[0]?.given?.join(" ") ?? "";
+  const fullName = `${given} ${family}`.trim() || "Unknown patient";
+  const birthDate = patient.birthDate ?? "";
+  const photo = patient.photo?.[0]?.url;
+  const initials = (given[0] ?? family[0] ?? "?").toUpperCase();
 
   return (
-    <div className="">
+    <div>
       <div className="px-4 py-6 sm:px-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Image
-                alt="Logo"
-                className="rounded-lg"
-                height="36"
-                src={photo}
-                style={{
-                  aspectRatio: "36/36",
-                  objectFit: "cover",
-                }}
-                width="36"
-              />
+              {photo ? (
+                <Image
+                  alt={fullName}
+                  className="rounded-lg object-cover"
+                  height={36}
+                  width={36}
+                  src={photo}
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-sm font-semibold text-muted-foreground"
+                >
+                  {initials}
+                </div>
+              )}
               <div className="space-y-1">
-                <h1 className="text-lg font-bold tracking-tight">{`${firstName} ${lastName}`}</h1>
-                <p className="text-sm leading-none tracking-wide text-gray-500 dark:text-gray-400">
+                <h3 className="text-lg font-bold tracking-tight">{fullName}</h3>
+                <p className="text-sm leading-none tracking-wide text-muted-foreground">
                   Patient ID: {patient.id}
                 </p>
               </div>
@@ -52,7 +52,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium leading-none text-muted-foreground">
                       Date of Birth
                     </p>
                     <p className="text-lg font-semibold leading-none">
@@ -60,7 +60,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium leading-none text-muted-foreground">
                       Gender
                     </p>
                     <p className="text-lg font-semibold leading-none">
@@ -101,13 +101,13 @@ export function PatientCard({ patient }: { patient: Patient }) {
                 <table className="w-full text-left whitespace-nowrap">
                   <thead>
                     <tr>
-                      <th className="pb-2 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                      <th className="pb-2 text-xs font-medium text-muted-foreground uppercase">
                         Date
                       </th>
-                      <th className="pb-2 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                      <th className="pb-2 text-xs font-medium text-muted-foreground uppercase">
                         Type
                       </th>
-                      <th className="pb-2 text-xs font-medium text-gray-500 uppercase dark:text-gray-400">
+                      <th className="pb-2 text-xs font-medium text-muted-foreground uppercase">
                         Value
                       </th>
                     </tr>
@@ -160,7 +160,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
                       <h3 className="text-lg font-semibold">
                         Complete Blood Count
                       </h3>
-                      <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                      <p className="text-sm font-medium leading-none text-muted-foreground">
                         Hemoglobin, Hematocrit, Platelets
                       </p>
                     </div>
@@ -173,15 +173,18 @@ export function PatientCard({ patient }: { patient: Patient }) {
                       </p>
                     </div>
                   </div>
-                  <Link className="text-sm font-medium underline" href="#">
+                  <button
+                    type="button"
+                    className="text-sm font-medium underline text-muted-foreground"
+                  >
                     View
-                  </Link>
+                  </button>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                     <div>
                       <h3 className="text-lg font-semibold">Lipid Panel</h3>
-                      <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                      <p className="text-sm font-medium leading-none text-muted-foreground">
                         Cholesterol, Triglycerides, HDL, LDL
                       </p>
                     </div>
@@ -194,15 +197,18 @@ export function PatientCard({ patient }: { patient: Patient }) {
                       </p>
                     </div>
                   </div>
-                  <Link className="text-sm font-medium underline" href="#">
+                  <button
+                    type="button"
+                    className="text-sm font-medium underline text-muted-foreground"
+                  >
                     View
-                  </Link>
+                  </button>
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                     <div>
                       <h3 className="text-lg font-semibold">Urinalysis</h3>
-                      <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                      <p className="text-sm font-medium leading-none text-muted-foreground">
                         Color, Appearance, Glucose, Protein
                       </p>
                     </div>
@@ -215,9 +221,12 @@ export function PatientCard({ patient }: { patient: Patient }) {
                       </p>
                     </div>
                   </div>
-                  <Link className="text-sm font-medium underline" href="#">
+                  <button
+                    type="button"
+                    className="text-sm font-medium underline text-muted-foreground"
+                  >
                     View
-                  </Link>
+                  </button>
                 </div>
               </div>
             </CardContent>
@@ -231,7 +240,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
                 <div className="flex items-center space-x-4">
                   <div>
                     <h3 className="text-lg font-semibold">X-Ray</h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium leading-none text-muted-foreground">
                       Imaging of bones and organs
                     </p>
                   </div>
@@ -239,7 +248,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
                 <div className="flex items-center space-x-4">
                   <div>
                     <h3 className="text-lg font-semibold">EKG</h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium leading-none text-muted-foreground">
                       Heart rhythm test
                     </p>
                   </div>
@@ -247,7 +256,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
                 <div className="flex items-center space-x-4">
                   <div>
                     <h3 className="text-lg font-semibold">MRI</h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium leading-none text-muted-foreground">
                       Detailed imaging of soft tissues
                     </p>
                   </div>
@@ -266,7 +275,7 @@ export function PatientCard({ patient }: { patient: Patient }) {
                     <h3 className="text-lg font-semibold">
                       Follow-up Appointment
                     </h3>
-                    <p className="text-sm font-medium leading-none text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium leading-none text-muted-foreground">
                       Patient advised to return in 3 months for a check-up.
                     </p>
                   </div>

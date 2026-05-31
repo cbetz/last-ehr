@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLast, Menu, Twitter, TwitterIcon, XIcon } from "lucide-react";
+import { ChevronLast, Menu } from "lucide-react";
 
+import { IconTwitter } from "@/components/ui/icons";
 import { NavigationMenu } from "@/components/ui/navigation-menu";
 import {
   Sheet,
@@ -39,9 +40,9 @@ const routeList: RouteProps[] = [
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   return (
-    <nav className="sticky border-b-[1px] top-0 z-40 w-full bg-white dark:border-b-slate-700 dark:bg-background">
+    <nav className="sticky border-b-[1px] top-0 z-40 w-full bg-background">
       <NavigationMenu className="mx-auto">
-        <div className="container h-16 px-4 w-screen flex justify-between items-center">
+        <div className="container h-16 px-4 flex justify-between items-center">
           <div className="font-bold flex">
             <Link href="/" className="ml-2 font-bold text-xl flex">
               <ChevronLast className="mr-4" />
@@ -88,11 +89,12 @@ const Navbar = () => {
                   <Link
                     href="https://x.com/lastehr"
                     target="_blank"
+                    rel="noopener noreferrer"
                     className={`w-[110px] border ${buttonVariants({
                       variant: "ghost",
                     })}`}
                   >
-                    <Twitter className="h-4 w-4 mr-2" /> Twitter
+                    <IconTwitter className="h-4 w-4 mr-2" aria-hidden="true" /> Twitter
                   </Link>
                 </div>
               </SheetContent>
@@ -122,11 +124,13 @@ const Navbar = () => {
               <Link
                 href="https://x.com/lastehr"
                 target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Last EHR on Twitter"
                 className={`border ${buttonVariants({
                   variant: "ghost",
                 })}`}
               >
-                <Twitter className="h-4 w-4" />
+                <IconTwitter className="h-4 w-4" aria-hidden="true" />
               </Link>
 
               <ModeToggle />

@@ -32,7 +32,7 @@ export interface SignInFormProps extends BaseLoginRequest {
  * @param props - The SignInForm React props.
  * @returns The SignInForm React node.
  */
-export function SignInForm(props: SignInFormProps): JSX.Element {
+export function SignInForm(props: SignInFormProps) {
   const {
     login: loginCode,
     chooseScopes,

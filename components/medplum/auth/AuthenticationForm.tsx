@@ -28,7 +28,7 @@ export interface AuthenticationFormProps extends BaseLoginRequest {
 
 export function AuthenticationForm(
   props: AuthenticationFormProps
-): JSX.Element {
+) {
   const [email, setEmail] = useState<string>();
 
   if (!email) {
@@ -47,7 +47,7 @@ export interface EmailFormProps extends BaseLoginRequest {
   readonly children?: ReactNode;
 }
 
-export function EmailForm(props: EmailFormProps): JSX.Element {
+export function EmailForm(props: EmailFormProps) {
   const {
     setEmail,
     onRegister,
@@ -158,7 +158,7 @@ export interface PasswordFormProps extends BaseLoginRequest {
   readonly children?: ReactNode;
 }
 
-export function PasswordForm(props: PasswordFormProps): JSX.Element {
+export function PasswordForm(props: PasswordFormProps) {
   const {
     onForgotPassword,
     handleAuthResponse,

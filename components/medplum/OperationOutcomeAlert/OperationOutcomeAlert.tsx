@@ -9,7 +9,7 @@ export interface OperationOutcomeAlertProps {
 
 export function OperationOutcomeAlert(
   props: OperationOutcomeAlertProps
-): JSX.Element | null {
+) {
   const issues = props.outcome?.issue || props.issues;
   if (!issues || issues.length === 0) {
     return null;

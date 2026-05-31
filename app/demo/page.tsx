@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useUIState, useActions } from "ai/rsc";
-import { UserMessage } from "@/components/llm-stocks/message";
+import { useUIState, useActions } from "@ai-sdk/rsc";
+import { UserMessage } from "@/components/chat";
 
 import { type AI } from "../action";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
@@ -53,7 +53,7 @@ export default function Page() {
   }, [inputRef]);
 
   return (
-    <div>
+    <main>
       <SignInForm
         googleClientId={process.env.NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID}
         disableEmailAuth={true}
@@ -70,7 +70,7 @@ export default function Page() {
               setMessages((currentMessages: any) => [
                 ...currentMessages,
                 {
-                  id: Date.now(),
+                  id: crypto.randomUUID(),
                   display: <UserMessage>{message}</UserMessage>,
                 },
               ]);
@@ -107,7 +107,7 @@ export default function Page() {
                 setMessages((currentMessages: any) => [
                   ...currentMessages,
                   {
-                    id: Date.now(),
+                    id: crypto.randomUUID(),
                     display: <UserMessage>{value}</UserMessage>,
                   },
                 ]);
@@ -178,6 +178,6 @@ export default function Page() {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
