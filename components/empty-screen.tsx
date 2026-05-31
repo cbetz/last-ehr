@@ -1,12 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "@/components/external-link";
 import { IconArrowRight } from "@/components/ui/icons";
-import { FooterText } from "./footer";
 
 const exampleMessages = [
   {
-    heading: "Lookup a patient",
-    message: "Lookup a patient",
+    heading: "Look up a patient",
+    message: "Look up a patient named Alex",
   },
 ];
 

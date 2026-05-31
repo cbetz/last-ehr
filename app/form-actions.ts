@@ -1,32 +1,31 @@
 "use server";
 
-import { sql } from "@vercel/postgres";
+import { neon } from "@neondatabase/serverless";
 
 export async function create(
-  prevState: {
-    message: string;
-  },
-  formData: FormData
+  prevState: { message: string },
+  formData: FormData,
 ) {
-  "use server";
+  const name = formData.get("name") as string;
+  const email = formData.get("email") as string;
 
-  console.log("Creating waitlist entry");
+  if (!name || !email) {
+    return { message: "Please enter your name and email address." };
+  }
+
+  const connectionString =
+    process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+  if (!connectionString) {
+    console.error("No database connection string configured");
+    return { message: "Please try again later." };
+  }
 
   try {
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    console.log(formData);
-    if (!name || !email) {
-      return { message: "Please enter your name and email address" };
-    }
-    const { rows } = await sql`
-          INSERT INTO waitlist (name, email)
-          VALUES (${name}, ${email})
-        `;
-    console.log(rows);
+    const sql = neon(connectionString);
+    await sql`INSERT INTO waitlist (name, email) VALUES (${name}, ${email})`;
     return { message: "Thank you for signing up!" };
   } catch (err) {
     console.error(err);
-    return { message: "Please try again later" };
+    return { message: "Please try again later." };
   }
 }

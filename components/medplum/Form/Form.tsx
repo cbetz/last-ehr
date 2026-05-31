@@ -8,7 +8,7 @@ export interface FormProps {
   readonly testid?: string;
 }
 
-export function Form(props: FormProps): JSX.Element {
+export function Form(props: FormProps) {
   return (
     <form
       style={props.style}
