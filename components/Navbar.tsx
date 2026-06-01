@@ -87,10 +87,17 @@ const Navbar = () => {
                     ))}
                   </ul>
                   <Link
+                    href="/demo"
+                    onClick={() => setIsOpen(false)}
+                    className={`w-[140px] ${buttonVariants({ size: "sm" })}`}
+                  >
+                    Live Demo
+                  </Link>
+                  <Link
                     href="https://x.com/lastehr"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`w-[110px] border ${buttonVariants({
+                    className={`w-[140px] border ${buttonVariants({
                       variant: "ghost",
                     })}`}
                   >
@@ -120,7 +127,10 @@ const Navbar = () => {
           </div>
 
           <div className="hidden md:flex gap-2">
-            <div className="flex space-x-2">
+            <div className="flex items-center space-x-2">
+              <Link href="/demo" className={buttonVariants({ size: "sm" })}>
+                Live Demo
+              </Link>
               <Link
                 href="https://x.com/lastehr"
                 target="_blank"

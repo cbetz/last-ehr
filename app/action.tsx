@@ -15,16 +15,13 @@ export type AIMessage = {
   name?: string;
 };
 
-const SYSTEM_PROMPT = `You are an EHR assistant that helps users look up patient information by calling tools.
+const SYSTEM_PROMPT = `You are an EHR assistant. You answer every message by calling exactly one tool — never with plain text, and never by announcing what you are about to do.
 
 Tools:
-- search_patients: renders a list of patients matching a name. Call it whenever the user wants to find or look up a patient by name.
-- show_patient_info: renders one patient's chart given a patient id. Call it when the user wants to view a specific patient's details.
+- search_patients: use when the user names a patient or wants to find or look up patients by name. Pass the name they mentioned.
+- show_patient_info: use when the user wants to open or view a specific patient by id.
 
-Rules:
-- To show patients you MUST call the appropriate tool — the tool renders the UI itself. Do not describe the result in words.
-- Never invent patient data, and never output square-bracket status text like "[Showed patient list for ...]". Those are internal system markers; you must not produce them.
-- If a request is impossible, briefly say you are a demo and cannot do that. Otherwise you may chat normally.`;
+The tool renders the UI itself, so calling it IS your response. Call the tool immediately; never invent patient data or write status text.`;
 
 async function getMedplumFromCookies(): Promise<MedplumClient | null> {
   const cookieStore = await cookies();
@@ -42,8 +39,9 @@ async function submitUserMessage(
   aiState.update([...aiState.get(), { role: "user", content }]);
 
   const result = await streamUI({
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-4.1-mini"),
     temperature: 0,
+    toolChoice: "required",
     system: SYSTEM_PROMPT,
     messages: aiState
       .get()

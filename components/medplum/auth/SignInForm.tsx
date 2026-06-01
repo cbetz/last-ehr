@@ -7,6 +7,7 @@ import { ProjectMembership } from "@medplum/fhirtypes";
 import { useMedplum } from "@medplum/react-hooks";
 import { ReactNode, useCallback, useEffect, useState } from "react";
 import { AuthenticationForm } from "./AuthenticationForm";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export interface SignInFormProps extends BaseLoginRequest {
   readonly login?: string;
@@ -46,22 +47,22 @@ export function SignInForm(props: SignInFormProps) {
   const [login, setLogin] = useState<string>();
   const [mfaRequired, setAuthenticatorRequired] = useState(false);
   const [memberships, setMemberships] = useState<ProjectMembership[]>();
+  const [error, setError] = useState<string>();
 
   const handleCode = useCallback(
     (code: string): void => {
+      setError(undefined);
       if (onCode) {
         onCode(code);
       } else {
         medplum
           .processCode(code)
-          .then((response) => {
-            if (onSuccess) {
-              onSuccess();
-            }
-          })
-          .catch((err) =>
-            console.error("Error processing code", normalizeErrorString(err))
-          );
+          .then(() => onSuccess?.())
+          .catch((err) => {
+            const message = normalizeErrorString(err);
+            console.error("Error processing code", message);
+            setError(message);
+          });
       }
     },
     [medplum, onCode, onSuccess]
@@ -98,27 +99,31 @@ export function SignInForm(props: SignInFormProps) {
   );
 
   useEffect(() => {
-    // Beware the race condition here
-    // The `useMedplum` hook will return a new instance of the MedplumClient on login
-    // We do not want to request the login status again in that case
-    // Only request login status once
+    // Only request login status once (useMedplum returns a new client on login).
     if (loginCode && !login) {
       medplum
         .get("auth/login/" + loginCode)
         .then(handleAuthResponse)
-        .catch((err) =>
-          console.error("Error getting login status", normalizeErrorString(err))
-        );
+        .catch((err) => {
+          const message = normalizeErrorString(err);
+          console.error("Error getting login status", message);
+          setError(message);
+        });
     }
-    console.log("auth: ", medplum.getAccessToken());
     const authToken = medplum.getAccessToken();
     if (authToken) {
-      document.cookie = `medplum_access_token=${authToken}`;
+      document.cookie = `medplum_access_token=${authToken}; path=/`;
     }
   }, [medplum, loginCode, login, handleAuthResponse]);
 
   return (
-    <div>
+    <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertTitle>Sign-in failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
       {(() => {
         if (!login) {
           return (
