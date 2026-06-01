@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.0",
-    "@ai-sdk/rsc": "^2.0.0",
+    "@ai-sdk/react": "^3.0.195",
     "@medplum/core": "5.1.13",
     "@medplum/fhirtypes": "5.1.13",
     "@medplum/react-hooks": "5.1.13",
