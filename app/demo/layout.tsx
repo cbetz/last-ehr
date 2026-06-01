@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { AI } from "../action";
 
 export const metadata: Metadata = {
   title: "Live Demo",
@@ -11,5 +10,5 @@ export const metadata: Metadata = {
 export default function DemoLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <AI>{children}</AI>;
+  return children;
 }

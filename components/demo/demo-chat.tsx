@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useUIState, useActions } from "@ai-sdk/rsc";
+import { useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import Textarea from "react-textarea-autosize";
 
-import { type AI } from "@/app/action";
-import { UserMessage } from "@/components/chat";
+import type { ChatMessage } from "@/app/api/chat/route";
+import {
+  BotCard,
+  BotMessage,
+  MessageSkeleton,
+  Patients,
+  UserMessage,
+} from "@/components/chat";
+import { PatientCard } from "@/components/chat/patient";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
 import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
@@ -15,55 +23,114 @@ import {
 } from "@/components/ui/tooltip";
 import { IconArrowElbow, IconPlus } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
-import { ChatList } from "@/components/chat-list";
 import { EmptyScreen } from "@/components/empty-screen";
 
 export function DemoChat() {
-  const [messages, setMessages] = useUIState<typeof AI>();
-  const { submitUserMessage } = useActions<typeof AI>();
-  const [inputValue, setInputValue] = useState("");
+  const { messages, sendMessage, status, error, setMessages } =
+    useChat<ChatMessage>({
+      transport: new DefaultChatTransport({ api: "/api/chat" }),
+    });
+  const [input, setInput] = useState("");
   const { formRef, onKeyDown } = useEnterSubmit();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/") {
-        if (
-          e.target &&
-          ["INPUT", "TEXTAREA"].includes((e.target as HTMLElement).nodeName)
-        ) {
-          return;
-        }
-        e.preventDefault();
-        e.stopPropagation();
-        inputRef.current?.focus();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  async function send(message: string) {
-    setMessages((current) => [
-      ...current,
-      { id: crypto.randomUUID(), display: <UserMessage>{message}</UserMessage> },
-    ]);
-    try {
-      const responseMessage = await submitUserMessage(message);
-      setMessages((current) => [...current, responseMessage]);
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  const ask = (text: string) => sendMessage({ text });
 
   return (
     <>
       <div className="pb-[200px] pt-4 md:pt-10">
-        {messages.length ? (
-          <ChatList messages={messages} />
+        {messages.length === 0 ? (
+          <EmptyScreen submitMessage={ask} />
         ) : (
-          <EmptyScreen submitMessage={send} />
+          <div className="relative mx-auto max-w-2xl px-4">
+            {messages.map((message) => (
+              <div key={message.id} className="pb-4">
+                {message.role === "user" ? (
+                  <UserMessage>
+                    {message.parts
+                      .map((p) => (p.type === "text" ? p.text : ""))
+                      .join("")}
+                  </UserMessage>
+                ) : (
+                  message.parts.map((part, i) => {
+                    switch (part.type) {
+                      case "text":
+                        return part.text ? (
+                          <BotMessage key={`${message.id}-${i}`}>
+                            {part.text}
+                          </BotMessage>
+                        ) : null;
+
+                      case "tool-search_patients":
+                        if (part.state === "output-available") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <Patients
+                                patients={part.output.patients}
+                                onSelect={(id) =>
+                                  ask(`Show patient info for id ${id}`)
+                                }
+                              />
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, the patient search failed: {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return (
+                          <BotCard key={part.toolCallId}>
+                            <MessageSkeleton />
+                          </BotCard>
+                        );
+
+                      case "tool-show_patient_info":
+                        if (part.state === "output-available") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <PatientCard patient={part.output.patient} />
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, I couldn&apos;t load that patient:{" "}
+                              {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return (
+                          <BotCard key={part.toolCallId}>
+                            <MessageSkeleton />
+                          </BotCard>
+                        );
+
+                      default:
+                        return null;
+                    }
+                  })
+                )}
+              </div>
+            ))}
+
+            {status === "submitted" && (
+              <div className="pb-4">
+                <BotCard>
+                  <MessageSkeleton />
+                </BotCard>
+              </div>
+            )}
+            {error && (
+              <div className="pb-4">
+                <BotMessage>
+                  Something went wrong. Please try again.
+                </BotMessage>
+              </div>
+            )}
+          </div>
         )}
         <ChatScrollAnchor trackVisibility={true} />
       </div>
@@ -73,19 +140,11 @@ export function DemoChat() {
           <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
             <form
               ref={formRef}
-              onSubmit={async (e) => {
+              onSubmit={(e) => {
                 e.preventDefault();
-                if (window.innerWidth < 600) {
-                  (
-                    e.currentTarget.elements.namedItem(
-                      "message",
-                    ) as HTMLTextAreaElement | null
-                  )?.blur();
-                }
-                const value = inputValue.trim();
-                setInputValue("");
-                if (!value) return;
-                await send(value);
+                const value = input.trim();
+                setInput("");
+                if (value) ask(value);
               }}
             >
               <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
@@ -97,7 +156,8 @@ export function DemoChat() {
                       className="absolute left-0 top-4 h-8 w-8 rounded-full bg-background p-0 sm:left-4"
                       onClick={(e) => {
                         e.preventDefault();
-                        window.location.reload();
+                        setMessages([]);
+                        setInput("");
                       }}
                     >
                       <IconPlus />
@@ -107,7 +167,6 @@ export function DemoChat() {
                   <TooltipContent>New Chat</TooltipContent>
                 </Tooltip>
                 <Textarea
-                  ref={inputRef}
                   tabIndex={0}
                   onKeyDown={onKeyDown}
                   placeholder="Ask about a patient…"
@@ -118,13 +177,17 @@ export function DemoChat() {
                   autoCorrect="off"
                   name="message"
                   rows={1}
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
                 />
                 <div className="absolute right-0 top-4 sm:right-4">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button type="submit" size="icon" disabled={inputValue === ""}>
+                      <Button
+                        type="submit"
+                        size="icon"
+                        disabled={input.trim() === "" || status !== "ready"}
+                      >
                         <IconArrowElbow />
                         <span className="sr-only">Send message</span>
                       </Button>

@@ -1,20 +1,29 @@
 "use client";
 
-import { useActions, useUIState } from "@ai-sdk/rsc";
 import Image from "next/image";
 
-import type { AI } from "../../app/action";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 
-export function Patients({ patients }: { patients: any[] }) {
-  const [, setMessages] = useUIState<typeof AI>();
-  const { submitUserMessage } = useActions<typeof AI>();
+export function Patients({
+  patients,
+  onSelect,
+}: {
+  patients: any[];
+  onSelect: (id: string) => void;
+}) {
+  if (!patients.length) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No patients found. Try a different name.
+      </p>
+    );
+  }
 
   return (
     <div className="grid gap-4">
       {patients.map((patient) => {
-        const resource = patient.resource ?? {};
+        const resource = patient.resource ?? patient ?? {};
         const name = resource.name?.[0];
         const family = name?.family ?? "";
         const given = name?.given?.join(" ") ?? "";
@@ -48,18 +57,7 @@ export function Patients({ patients }: { patients: any[] }) {
                   {resource.birthDate}
                 </div>
               </div>
-              <Button
-                size="sm"
-                onClick={async () => {
-                  const response = await submitUserMessage(
-                    `View patient with id = ${resource.id}`,
-                  );
-                  setMessages((currentMessages) => [
-                    ...currentMessages,
-                    response,
-                  ]);
-                }}
-              >
+              <Button size="sm" onClick={() => onSelect(resource.id)}>
                 View record
               </Button>
             </CardContent>

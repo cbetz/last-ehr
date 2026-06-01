@@ -1,9 +1,6 @@
-"use client";
-
-import dynamic from "next/dynamic";
-
 export { spinner } from "./spinner";
 export { BotCard, BotMessage, SystemMessage, UserMessage } from "./message";
+export { Patients } from "./patients";
 
 /** Generic loading skeleton shown while a tool streams its result UI. */
 export function MessageSkeleton() {
@@ -14,13 +11,3 @@ export function MessageSkeleton() {
     </div>
   );
 }
-
-const Patients = dynamic(
-  () => import("./patients").then((mod) => mod.Patients),
-  {
-    ssr: false,
-    loading: () => <MessageSkeleton />,
-  },
-);
-
-export { Patients };
