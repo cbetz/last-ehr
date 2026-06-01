@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { useMedplum } from "@medplum/react-hooks";
 import Textarea from "react-textarea-autosize";
 
 import type { ChatMessage } from "@/app/api/chat/route";
@@ -32,8 +33,18 @@ export function DemoChat() {
     });
   const [input, setInput] = useState("");
   const { formRef, onKeyDown } = useEnterSubmit();
+  const medplum = useMedplum();
 
-  const ask = (text: string) => sendMessage({ text });
+  const ask = (text: string) => {
+    // Ensure the /api/chat route can read the current Medplum session — the
+    // sign-in form isn't mounted once you're already authenticated, so set
+    // (and refresh) the token cookie here before every send.
+    const token = medplum.getAccessToken();
+    if (token) {
+      document.cookie = `medplum_access_token=${token}; path=/; samesite=lax`;
+    }
+    sendMessage({ text });
+  };
 
   return (
     <>
