@@ -4,6 +4,7 @@ import { ChevronLast } from "lucide-react";
 import { IconTwitter } from "./ui/icons";
 
 const footerLinks = [
+  { href: "/headless-ehr", label: "Headless EHR" },
   { href: "/#howItWorks", label: "How It Works" },
   { href: "/#ai", label: "AI Agents" },
   { href: "/#signup", label: "Sign Up" },
