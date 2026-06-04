@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   CableIcon,
   DatabaseIcon,
@@ -67,6 +68,16 @@ export const HowItWorks = () => {
           </Card>
         ))}
       </div>
+
+      <p className="mt-10 text-muted-foreground">
+        New to the concept?{" "}
+        <Link
+          href="/headless-ehr"
+          className="font-medium text-foreground underline underline-offset-4"
+        >
+          Learn what a headless EHR is →
+        </Link>
+      </p>
     </section>
   );
 };

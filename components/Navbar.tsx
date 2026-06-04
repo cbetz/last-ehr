@@ -24,15 +24,19 @@ interface RouteProps {
 
 const routeList: RouteProps[] = [
   {
-    href: "#howItWorks",
+    href: "/headless-ehr",
+    label: "Headless EHR",
+  },
+  {
+    href: "/#howItWorks",
     label: "How It Works",
   },
   {
-    href: "#ai",
+    href: "/#ai",
     label: "AI Agents",
   },
   {
-    href: "#signup",
+    href: "/#signup",
     label: "Sign Up",
   },
 ];
