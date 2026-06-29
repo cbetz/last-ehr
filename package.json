@@ -2,6 +2,14 @@
   "name": "last-ehr",
   "version": "0.1.0",
   "private": true,
+  "description": "Open-source AI agent layer for Medplum / FHIR — a permissioned AI agent over the chart.",
+  "license": "Apache-2.0",
+  "author": "Chris Betz",
+  "homepage": "https://www.lastehr.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cbetz/last-ehr.git"
+  },
   "engines": {
     "node": ">=20.9.0"
   },
