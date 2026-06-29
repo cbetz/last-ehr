@@ -8,10 +8,11 @@ import {
   type UIDataTypes,
   type ToolSet,
 } from "ai";
-import { openai } from "@ai-sdk/openai";
 import { cookies } from "next/headers";
 import { MedplumClient } from "@medplum/core";
 import { z } from "zod";
+
+import { getChatModel } from "@/lib/ai/model";
 
 // Node runtime so @medplum/core works; allow time for the multi-step tool loop.
 export const runtime = "nodejs";
@@ -25,7 +26,12 @@ const SYSTEM_PROMPT = `You are an EHR assistant. Help users look up patient info
 Call a tool to fulfill any lookup request — the UI renders the results for the user, so keep any accompanying text to a short sentence. Never invent patient data.`;
 
 function buildTools(accessToken: string) {
-  const medplum = new MedplumClient({ accessToken });
+  // baseUrl lets self-hosters point at their own Medplum; falls back to
+  // Medplum's hosted API (api.medplum.com) when unset.
+  const medplum = new MedplumClient({
+    accessToken,
+    baseUrl: process.env.MEDPLUM_BASE_URL,
+  });
   return {
     search_patients: tool({
       description:
@@ -65,7 +71,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai("gpt-4.1-mini"),
+    model: getChatModel(),
     system: SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
     tools: buildTools(accessToken),
