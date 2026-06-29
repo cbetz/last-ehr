@@ -59,8 +59,8 @@ export function DemoChat() {
           <EmptyScreen submitMessage={ask} />
         ) : (
           <div className="relative mx-auto max-w-2xl px-4">
-            {messages.map((message) => (
-              <div key={message.id} className="pb-4">
+            {messages.map((message, mi) => (
+              <div key={`${message.id}-${mi}`} className="pb-4">
                 {message.role === "user" ? (
                   <UserMessage>
                     {message.parts
