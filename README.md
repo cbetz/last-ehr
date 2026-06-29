@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Last EHR
 
-## Getting Started
+**Open-source AI agent layer for Medplum & FHIR** — a permissioned AI agent over the patient chart. Bring your own backend and your own model key.
 
-First, run the development server:
+> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum today) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
+
+**Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
+
+## What it does
+
+- A chat agent (Vercel AI SDK) with FHIR tools — today: **search patients** and **view a patient chart** — streamed and rendered as rich cards.
+- Authentication, multi-tenancy, and access control are delegated to your **Medplum** project (`Project` = tenant, `ProjectMembership` = user, `AccessPolicy` = RBAC). Last EHR doesn't reimplement any of that.
+
+## What it isn't
+
+- Not a charting EHR, not a system of record, not a Medplum replacement, and not (yet) a write-capable clinical tool — the shipped tools are read-only.
+
+## How it works
+
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through `@medplum/core` against the Medplum instance you configure. **Backend-agnostic is the goal** — Medplum is the first adapter; the FHIR calls are the seam where other headless EHRs (Aidbox, HAPI, Firely, …) would slot in.
+
+## Quickstart
+
+Prerequisites: Node ≥ 20.9, a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one model API key (OpenAI or Anthropic).
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/cbetz/last-ehr.git
+cd last-ehr
+npm install
+cp .env.example .env.local      # then edit .env.local (see below)
+npm run dev                      # http://localhost:3000/demo
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+At minimum set, in `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- a model key — `OPENAI_API_KEY` (default provider) **or** `ANTHROPIC_API_KEY` with `AI_PROVIDER=anthropic`;
+- `NEXT_PUBLIC_MEDPLUM_BASE_URL` / `MEDPLUM_BASE_URL` if you're pointing at your own Medplum (leave blank to use Medplum's hosted API);
+- `NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID` for the `/demo` sign-in (Medplum Google OAuth).
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Then open `/demo`, sign in, and ask: *"find patients named Smith."* Load some **synthetic** patients into your Medplum project first (e.g. a [Synthea](https://github.com/synthetichealth/synthea) bundle) so the agent has data to find.
 
-## Learn More
+> A lower-friction quickstart (a server-side Medplum client credential, so no Google OAuth client is needed) and a synthetic-data seed script are in progress.
 
-To learn more about Next.js, take a look at the following resources:
+## Configuration
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic: set `AI_PROVIDER` (`openai` | `anthropic`), optionally `MODEL_ID`, and the matching key. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Security & data
 
-## Deploy on Vercel
+PHI flows to whichever model provider you configure, under **your** API key — so use a provider and agreement appropriate for your data. This project is alpha and is **not** a HIPAA-covered service; PHI handling is the operator's responsibility. Use synthetic data unless you have the right agreements in place. See [SECURITY.md](./SECURITY.md).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Open-core
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Self-hosting is free and Apache-2.0. A managed hosted tier (managed Medplum + a signed BAA, multi-tenancy, billing) may follow — built only after the open-source core has traction.
+
+## Not affiliated
+
+A personal open-source project. Not affiliated with, endorsed by, or sponsored by Medplum, Vercel, or any employer.
+
+## License
+
+[Apache-2.0](./LICENSE). See [NOTICE](./NOTICE) for third-party attributions and [CONTRIBUTING.md](./CONTRIBUTING.md) to contribute.
