@@ -1,0 +1,276 @@
+{
+  "resourceType": "Bundle",
+  "type": "transaction",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:11111111-1111-4111-8111-111111111111",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          { "system": "https://lastehr.com/synthetic", "value": "synthetic-001" }
+        ],
+        "name": [{ "use": "official", "family": "Smith", "given": ["John", "A"] }],
+        "gender": "male",
+        "birthDate": "1980-05-14",
+        "telecom": [{ "system": "email", "value": "john.smith@example.com" }],
+        "address": [
+          {
+            "line": ["123 Fake St"],
+            "city": "Springfield",
+            "state": "IL",
+            "postalCode": "62704",
+            "country": "US"
+          }
+        ]
+      },
+      "request": { "method": "POST", "url": "Patient" }
+    },
+    {
+      "fullUrl": "urn:uuid:11111111-1111-4111-8111-1111111111c1",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "verificationStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status",
+              "code": "confirmed"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            { "system": "http://snomed.info/sct", "code": "59621000", "display": "Essential hypertension" }
+          ],
+          "text": "Essential hypertension"
+        },
+        "subject": { "reference": "urn:uuid:11111111-1111-4111-8111-111111111111" }
+      },
+      "request": { "method": "POST", "url": "Condition" }
+    },
+    {
+      "fullUrl": "urn:uuid:11111111-1111-4111-8111-1111111111a1",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            { "system": "http://loinc.org", "code": "8480-6", "display": "Systolic blood pressure" }
+          ],
+          "text": "Systolic blood pressure"
+        },
+        "subject": { "reference": "urn:uuid:11111111-1111-4111-8111-111111111111" },
+        "effectiveDateTime": "2026-01-15",
+        "valueQuantity": {
+          "value": 142,
+          "unit": "mmHg",
+          "system": "http://unitsofmeasure.org",
+          "code": "mm[Hg]"
+        }
+      },
+      "request": { "method": "POST", "url": "Observation" }
+    },
+    {
+      "fullUrl": "urn:uuid:22222222-2222-4222-8222-222222222222",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          { "system": "https://lastehr.com/synthetic", "value": "synthetic-002" }
+        ],
+        "name": [{ "use": "official", "family": "Smith", "given": ["Jane", "M"] }],
+        "gender": "female",
+        "birthDate": "1992-11-02",
+        "telecom": [{ "system": "email", "value": "jane.smith@example.com" }],
+        "address": [
+          {
+            "line": ["456 Example Ave"],
+            "city": "Springfield",
+            "state": "IL",
+            "postalCode": "62704",
+            "country": "US"
+          }
+        ]
+      },
+      "request": { "method": "POST", "url": "Patient" }
+    },
+    {
+      "fullUrl": "urn:uuid:22222222-2222-4222-8222-2222222222c2",
+      "resource": {
+        "resourceType": "Condition",
+        "clinicalStatus": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              "code": "active"
+            }
+          ]
+        },
+        "code": {
+          "coding": [
+            { "system": "http://snomed.info/sct", "code": "44054006", "display": "Type 2 diabetes mellitus" }
+          ],
+          "text": "Type 2 diabetes mellitus"
+        },
+        "subject": { "reference": "urn:uuid:22222222-2222-4222-8222-222222222222" }
+      },
+      "request": { "method": "POST", "url": "Condition" }
+    },
+    {
+      "fullUrl": "urn:uuid:22222222-2222-4222-8222-2222222222a2",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "laboratory"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            { "system": "http://loinc.org", "code": "4548-4", "display": "Hemoglobin A1c" }
+          ],
+          "text": "Hemoglobin A1c"
+        },
+        "subject": { "reference": "urn:uuid:22222222-2222-4222-8222-222222222222" },
+        "effectiveDateTime": "2026-02-03",
+        "valueQuantity": {
+          "value": 7.4,
+          "unit": "%",
+          "system": "http://unitsofmeasure.org",
+          "code": "%"
+        }
+      },
+      "request": { "method": "POST", "url": "Observation" }
+    },
+    {
+      "fullUrl": "urn:uuid:33333333-3333-4333-8333-333333333333",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          { "system": "https://lastehr.com/synthetic", "value": "synthetic-003" }
+        ],
+        "name": [{ "use": "official", "family": "Jones", "given": ["Robert"] }],
+        "gender": "male",
+        "birthDate": "1975-02-20",
+        "address": [
+          {
+            "line": ["789 Sample Blvd"],
+            "city": "Riverton",
+            "state": "WY",
+            "postalCode": "82501",
+            "country": "US"
+          }
+        ]
+      },
+      "request": { "method": "POST", "url": "Patient" }
+    },
+    {
+      "fullUrl": "urn:uuid:33333333-3333-4333-8333-3333333333a3",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            { "system": "http://loinc.org", "code": "8867-4", "display": "Heart rate" }
+          ],
+          "text": "Heart rate"
+        },
+        "subject": { "reference": "urn:uuid:33333333-3333-4333-8333-333333333333" },
+        "effectiveDateTime": "2026-01-28",
+        "valueQuantity": {
+          "value": 72,
+          "unit": "/min",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        }
+      },
+      "request": { "method": "POST", "url": "Observation" }
+    },
+    {
+      "fullUrl": "urn:uuid:44444444-4444-4444-8444-444444444444",
+      "resource": {
+        "resourceType": "Patient",
+        "identifier": [
+          { "system": "https://lastehr.com/synthetic", "value": "synthetic-004" }
+        ],
+        "name": [{ "use": "official", "family": "Garcia", "given": ["Maria"] }],
+        "gender": "female",
+        "birthDate": "2001-07-30",
+        "address": [
+          {
+            "line": ["321 Placeholder Rd"],
+            "city": "Austin",
+            "state": "TX",
+            "postalCode": "73301",
+            "country": "US"
+          }
+        ]
+      },
+      "request": { "method": "POST", "url": "Patient" }
+    },
+    {
+      "fullUrl": "urn:uuid:44444444-4444-4444-8444-4444444444a4",
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "category": [
+          {
+            "coding": [
+              {
+                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                "code": "vital-signs"
+              }
+            ]
+          }
+        ],
+        "code": {
+          "coding": [
+            { "system": "http://loinc.org", "code": "8310-5", "display": "Body temperature" }
+          ],
+          "text": "Body temperature"
+        },
+        "subject": { "reference": "urn:uuid:44444444-4444-4444-8444-444444444444" },
+        "effectiveDateTime": "2026-02-10",
+        "valueQuantity": {
+          "value": 37.0,
+          "unit": "Cel",
+          "system": "http://unitsofmeasure.org",
+          "code": "Cel"
+        }
+      },
+      "request": { "method": "POST", "url": "Observation" }
+    }
+  ]
+}
