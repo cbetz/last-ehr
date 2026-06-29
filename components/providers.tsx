@@ -12,15 +12,18 @@ import { PostHogProvider } from "posthog-js/react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-if (typeof window !== "undefined") {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+// PostHog is optional — self-hosters without a key get no analytics rather
+// than a first-run crash.
+if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
   });
 }
 
 const medplum = new MedplumClient({
-  // Uncomment this to run against the server on your localhost
-  // baseUrl: 'http://localhost:8103/',
+  // Point at your own Medplum via NEXT_PUBLIC_MEDPLUM_BASE_URL
+  // (e.g. http://localhost:8103/); falls back to Medplum's hosted API.
+  baseUrl: process.env.NEXT_PUBLIC_MEDPLUM_BASE_URL,
 
   // Handle unauthenticated requests
   onUnauthenticated: () => (window.location.href = "/"),
