@@ -25,7 +25,7 @@ export async function POST() {
   }
 
   const medplum = new MedplumClient({
-    baseUrl: process.env.MEDPLUM_BASE_URL,
+    baseUrl: process.env.MEDPLUM_BASE_URL || undefined,
     fetch,
   });
 

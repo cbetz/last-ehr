@@ -30,7 +30,7 @@ function buildTools(accessToken: string) {
   // Medplum's hosted API (api.medplum.com) when unset.
   const medplum = new MedplumClient({
     accessToken,
-    baseUrl: process.env.MEDPLUM_BASE_URL,
+    baseUrl: process.env.MEDPLUM_BASE_URL || undefined,
   });
   return {
     search_patients: tool({
