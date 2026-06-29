@@ -15,8 +15,8 @@ export function DemoHeader() {
     try {
       await medplum.signOut();
     } finally {
-      // Clear the server-readable token cookie set during sign-in.
-      document.cookie = "medplum_access_token=; Max-Age=0; path=/";
+      // Clear the server-set HttpOnly session cookie.
+      await fetch("/api/auth/session", { method: "DELETE" });
       window.location.href = "/demo";
     }
   }

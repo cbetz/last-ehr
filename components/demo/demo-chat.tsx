@@ -35,13 +35,19 @@ export function DemoChat() {
   const { formRef, onKeyDown } = useEnterSubmit();
   const medplum = useMedplum();
 
-  const ask = (text: string) => {
+  const ask = async (text: string) => {
     // Ensure the /api/chat route can read the current Medplum session — the
-    // sign-in form isn't mounted once you're already authenticated, so set
-    // (and refresh) the token cookie here before every send.
+    // sign-in form isn't mounted once you're already authenticated, so refresh
+    // the server-set HttpOnly session cookie here before every send. The token
+    // is posted to a server route rather than written to document.cookie, so it
+    // never lives in a JS-readable cookie.
     const token = medplum.getAccessToken();
     if (token) {
-      document.cookie = `medplum_access_token=${token}; path=/; samesite=lax`;
+      await fetch("/api/auth/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accessToken: token }),
+      });
     }
     sendMessage({ text });
   };

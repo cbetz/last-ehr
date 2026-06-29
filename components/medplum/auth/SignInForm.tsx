@@ -110,10 +110,6 @@ export function SignInForm(props: SignInFormProps) {
           setError(message);
         });
     }
-    const authToken = medplum.getAccessToken();
-    if (authToken) {
-      document.cookie = `medplum_access_token=${authToken}; path=/`;
-    }
   }, [medplum, loginCode, login, handleAuthResponse]);
 
   return (
