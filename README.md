@@ -28,6 +28,7 @@ git clone https://github.com/cbetz/last-ehr.git
 cd last-ehr
 npm install
 cp .env.example .env.local      # then edit .env.local (see below)
+npm run seed                     # load synthetic patients into your Medplum
 npm run dev                      # http://localhost:3000/demo
 ```
 
@@ -35,11 +36,9 @@ At minimum set, in `.env.local`:
 
 - a model key — `OPENAI_API_KEY` (default provider) **or** `ANTHROPIC_API_KEY` with `AI_PROVIDER=anthropic`;
 - `NEXT_PUBLIC_MEDPLUM_BASE_URL` / `MEDPLUM_BASE_URL` if you're pointing at your own Medplum (leave blank to use Medplum's hosted API);
-- `NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID` for the `/demo` sign-in (Medplum Google OAuth).
+- `MEDPLUM_CLIENT_ID` + `MEDPLUM_CLIENT_SECRET` (a Medplum [ClientApplication](https://www.medplum.com/docs/auth/methods/client-credentials)) — used by `npm run seed`, and by the **no-sign-in quickstart** when you also set `NEXT_PUBLIC_QUICKSTART=true`. Or set `NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID` to sign in via Medplum's Google OAuth instead.
 
-Then open `/demo`, sign in, and ask: *"find patients named Smith."* Load some **synthetic** patients into your Medplum project first (e.g. a [Synthea](https://github.com/synthetichealth/synthea) bundle) so the agent has data to find.
-
-> A lower-friction quickstart (a server-side Medplum client credential, so no Google OAuth client is needed) and a synthetic-data seed script are in progress.
+`npm run seed` loads a small **synthetic** patient set (`scripts/fixtures/synthetic-patients.json` — a few patients with conditions and observations, two named "Smith"). Then open `/demo` and ask: *"find patients named Smith."* Use synthetic data only.
 
 ## Configuration
 
