@@ -23,7 +23,7 @@ if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
 const medplum = new MedplumClient({
   // Point at your own Medplum via NEXT_PUBLIC_MEDPLUM_BASE_URL
   // (e.g. http://localhost:8103/); falls back to Medplum's hosted API.
-  baseUrl: process.env.NEXT_PUBLIC_MEDPLUM_BASE_URL,
+  baseUrl: process.env.NEXT_PUBLIC_MEDPLUM_BASE_URL || undefined,
 
   // Handle unauthenticated requests
   onUnauthenticated: () => (window.location.href = "/"),
