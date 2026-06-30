@@ -4,7 +4,7 @@ import { IconArrowRight } from "@/components/ui/icons";
 const exampleMessages = [
   {
     heading: "Look up a patient",
-    message: "Look up a patient named Alex",
+    message: "Look up a patient named Maria",
   },
 ];
 
