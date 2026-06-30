@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
 import { useMedplum } from "@medplum/react-hooks";
@@ -40,9 +41,12 @@ export function DemoChat() {
     addToolApprovalResponse,
   } = useChat<ChatMessage>({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
-    // After the user approves or denies a write, resume so the server runs (or
-    // skips) the gated tool and the assistant can respond.
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    // Resume the turn automatically when the assistant message is ready to
+    // continue server-side: after the user responds to a write approval (so
+    // the gated tool's execute runs), or after any client tool result.
+    sendAutomaticallyWhen: (options) =>
+      lastAssistantMessageIsCompleteWithApprovalResponses(options) ||
+      lastAssistantMessageIsCompleteWithToolCalls(options),
   });
   const [input, setInput] = useState("");
   const { formRef, onKeyDown } = useEnterSubmit();
