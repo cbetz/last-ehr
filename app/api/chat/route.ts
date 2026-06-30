@@ -18,12 +18,17 @@ import { getChatModel } from "@/lib/ai/model";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const SYSTEM_PROMPT = `You are an EHR assistant. Help users look up patient information.
+const SYSTEM_PROMPT = `You are an EHR assistant working over a FHIR backend.
 
-- Use the search_patients tool to find patients by name.
-- Use the show_patient_info tool to load a specific patient's chart by id.
+Reading the chart:
+- Use search_patients to find patients by name.
+- Use show_patient_info to load a specific patient's chart by id.
 
-Call a tool to fulfill any lookup request — the UI renders the results for the user, so keep any accompanying text to a short sentence. Never invent patient data.`;
+Writing to the chart (these save to the patient's record):
+- Use add_note to add a free-text note.
+- Use record_observation to record a vital sign or lab value (a label, a numeric value, and a unit).
+
+Always reference a patient by the resource id from a prior search. Writes require the user to approve before anything is saved — propose the write and the user will be asked to confirm. The UI renders tool results, so keep any accompanying text to a short sentence. Never invent patient data.`;
 
 function buildTools(accessToken: string) {
   // baseUrl lets self-hosters point at their own Medplum; falls back to
@@ -53,6 +58,64 @@ function buildTools(accessToken: string) {
       execute: async ({ id }) => {
         const patient = await medplum.readResource("Patient", id);
         return { patient };
+      },
+    }),
+    add_note: tool({
+      description:
+        "Add a free-text clinical note to a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search.",
+      inputSchema: z.object({
+        patientId: z.string().describe("The patient resource id."),
+        text: z.string().describe("The note text to add to the chart."),
+      }),
+      needsApproval: true,
+      execute: async ({ patientId, text }) => {
+        const created = await medplum.createResource({
+          resourceType: "Communication",
+          status: "completed",
+          subject: { reference: `Patient/${patientId}` },
+          sent: new Date().toISOString(),
+          payload: [{ contentString: text }],
+        });
+        return {
+          id: created.id,
+          resourceType: "Communication",
+          summary: text,
+        };
+      },
+    }),
+    record_observation: tool({
+      description:
+        "Record a clinical observation (a vital sign or lab value) on a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search.",
+      inputSchema: z.object({
+        patientId: z.string().describe("The patient resource id."),
+        label: z
+          .string()
+          .describe(
+            "What is being measured, e.g. 'Systolic blood pressure' or 'Body weight'.",
+          ),
+        value: z.number().describe("The numeric value."),
+        unit: z.string().describe("The unit, e.g. 'mmHg', 'kg', 'bpm'."),
+      }),
+      needsApproval: true,
+      execute: async ({ patientId, label, value, unit }) => {
+        const created = await medplum.createResource({
+          resourceType: "Observation",
+          status: "final",
+          code: { text: label },
+          subject: { reference: `Patient/${patientId}` },
+          effectiveDateTime: new Date().toISOString(),
+          valueQuantity: {
+            value,
+            unit,
+            system: "http://unitsofmeasure.org",
+            code: unit,
+          },
+        });
+        return {
+          id: created.id,
+          resourceType: "Observation",
+          summary: `${label}: ${value} ${unit}`,
+        };
       },
     }),
   } satisfies ToolSet;

@@ -13,12 +13,13 @@
 
 ## What it does
 
-- A chat agent (Vercel AI SDK) with FHIR tools — today: **search patients** and **view a patient chart** — streamed and rendered as rich cards.
-- Authentication, multi-tenancy, and access control are delegated to your **Medplum** project (`Project` = tenant, `ProjectMembership` = user, `AccessPolicy` = RBAC). Last EHR doesn't reimplement any of that.
+- A chat agent (Vercel AI SDK) with FHIR tools — **read** the chart (search patients, view a patient chart) and **write** to it (add a note, record an observation) — streamed and rendered as rich cards.
+- **Writes are confirmation-gated**: the agent proposes a write, you approve it, and only then is it saved. Nothing touches the chart without your click.
+- Authentication, multi-tenancy, and access control are delegated to your **Medplum** project (`Project` = tenant, `ProjectMembership` = user, `AccessPolicy` = RBAC). Last EHR doesn't reimplement any of that — and writes are bounded by your AccessPolicy.
 
 ## What it isn't
 
-- Not a charting EHR, not a system of record, not a Medplum replacement, and not (yet) a write-capable clinical tool — the shipped tools are read-only.
+- Not a charting EHR, not a system of record, and not a Medplum replacement. It's a thin agent layer — a small, growing set of tools over your FHIR backend.
 
 ## How it works
 

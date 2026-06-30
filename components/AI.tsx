@@ -41,8 +41,8 @@ const AISection = () => {
           </h2>
 
           <p className="mb-8 mt-4 text-xl text-muted-foreground">
-            Ask in plain language and get permissioned answers from the chart.
-            Today: patient search and chart lookup — read-only, and growing.
+            Ask in plain language. The agent reads the chart and — with your
+            approval — writes to it: add a note, record an observation.
           </p>
 
           <div className="flex flex-col gap-8">
