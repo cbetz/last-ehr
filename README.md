@@ -9,7 +9,7 @@
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
-![Last EHR demo — asking "find patients named Smith" returns matching patient cards](public/demo.gif)
+![Last EHR demo — the agent finds a patient, then records observations to the chart after the user approves each write](public/demo.gif)
 
 ## What it does
 

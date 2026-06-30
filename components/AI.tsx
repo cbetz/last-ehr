@@ -25,7 +25,7 @@ const AISection = () => {
         <div className="aspect-video w-full overflow-hidden rounded-lg border shadow-lg">
           <Image
             src="/demo.gif"
-            alt="Last EHR demo: asking 'find patients named Smith' returns matching patient cards"
+            alt="Last EHR demo: the agent finds a patient, then records observations to the chart after the user approves each write"
             width={1512}
             height={789}
             unoptimized
