@@ -124,7 +124,7 @@ export function DemoChat() {
                         if (part.state === "output-available") {
                           return (
                             <BotCard key={part.toolCallId} showAvatar={false}>
-                              <PatientCard patient={part.output.patient} />
+                              <PatientCard {...part.output} />
                             </BotCard>
                           );
                         }

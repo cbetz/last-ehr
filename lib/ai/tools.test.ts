@@ -2,11 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock Medplum so the write tools' execute() doesn't hit a real server.
 // vi.hoisted ensures these exist before the (hoisted) vi.mock factory runs.
-const { createResource, search, readResource } = vi.hoisted(() => ({
-  createResource: vi.fn(),
-  search: vi.fn(),
-  readResource: vi.fn(),
-}));
+const { createResource, search, readResource, searchResources } = vi.hoisted(
+  () => ({
+    createResource: vi.fn(),
+    search: vi.fn(),
+    readResource: vi.fn(),
+    searchResources: vi.fn(),
+  }),
+);
 
 vi.mock("@medplum/core", () => ({
   // A class so `new MedplumClient(...)` is constructable.
@@ -14,6 +17,7 @@ vi.mock("@medplum/core", () => ({
     createResource = createResource;
     search = search;
     readResource = readResource;
+    searchResources = searchResources;
   },
 }));
 
@@ -22,6 +26,8 @@ import { buildTools } from "@/lib/ai/tools";
 describe("agent FHIR tools", () => {
   beforeEach(() => {
     createResource.mockReset();
+    readResource.mockReset();
+    searchResources.mockReset();
   });
 
   it("gates writes behind approval, but never reads", () => {
@@ -72,5 +78,57 @@ describe("agent FHIR tools", () => {
         valueQuantity: expect.objectContaining({ value: 70, unit: "kg" }),
       }),
     );
+  });
+
+  it("show_patient_info returns the patient's real conditions, allergies, observations, and notes", async () => {
+    readResource.mockResolvedValue({
+      resourceType: "Patient",
+      id: "p9",
+      name: [{ given: ["Maria"], family: "Garcia" }],
+    });
+    // searchResources is called in order: Condition, AllergyIntolerance,
+    // Observation, Communication.
+    searchResources
+      .mockResolvedValueOnce([{ id: "c1", code: { text: "Asthma" } }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "o1",
+          code: { text: "Heart rate" },
+          valueQuantity: { value: 72, unit: "/min" },
+          effectiveDateTime: "2026-01-28T10:00:00Z",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "n1",
+          payload: [{ contentString: "follow up" }],
+          sent: "2026-02-01T00:00:00Z",
+        },
+      ]);
+
+    const tools = buildTools("test-token");
+    const out = await (
+      tools.show_patient_info.execute as (
+        input: unknown,
+        opts: unknown,
+      ) => Promise<{
+        patient: { id?: string };
+        conditions: unknown[];
+        allergies: unknown[];
+        observations: unknown[];
+        notes: unknown[];
+      }>
+    )({ id: "p9" }, {});
+
+    expect(out.patient.id).toBe("p9");
+    expect(out.conditions).toEqual([{ id: "c1", text: "Asthma" }]);
+    expect(out.allergies).toEqual([]);
+    expect(out.observations).toEqual([
+      { id: "o1", label: "Heart rate", value: "72 /min", date: "2026-01-28" },
+    ]);
+    expect(out.notes).toEqual([
+      { id: "n1", text: "follow up", date: "2026-02-01" },
+    ]);
   });
 });
