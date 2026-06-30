@@ -9,6 +9,8 @@
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
+![Last EHR demo — asking "find patients named Smith" returns matching patient cards](public/demo.gif)
+
 ## What it does
 
 - A chat agent (Vercel AI SDK) with FHIR tools — today: **search patients** and **view a patient chart** — streamed and rendered as rich cards.
