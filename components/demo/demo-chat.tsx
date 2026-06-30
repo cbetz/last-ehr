@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from "ai";
 import { useMedplum } from "@medplum/react-hooks";
 import Textarea from "react-textarea-autosize";
 
@@ -15,6 +19,7 @@ import {
   UserMessage,
 } from "@/components/chat";
 import { PatientCard } from "@/components/chat/patient";
+import { ConfirmWrite } from "@/components/chat/confirm-write";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
 import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
@@ -27,10 +32,22 @@ import { Button } from "@/components/ui/button";
 import { EmptyScreen } from "@/components/empty-screen";
 
 export function DemoChat() {
-  const { messages, sendMessage, status, error, setMessages } =
-    useChat<ChatMessage>({
-      transport: new DefaultChatTransport({ api: "/api/chat" }),
-    });
+  const {
+    messages,
+    sendMessage,
+    status,
+    error,
+    setMessages,
+    addToolApprovalResponse,
+  } = useChat<ChatMessage>({
+    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    // Resume the turn automatically when the assistant message is ready to
+    // continue server-side: after the user responds to a write approval (so
+    // the gated tool's execute runs), or after any client tool result.
+    sendAutomaticallyWhen: (options) =>
+      lastAssistantMessageIsCompleteWithApprovalResponses(options) ||
+      lastAssistantMessageIsCompleteWithToolCalls(options),
+  });
   const [input, setInput] = useState("");
   const { formRef, onKeyDown } = useEnterSubmit();
   const medplum = useMedplum();
@@ -115,6 +132,94 @@ export function DemoChat() {
                           return (
                             <BotMessage key={part.toolCallId}>
                               Sorry, I couldn&apos;t load that patient:{" "}
+                              {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return (
+                          <BotCard key={part.toolCallId}>
+                            <MessageSkeleton />
+                          </BotCard>
+                        );
+
+                      case "tool-add_note":
+                        if (part.state === "approval-requested") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <ConfirmWrite
+                                title="Add this note to the chart?"
+                                detail={part.input.text}
+                                onApprove={() =>
+                                  addToolApprovalResponse({
+                                    id: part.approval.id,
+                                    approved: true,
+                                  })
+                                }
+                                onCancel={() =>
+                                  addToolApprovalResponse({
+                                    id: part.approval.id,
+                                    approved: false,
+                                  })
+                                }
+                              />
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-available") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              ✓ Note saved to the chart.
+                            </BotMessage>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, I couldn&apos;t save that note:{" "}
+                              {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return (
+                          <BotCard key={part.toolCallId}>
+                            <MessageSkeleton />
+                          </BotCard>
+                        );
+
+                      case "tool-record_observation":
+                        if (part.state === "approval-requested") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <ConfirmWrite
+                                title="Record this observation?"
+                                detail={`${part.input.label}: ${part.input.value} ${part.input.unit}`}
+                                onApprove={() =>
+                                  addToolApprovalResponse({
+                                    id: part.approval.id,
+                                    approved: true,
+                                  })
+                                }
+                                onCancel={() =>
+                                  addToolApprovalResponse({
+                                    id: part.approval.id,
+                                    approved: false,
+                                  })
+                                }
+                              />
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-available") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              ✓ Observation recorded.
+                            </BotMessage>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, I couldn&apos;t record that:{" "}
                               {part.errorText}
                             </BotMessage>
                           );

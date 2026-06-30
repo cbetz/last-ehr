@@ -25,7 +25,7 @@ const AISection = () => {
         <div className="aspect-video w-full overflow-hidden rounded-lg border shadow-lg">
           <Image
             src="/demo.gif"
-            alt="Last EHR demo: asking 'find patients named Smith' returns matching patient cards"
+            alt="Last EHR demo: the agent finds a patient, then records observations to the chart after the user approves each write"
             width={1512}
             height={789}
             unoptimized
@@ -41,8 +41,8 @@ const AISection = () => {
           </h2>
 
           <p className="mb-8 mt-4 text-xl text-muted-foreground">
-            Ask in plain language and get permissioned answers from the chart.
-            Today: patient search and chart lookup — read-only, and growing.
+            Ask in plain language. The agent reads the chart and — with your
+            approval — writes to it: add a note, record an observation.
           </p>
 
           <div className="flex flex-col gap-8">
