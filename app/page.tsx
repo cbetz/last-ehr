@@ -21,20 +21,28 @@ export default function Home() {
             <div className="space-y-2 text-center">
               <h2 className="text-3xl md:text-4xl font-bold">
                 <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-                  Get early access
+                  Want it hosted?
                 </span>
               </h2>
               <p className="text-muted-foreground text-xl">
-                Sign up for early access to Last EHR.
+                Self-hosting is free and open source. If you&apos;d rather we run
+                it for you — managed Medplum, a signed BAA, no infra to operate —
+                leave your email and we&apos;ll reach out as the hosted version
+                comes together.
               </p>
             </div>
 
             <SignupForm />
 
             <p className="px-2 text-center text-sm leading-normal text-muted-foreground">
-              Already have access?{" "}
-              <Link href="/demo" className="font-medium underline">
-                Open the live demo
+              Prefer to self-host?{" "}
+              <Link
+                href="https://github.com/cbetz/last-ehr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline"
+              >
+                Get it on GitHub
               </Link>
               .
             </p>
