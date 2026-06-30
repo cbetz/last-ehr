@@ -44,8 +44,52 @@ export function buildTools(accessToken: string) {
         id: z.string().describe("The patient resource id."),
       }),
       execute: async ({ id }) => {
-        const patient = await medplum.readResource("Patient", id);
-        return { patient };
+        // Fetch the patient plus the related resources the chart shows, so the
+        // UI renders the patient's actual data (not placeholders).
+        const [patient, conditions, allergies, observations, notes] =
+          await Promise.all([
+            medplum.readResource("Patient", id),
+            medplum.searchResources("Condition", { patient: id, _count: "50" }),
+            medplum.searchResources("AllergyIntolerance", {
+              patient: id,
+              _count: "50",
+            }),
+            medplum.searchResources("Observation", {
+              patient: id,
+              _sort: "-date",
+              _count: "50",
+            }),
+            medplum.searchResources("Communication", {
+              subject: `Patient/${id}`,
+              _sort: "-sent",
+              _count: "20",
+            }),
+          ]);
+
+        return {
+          patient,
+          conditions: conditions.map((c) => ({
+            id: c.id ?? "",
+            text: c.code?.text ?? c.code?.coding?.[0]?.display ?? "Condition",
+          })),
+          allergies: allergies.map((a) => ({
+            id: a.id ?? "",
+            text: a.code?.text ?? a.code?.coding?.[0]?.display ?? "Allergy",
+          })),
+          observations: observations.map((o) => ({
+            id: o.id ?? "",
+            label: o.code?.text ?? o.code?.coding?.[0]?.display ?? "Observation",
+            value: o.valueQuantity
+              ? `${o.valueQuantity.value ?? ""} ${o.valueQuantity.unit ?? ""}`.trim()
+              : (o.valueString ?? ""),
+            date: o.effectiveDateTime?.slice(0, 10) ?? "",
+          })),
+          notes: notes.map((n) => ({
+            id: n.id ?? "",
+            text: n.payload?.find((p) => p.contentString)?.contentString ?? "",
+            date: n.sent?.slice(0, 10) ?? "",
+          })),
+        };
       },
     }),
     add_note: tool({
