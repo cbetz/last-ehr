@@ -1,5 +1,8 @@
 # Last EHR
 
+[![CI](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml/badge.svg)](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 **Open-source AI agent layer for Medplum & FHIR** — a permissioned AI agent over the patient chart. Bring your own backend and your own model key.
 
 > **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum today) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
