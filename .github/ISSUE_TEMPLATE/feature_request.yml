@@ -1,0 +1,20 @@
+name: Feature request
+description: Suggest an idea for Last EHR
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the use case, not just the feature.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: markdown
+    attributes:
+      value: >-
+        This is an early, solo-maintained project — not every request will fit
+        the roadmap, and that's okay. Thanks for the idea.

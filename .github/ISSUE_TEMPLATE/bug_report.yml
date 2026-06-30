@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a problem with Last EHR itself (the app / agent)
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Two ground rules first:
+        - **Never paste real patient data (PHI/PII).** Synthetic data only.
+        - If your **Medplum / FHIR backend** setup is the problem, that's not a Last EHR bug — please use [Discussions](https://github.com/cbetz/last-ehr/discussions) instead.
+  - type: checkboxes
+    id: prechecks
+    attributes:
+      label: Before you file
+      options:
+        - label: I confirmed my FHIR backend works independently of Last EHR (I can reach its API directly).
+          required: true
+        - label: This report contains no real patient data — synthetic only.
+          required: true
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what actually happened?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: AI provider + model
+      placeholder: "AI_PROVIDER=anthropic, MODEL_ID=claude-sonnet-4-6 (or the default)"
+  - type: input
+    id: medplum
+    attributes:
+      label: FHIR backend target
+      placeholder: "Medplum hosted (api.medplum.com) / self-hosted / localhost:8103"
+  - type: input
+    id: runmode
+    attributes:
+      label: How are you running it?
+      placeholder: "npm run dev / quickstart (NEXT_PUBLIC_QUICKSTART) / Vercel / Docker"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / errors
+      description: Relevant console or server output. Scrub anything sensitive.
+      render: shell
