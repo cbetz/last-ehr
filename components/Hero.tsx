@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { buttonVariants } from "./ui/button";
-import { IconTwitter } from "./ui/icons";
+import { IconGitHub } from "./ui/icons";
 import demoImage from "@/public/demo.png";
 
 const Hero = () => {
@@ -10,34 +10,35 @@ const Hero = () => {
     <section className="container grid place-items-center gap-10 py-20 md:py-32 lg:grid-cols-2">
       <div className="space-y-6 text-center lg:text-start">
         <h1 className="text-4xl font-bold leading-tight md:text-6xl">
-          The{" "}
+          The open-source{" "}
           <span className="bg-gradient-to-b from-primary/60 to-primary bg-clip-text text-transparent">
-            AI-native EHR
+            AI agent layer
           </span>{" "}
-          for modern clinical teams
+          for Medplum &amp; FHIR
         </h1>
 
         <p className="mx-auto text-xl text-muted-foreground md:w-10/12 lg:mx-0">
-          Last EHR is a low-code platform that lets you spend less time building
-          infrastructure and more time focused on your patients and providers.
+          A permissioned AI agent over your patient chart — bring your own FHIR
+          backend and model key. A layer, not an EHR: it runs on top of Medplum
+          and stores no patient data of its own.
         </p>
 
         <div className="space-y-4 md:space-x-4 md:space-y-0">
           <Link
-            href="#howItWorks"
-            className={`w-full md:w-1/3 ${buttonVariants({ variant: "default" })}`}
+            href="https://github.com/cbetz/last-ehr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`w-full md:w-auto ${buttonVariants({ variant: "default" })}`}
           >
-            Learn More
+            <IconGitHub className="mr-2 h-4 w-4" aria-hidden="true" />
+            View on GitHub
           </Link>
 
           <Link
-            href="https://x.com/lastehr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`w-full md:w-1/3 ${buttonVariants({ variant: "outline" })}`}
+            href="/demo"
+            className={`w-full md:w-auto ${buttonVariants({ variant: "outline" })}`}
           >
-            Twitter
-            <IconTwitter className="ml-2 h-4 w-4" aria-hidden="true" />
+            Live demo
           </Link>
         </div>
       </div>

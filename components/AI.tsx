@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { IconSparkles } from "./ui/icons";
 
@@ -9,9 +11,9 @@ interface ServiceProps {
 
 const serviceList: ServiceProps[] = [
   {
-    title: "Generative UI",
+    title: "Structured results, not walls of text",
     description:
-      "Not just a chatbot — a full-fledged AI agent that generates real UI components from your data.",
+      "The agent renders patient cards and chart data from live FHIR — with a tool call you can read, not a black box.",
     icon: <IconSparkles className="h-6 w-6 text-blue-500" />,
   },
 ];
@@ -21,13 +23,13 @@ const AISection = () => {
     <section id="ai" className="container py-24 sm:py-32">
       <div className="grid place-items-center gap-8 lg:grid-cols-2">
         <div className="aspect-video w-full overflow-hidden rounded-lg border shadow-lg">
-          <iframe
-            className="h-full w-full"
-            src="https://www.youtube-nocookie.com/embed/IzNyf5qH2MA"
-            title="Last EHR AI agent demo"
-            loading="lazy"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
+          <Image
+            src="/demo.gif"
+            alt="Last EHR demo: asking 'find patients named Smith' returns matching patient cards"
+            width={1512}
+            height={789}
+            unoptimized
+            className="h-full w-full object-cover"
           />
         </div>
 
@@ -39,7 +41,8 @@ const AISection = () => {
           </h2>
 
           <p className="mb-8 mt-4 text-xl text-muted-foreground">
-            Change the way you interact with your EHR with AI agents.
+            Ask in plain language and get permissioned answers from the chart.
+            Today: patient search and chart lookup — read-only, and growing.
           </p>
 
           <div className="flex flex-col gap-8">

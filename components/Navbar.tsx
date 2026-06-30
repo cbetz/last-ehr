@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ChevronLast, Menu } from "lucide-react";
 
-import { IconTwitter } from "@/components/ui/icons";
+import { IconGitHub, IconTwitter } from "@/components/ui/icons";
 import { NavigationMenu } from "@/components/ui/navigation-menu";
 import {
   Sheet,
@@ -37,7 +37,7 @@ const routeList: RouteProps[] = [
   },
   {
     href: "/#signup",
-    label: "Sign Up",
+    label: "Hosted",
   },
 ];
 
@@ -98,6 +98,17 @@ const Navbar = () => {
                     Live Demo
                   </Link>
                   <Link
+                    href="https://github.com/cbetz/last-ehr"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setIsOpen(false)}
+                    className={`w-[140px] border ${buttonVariants({
+                      variant: "ghost",
+                    })}`}
+                  >
+                    <IconGitHub className="h-4 w-4 mr-2" aria-hidden="true" /> GitHub
+                  </Link>
+                  <Link
                     href="https://x.com/lastehr"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -132,6 +143,17 @@ const Navbar = () => {
 
           <div className="hidden md:flex gap-2">
             <div className="flex items-center space-x-2">
+              <Link
+                href="https://github.com/cbetz/last-ehr"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Last EHR on GitHub"
+                className={`border ${buttonVariants({
+                  variant: "ghost",
+                })}`}
+              >
+                <IconGitHub className="h-4 w-4" aria-hidden="true" />
+              </Link>
               <Link href="/demo" className={buttonVariants({ size: "sm" })}>
                 Live Demo
               </Link>

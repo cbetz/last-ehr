@@ -22,7 +22,7 @@ export function SignupForm() {
         required
       />
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Signing up…" : "Sign Up"}
+        {isPending ? "Submitting…" : "Notify me"}
       </Button>
       <p
         aria-live="polite"

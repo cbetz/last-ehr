@@ -1,10 +1,5 @@
 import Link from "next/link";
-import {
-  CableIcon,
-  DatabaseIcon,
-  PartyPopperIcon,
-  SparklesIcon,
-} from "lucide-react";
+import { Database, GitBranch, KeyRound, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 
 interface FeatureProps {
@@ -15,28 +10,28 @@ interface FeatureProps {
 
 const features: FeatureProps[] = [
   {
-    icon: <DatabaseIcon aria-hidden="true" />,
-    title: "Choose a Headless EHR",
+    icon: <Database aria-hidden="true" />,
+    title: "Runs on your FHIR backend",
     description:
-      "Start from a FHIR-native, compliance-ready headless EHR instead of building data infrastructure from scratch.",
+      "Point it at your own Medplum — hosted or self-hosted. Last EHR talks to it over FHIR and keeps no copy of your data.",
   },
   {
-    icon: <CableIcon aria-hidden="true" />,
-    title: "Choose your integrations",
+    icon: <KeyRound aria-hidden="true" />,
+    title: "Bring your own model key",
     description:
-      "Connect labs, billing, scheduling, and the tools your team already relies on.",
+      "OpenAI or Anthropic, your key and your spend. Switch models with a single environment variable.",
   },
   {
-    icon: <SparklesIcon aria-hidden="true" />,
-    title: "Add AI Agents",
+    icon: <ShieldCheck aria-hidden="true" />,
+    title: "Permissioned by your AccessPolicy",
     description:
-      "Drop in AI agents that chart, summarize, and surface the right patient information on demand.",
+      "The agent runs as the signed-in user, scoped by Medplum's access controls — it can't see what you can't.",
   },
   {
-    icon: <PartyPopperIcon aria-hidden="true" />,
-    title: "Delight patients and providers",
+    icon: <GitBranch aria-hidden="true" />,
+    title: "Self-host, Apache-2.0",
     description:
-      "Ship the experience that sets you apart — and let Last EHR handle the rest.",
+      "Clone it and run it in minutes. Open source, no lock-in, and no account required to get started.",
   },
 ];
 
@@ -45,12 +40,13 @@ export const HowItWorks = () => {
     <section id="howItWorks" className="container py-24 text-center sm:py-32">
       <h2 className="text-3xl font-bold md:text-4xl">
         <span className="bg-gradient-to-b from-primary/60 to-primary bg-clip-text text-transparent">
-          Get Started with Last EHR
+          How it works
         </span>
       </h2>
       <p className="mx-auto mb-8 mt-4 text-xl text-muted-foreground md:w-3/4">
-        Pick your headless EHR, choose your integrations, and add AI agents.
-        Focus on your secret sauce and let us handle the rest.
+        Last EHR is a thin, open-source layer over a FHIR backend you already
+        control. Clone it, point it at your Medplum, and bring your own model
+        key.
       </p>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
