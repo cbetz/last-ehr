@@ -87,7 +87,7 @@ describe("agent FHIR tools", () => {
       name: [{ given: ["Maria"], family: "Garcia" }],
     });
     // searchResources is called in order: Condition, AllergyIntolerance,
-    // Observation, Communication.
+    // Observation, Communication, MedicationRequest, Immunization.
     searchResources
       .mockResolvedValueOnce([{ id: "c1", code: { text: "Asthma" } }])
       .mockResolvedValueOnce([])
@@ -105,11 +105,26 @@ describe("agent FHIR tools", () => {
           payload: [{ contentString: "follow up" }],
           sent: "2026-02-01T00:00:00Z",
         },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "m1",
+          medicationCodeableConcept: { text: "Metformin 500 mg tablet" },
+          dosageInstruction: [{ text: "1 tablet twice daily" }],
+          status: "active",
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "im1",
+          vaccineCode: { text: "Influenza, seasonal" },
+          occurrenceDateTime: "2025-10-15T00:00:00Z",
+        },
       ]);
 
     const tools = buildTools("test-token");
     const out = await (
-      tools.show_patient_info.execute as (
+      tools.show_patient_info.execute as unknown as (
         input: unknown,
         opts: unknown,
       ) => Promise<{
@@ -118,6 +133,8 @@ describe("agent FHIR tools", () => {
         allergies: unknown[];
         observations: unknown[];
         notes: unknown[];
+        medications: unknown[];
+        immunizations: unknown[];
       }>
     )({ id: "p9" }, {});
 
@@ -129,6 +146,17 @@ describe("agent FHIR tools", () => {
     ]);
     expect(out.notes).toEqual([
       { id: "n1", text: "follow up", date: "2026-02-01" },
+    ]);
+    expect(out.medications).toEqual([
+      {
+        id: "m1",
+        text: "Metformin 500 mg tablet",
+        dosage: "1 tablet twice daily",
+        status: "active",
+      },
+    ]);
+    expect(out.immunizations).toEqual([
+      { id: "im1", text: "Influenza, seasonal", date: "2025-10-15" },
     ]);
   });
 
@@ -195,20 +223,47 @@ describe("agent FHIR tools", () => {
             tag: [{ system: "http://lastehr.demo", code: "session-B" }],
           },
         },
-      ]); // Communication
+      ]) // Communication
+      .mockResolvedValueOnce([
+        {
+          id: "med-seed",
+          medicationCodeableConcept: { text: "Lisinopril 10 mg tablet" },
+          dosageInstruction: [{ text: "once daily" }],
+          status: "active",
+        },
+        {
+          id: "med-other",
+          medicationCodeableConcept: { text: "Junk med" },
+          status: "active",
+          meta: {
+            tag: [{ system: "http://lastehr.demo", code: "session-B" }],
+          },
+        },
+      ]) // MedicationRequest
+      .mockResolvedValueOnce([
+        {
+          id: "imm-seed",
+          vaccineCode: { text: "Influenza, seasonal" },
+          occurrenceDateTime: "2025-10-15T00:00:00Z",
+        },
+      ]); // Immunization
 
     const tools = buildTools("test-token", "A");
     const out = await (
-      tools.show_patient_info.execute as (
+      tools.show_patient_info.execute as unknown as (
         input: unknown,
         opts: unknown,
       ) => Promise<{
         observations: { id: string }[];
         notes: { id: string }[];
+        medications: { id: string }[];
+        immunizations: { id: string }[];
       }>
     )({ id: "p9" }, {});
 
     expect(out.observations.map((o) => o.id)).toEqual(["seed", "mine"]);
     expect(out.notes.map((n) => n.id)).toEqual(["note-seed"]);
+    expect(out.medications.map((m) => m.id)).toEqual(["med-seed"]);
+    expect(out.immunizations.map((i) => i.id)).toEqual(["imm-seed"]);
   });
 });

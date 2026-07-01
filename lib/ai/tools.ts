@@ -72,25 +72,41 @@ export function buildTools(accessToken: string, sessionId?: string) {
       execute: async ({ id }) => {
         // Fetch the patient plus the related resources the chart shows, so the
         // UI renders the patient's actual data (not placeholders).
-        const [patient, conditions, allergies, observations, notes] =
-          await Promise.all([
-            medplum.readResource("Patient", id),
-            medplum.searchResources("Condition", { patient: id, _count: "50" }),
-            medplum.searchResources("AllergyIntolerance", {
-              patient: id,
-              _count: "50",
-            }),
-            medplum.searchResources("Observation", {
-              patient: id,
-              _sort: "-date",
-              _count: "100",
-            }),
-            medplum.searchResources("Communication", {
-              subject: `Patient/${id}`,
-              _sort: "-sent",
-              _count: "100",
-            }),
-          ]);
+        const [
+          patient,
+          conditions,
+          allergies,
+          observations,
+          notes,
+          medications,
+          immunizations,
+        ] = await Promise.all([
+          medplum.readResource("Patient", id),
+          medplum.searchResources("Condition", { patient: id, _count: "50" }),
+          medplum.searchResources("AllergyIntolerance", {
+            patient: id,
+            _count: "50",
+          }),
+          medplum.searchResources("Observation", {
+            patient: id,
+            _sort: "-date",
+            _count: "100",
+          }),
+          medplum.searchResources("Communication", {
+            subject: `Patient/${id}`,
+            _sort: "-sent",
+            _count: "100",
+          }),
+          medplum.searchResources("MedicationRequest", {
+            patient: id,
+            _count: "50",
+          }),
+          medplum.searchResources("Immunization", {
+            patient: id,
+            _sort: "-date",
+            _count: "50",
+          }),
+        ]);
 
         return {
           patient,
@@ -114,6 +130,23 @@ export function buildTools(accessToken: string, sessionId?: string) {
             id: n.id ?? "",
             text: n.payload?.find((p) => p.contentString)?.contentString ?? "",
             date: n.sent?.slice(0, 10) ?? "",
+          })),
+          medications: medications.filter(isVisible).map((m) => ({
+            id: m.id ?? "",
+            text:
+              m.medicationCodeableConcept?.text ??
+              m.medicationCodeableConcept?.coding?.[0]?.display ??
+              "Medication",
+            dosage: m.dosageInstruction?.[0]?.text ?? "",
+            status: m.status ?? "",
+          })),
+          immunizations: immunizations.filter(isVisible).map((i) => ({
+            id: i.id ?? "",
+            text:
+              i.vaccineCode?.text ??
+              i.vaccineCode?.coding?.[0]?.display ??
+              "Immunization",
+            date: i.occurrenceDateTime?.slice(0, 10) ?? "",
           })),
         };
       },
