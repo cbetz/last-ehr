@@ -1,7 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/ui/icons";
+import { track } from "@/lib/analytics";
 
+// A write leads so first-time visitors reach the approval gate (the thing
+// this demo exists to show) on their first click.
 const exampleMessages = [
+  {
+    heading: "Record a vital (with approval)",
+    message: "Record a heart rate of 72 bpm for Maria Garcia",
+  },
   {
     heading: "Find a patient",
     message: "Find patients named Smith",
@@ -9,10 +16,6 @@ const exampleMessages = [
   {
     heading: "Review a chart",
     message: "Show me Maria Garcia's chart",
-  },
-  {
-    heading: "Record a vital (with approval)",
-    message: "Record a heart rate of 72 bpm for Maria Garcia",
   },
   {
     heading: "Add a note (with approval)",
@@ -42,6 +45,7 @@ export function EmptyScreen({
               variant="link"
               className="h-auto p-0 text-base"
               onClick={async () => {
+                track("demo_starter_clicked", { heading: message.heading });
                 submitMessage(message.message);
               }}
             >
