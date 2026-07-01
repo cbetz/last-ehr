@@ -131,4 +131,84 @@ describe("agent FHIR tools", () => {
       { id: "n1", text: "follow up", date: "2026-02-01" },
     ]);
   });
+
+  it("record_observation tags the write with the session id", async () => {
+    createResource.mockResolvedValue({ id: "obs-1" });
+    const tools = buildTools("test-token", "A");
+
+    await (
+      tools.record_observation.execute as (
+        input: unknown,
+        opts: unknown,
+      ) => unknown
+    )({ patientId: "p2", label: "Body weight", value: 70, unit: "kg" }, {});
+
+    expect(createResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        meta: { tag: [{ system: "http://lastehr.demo", code: "session-A" }] },
+      }),
+    );
+  });
+
+  it("show_patient_info hides other sessions' writes but keeps seed data and its own", async () => {
+    readResource.mockResolvedValue({ resourceType: "Patient", id: "p9" });
+    searchResources
+      .mockResolvedValueOnce([]) // Condition
+      .mockResolvedValueOnce([]) // AllergyIntolerance
+      .mockResolvedValueOnce([
+        {
+          id: "seed",
+          code: { text: "Body temperature" },
+          valueQuantity: { value: 37, unit: "C" },
+          effectiveDateTime: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "mine",
+          code: { text: "Heart rate" },
+          valueQuantity: { value: 72, unit: "bpm" },
+          effectiveDateTime: "2026-06-01T00:00:00Z",
+          meta: {
+            tag: [{ system: "http://lastehr.demo", code: "session-A" }],
+          },
+        },
+        {
+          id: "other",
+          code: { text: "Junk" },
+          valueQuantity: { value: 999, unit: "x" },
+          effectiveDateTime: "2026-06-02T00:00:00Z",
+          meta: {
+            tag: [{ system: "http://lastehr.demo", code: "session-B" }],
+          },
+        },
+      ]) // Observation
+      .mockResolvedValueOnce([
+        {
+          id: "note-seed",
+          payload: [{ contentString: "seed note" }],
+          sent: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "note-other",
+          payload: [{ contentString: "other note" }],
+          sent: "2026-06-02T00:00:00Z",
+          meta: {
+            tag: [{ system: "http://lastehr.demo", code: "session-B" }],
+          },
+        },
+      ]); // Communication
+
+    const tools = buildTools("test-token", "A");
+    const out = await (
+      tools.show_patient_info.execute as (
+        input: unknown,
+        opts: unknown,
+      ) => Promise<{
+        observations: { id: string }[];
+        notes: { id: string }[];
+      }>
+    )({ id: "p9" }, {});
+
+    expect(out.observations.map((o) => o.id)).toEqual(["seed", "mine"]);
+    expect(out.notes.map((n) => n.id)).toEqual(["note-seed"]);
+  });
 });
