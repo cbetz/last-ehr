@@ -33,8 +33,14 @@ function initRedis() {
   if (redisInitialized) return;
   redisInitialized = true;
 
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Accept both the native Upstash names and the Vercel Marketplace
+  // integration's KV_* names (which it provisions automatically). Use the
+  // read-write token (KV_REST_API_TOKEN), not the read-only one — the limiter
+  // increments counters.
+  const url =
+    process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token =
+    process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (!url || !token) return;
 
   try {
