@@ -13,23 +13,24 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.lastehr.com"),
   title: {
-    default: "Last EHR — AI-Powered Electronic Health Record",
+    default: "Last EHR: Open-source AI agent layer for Medplum and FHIR",
     template: "%s | Last EHR",
   },
   description:
-    "Last EHR is a low-code, AI-native Electronic Health Record platform. Pick a headless EHR, connect your integrations, and add AI agents — so you can focus on patients and providers, not infrastructure.",
+    "An open-source AI agent layer over your FHIR backend. The agent reads the chart and proposes writes; nothing is saved until you approve it. Runs on Medplum, stores no patient data, Apache-2.0.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
     "EMR",
     "Electronic Health Record",
-    "Electronic Medical Record",
-    "AI EHR",
-    "AI-powered EHR",
+    "FHIR",
+    "AI agent EHR",
+    "FHIR AI agent",
+    "Medplum",
     "headless EHR",
     "headless EMR",
-    "low-code EHR",
     "healthcare AI agents",
+    "open source EHR tools",
   ],
   alternates: {
     canonical: "/",
@@ -37,17 +38,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Last EHR",
-    title: "Last EHR — AI-Powered Electronic Health Record",
+    title: "Last EHR: Open-source AI agent layer for Medplum and FHIR",
     description:
-      "The AI-native, low-code EHR platform. Pick a headless EHR, connect integrations, and add AI agents.",
+      "An AI agent over the patient chart with human approval on every write. Open source, self-hosted, runs on Medplum.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Last EHR — AI-Powered Electronic Health Record",
+    title: "Last EHR: Open-source AI agent layer for Medplum and FHIR",
     description:
-      "The AI-native, low-code EHR platform. Pick a headless EHR, connect integrations, and add AI agents.",
+      "An AI agent over the patient chart with human approval on every write. Open source, self-hosted, runs on Medplum.",
     site: "@lastehr",
     creator: "@lastehr",
   },
