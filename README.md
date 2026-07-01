@@ -27,6 +27,10 @@ Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (
 
 ## Quickstart
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcbetz%2Flast-ehr&env=OPENAI_API_KEY,MEDPLUM_CLIENT_ID,MEDPLUM_CLIENT_SECRET,NEXT_PUBLIC_QUICKSTART&envDescription=A%20model%20key%20plus%20Medplum%20ClientApplication%20credentials%20for%20the%20no-sign-in%20quickstart&envLink=https%3A%2F%2Fgithub.com%2Fcbetz%2Flast-ehr%2Fblob%2Fmain%2F.env.example)
+
+One-click deploy brings up the app with your own keys. You'll still need a **Medplum** project seeded with the synthetic patients (`npm run seed`, below) for the demo to have data.
+
 Prerequisites: Node ≥ 20.9, a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one model API key (OpenAI or Anthropic).
 
 ```bash

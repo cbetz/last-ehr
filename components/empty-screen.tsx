@@ -3,8 +3,21 @@ import { IconArrowRight } from "@/components/ui/icons";
 
 const exampleMessages = [
   {
-    heading: "Look up a patient",
-    message: "Look up a patient named Maria",
+    heading: "Find a patient",
+    message: "Find patients named Smith",
+  },
+  {
+    heading: "Review a chart",
+    message: "Show me Maria Garcia's chart",
+  },
+  {
+    heading: "Record a vital (with approval)",
+    message: "Record a heart rate of 72 bpm for Maria Garcia",
+  },
+  {
+    heading: "Add a note (with approval)",
+    message:
+      "Add a note to Maria Garcia's chart that she reports feeling well with no complaints",
   },
 ];
 
