@@ -3,35 +3,54 @@
 [![CI](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml/badge.svg)](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-**Open-source AI agent layer for Medplum & FHIR** — a permissioned AI agent over the patient chart. Bring your own backend and your own model key.
+**Open-source AI agent layer for Medplum and FHIR.** A permissioned agent over the patient chart: it reads the chart and proposes writes, and nothing is saved until you approve it. Bring your own backend and your own model key.
 
 > **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum today) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
-![Last EHR demo — the agent finds a patient, then records observations to the chart after the user approves each write](public/demo.gif)
+**[Try the live demo](https://www.lastehr.com/demo)**: no sign-up, synthetic data, and every write goes through the approval gate.
+
+![Last EHR demo: the agent finds a patient, then records an observation to the chart after the user approves the write](public/demo.gif)
 
 ## What it does
 
-- A chat agent (Vercel AI SDK) with FHIR tools — **read** the chart (search patients, view a patient chart) and **write** to it (add a note, record an observation) — streamed and rendered as rich cards.
+- A chat agent (Vercel AI SDK) with FHIR tools. It **reads** the chart (search patients, view a patient chart) and **writes** to it (add a note, record an observation), streamed and rendered as structured cards.
 - **Writes are confirmation-gated**: the agent proposes a write, you approve it, and only then is it saved. Nothing touches the chart without your click.
-- Authentication, multi-tenancy, and access control are delegated to your **Medplum** project (`Project` = tenant, `ProjectMembership` = user, `AccessPolicy` = RBAC). Last EHR doesn't reimplement any of that — and writes are bounded by your AccessPolicy.
+- Authentication, multi-tenancy, and access control are delegated to your **Medplum** project (`Project` = tenant, `ProjectMembership` = user, `AccessPolicy` = RBAC). Last EHR doesn't reimplement any of that, and writes are bounded by your AccessPolicy.
 
 ## What it isn't
 
-- Not a charting EHR, not a system of record, and not a Medplum replacement. It's a thin agent layer — a small, growing set of tools over your FHIR backend.
+- Not a charting EHR, not a system of record, and not a Medplum replacement. It's a thin agent layer: a small, growing set of tools over your FHIR backend.
+- Not a guarantee. The approval gate is a human-in-the-loop boundary, not a safety proof: it stops unilateral writes, but it relies on you reading what you approve. Models can propose wrong or fabricated clinical facts, and approval fatigue is real. Last EHR provides the gate; you provide the review.
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through `@medplum/core` against the Medplum instance you configure. **Backend-agnostic is the goal** — Medplum is the first adapter; the FHIR calls are the seam where other headless EHRs (Aidbox, HAPI, Firely, …) would slot in.
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through `@medplum/core` against the Medplum instance you configure. **Backend-agnostic is the goal**: Medplum is the first adapter, and the FHIR calls are the seam where other headless EHRs (Aidbox, HAPI, Firely) could slot in.
+
+```mermaid
+flowchart LR
+    B["Browser chat"] --> A["/api/chat<br/>streamText + 4 FHIR tools"]
+    A -- "reads<br/>search_patients, show_patient_info" --> M[("Your Medplum<br/>FHIR backend")]
+    A -- "writes<br/>add_note, record_observation" --> C{"Approval card"}
+    C -- "Approve & save" --> M
+    C -- "Cancel" --> N["Nothing saved"]
+    M -. "Every call runs as the signed-in user,<br/>bounded by your AccessPolicy.<br/>The layer stores no PHI." .-> A
+```
+
+On the public demo, writes are also tagged with your session, so you only ever see the seed data plus your own edits.
 
 ## Quickstart
 
+**Fastest**: try the hosted demo at [lastehr.com/demo](https://www.lastehr.com/demo). No account, no keys, synthetic data.
+
+**One-click deploy** with your own keys:
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcbetz%2Flast-ehr&env=OPENAI_API_KEY,MEDPLUM_CLIENT_ID,MEDPLUM_CLIENT_SECRET,NEXT_PUBLIC_QUICKSTART&envDescription=A%20model%20key%20plus%20Medplum%20ClientApplication%20credentials%20for%20the%20no-sign-in%20quickstart&envLink=https%3A%2F%2Fgithub.com%2Fcbetz%2Flast-ehr%2Fblob%2Fmain%2F.env.example)
 
-One-click deploy brings up the app with your own keys. You'll still need a **Medplum** project seeded with the synthetic patients (`npm run seed`, below) for the demo to have data.
+You'll still need a **Medplum** project seeded with the synthetic patients (`npm run seed`, below) for the demo to have data.
 
-Prerequisites: Node ≥ 20.9, a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one model API key (OpenAI or Anthropic).
+**Run it locally.** Prerequisites: Node ≥ 20.9, a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one model API key (OpenAI or Anthropic).
 
 ```bash
 git clone https://github.com/cbetz/last-ehr.git
@@ -44,9 +63,9 @@ npm run dev                      # http://localhost:3000/demo
 
 At minimum set, in `.env.local`:
 
-- a model key — `OPENAI_API_KEY` (default provider) **or** `ANTHROPIC_API_KEY` with `AI_PROVIDER=anthropic`;
+- a model key: `OPENAI_API_KEY` (default provider) **or** `ANTHROPIC_API_KEY` with `AI_PROVIDER=anthropic`;
 - `NEXT_PUBLIC_MEDPLUM_BASE_URL` / `MEDPLUM_BASE_URL` if you're pointing at your own Medplum (leave blank to use Medplum's hosted API);
-- `MEDPLUM_CLIENT_ID` + `MEDPLUM_CLIENT_SECRET` (a Medplum [ClientApplication](https://www.medplum.com/docs/auth/methods/client-credentials)) — used by `npm run seed`, and by the **no-sign-in quickstart** when you also set `NEXT_PUBLIC_QUICKSTART=true`. Or set `NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID` to sign in via Medplum's Google OAuth instead.
+- `MEDPLUM_CLIENT_ID` + `MEDPLUM_CLIENT_SECRET` (a Medplum [ClientApplication](https://www.medplum.com/docs/auth/methods/client-credentials)): used by `npm run seed`, and by the **no-sign-in quickstart** when you also set `NEXT_PUBLIC_QUICKSTART=true`. Or set `NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID` to sign in via Medplum's Google OAuth instead.
 
 `npm run seed` loads a small **synthetic** patient set (`scripts/fixtures/patients.ts`: four patients with conditions, medications, allergies, immunizations, and vitals/labs, two named "Smith"). It wipes and recreates those patients each run, so it is safe to re-run. Then open `/demo` and ask: *"find patients named Smith."* Use synthetic data only.
 
@@ -56,11 +75,19 @@ Every variable is documented in [`.env.example`](./.env.example). The model is p
 
 ## Security & data
 
-PHI flows to whichever model provider you configure, under **your** API key — so use a provider and agreement appropriate for your data. This project is alpha and is **not** a HIPAA-covered service; PHI handling is the operator's responsibility. Use synthetic data unless you have the right agreements in place. See [SECURITY.md](./SECURITY.md).
+Last EHR stores no patient data of its own; everything lives in your FHIR backend. But be clear about what the approval gate is: **it is a write-safety control, not a privacy control.** Anything the agent reads from the chart is sent to your model provider as context, under your API key, with no approval step.
+
+**Use synthetic data unless you have real agreements in place.** Pointing this at real PHI requires, at minimum:
+
+- a BAA with your **model provider** that covers your API traffic (consumer plans don't qualify);
+- a HIPAA-eligible **FHIR backend** with its own BAA;
+- your own compliance review. This project is alpha and is **not** a HIPAA-covered service; PHI handling is the operator's responsibility.
+
+See [SECURITY.md](./SECURITY.md) for the full posture and how to report vulnerabilities.
 
 ## Open-core
 
-Self-hosting is free and Apache-2.0. A managed hosted tier (managed Medplum + a signed BAA, multi-tenancy, billing) may follow — built only after the open-source core has traction.
+Self-hosting is free and Apache-2.0. A managed hosted tier (managed Medplum + a signed BAA, multi-tenancy, billing) may follow, built only after the open-source core has traction.
 
 ## Not affiliated
 
