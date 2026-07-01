@@ -5,7 +5,6 @@ import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
-  lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
 import { useMedplum } from "@medplum/react-hooks";
 import Textarea from "react-textarea-autosize";
@@ -41,12 +40,12 @@ export function DemoChat() {
     addToolApprovalResponse,
   } = useChat<ChatMessage>({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
-    // Resume the turn automatically when the assistant message is ready to
-    // continue server-side: after the user responds to a write approval (so
-    // the gated tool's execute runs), or after any client tool result.
-    sendAutomaticallyWhen: (options) =>
-      lastAssistantMessageIsCompleteWithApprovalResponses(options) ||
-      lastAssistantMessageIsCompleteWithToolCalls(options),
+    // Resume automatically only after the user answers a write approval, so the
+    // gated tool's execute runs. All tools execute server-side inside
+    // streamText's own step loop, so we must NOT auto-resend on completed tool
+    // calls: every server-tool turn ends "complete with tool calls," which
+    // would re-send the conversation on a loop.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
   });
   const [input, setInput] = useState("");
   const { formRef, onKeyDown } = useEnterSubmit();
