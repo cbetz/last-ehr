@@ -48,8 +48,8 @@ export function DemoGate() {
             <Alert variant="destructive">
               <AlertTitle>Sign-in isn’t configured</AlertTitle>
               <AlertDescription>
-                Set <code>NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID</code> — a Google
-                OAuth client registered with your Medplum project — to enable
+                Set <code>NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID</code> (a Google
+                OAuth client registered with your Medplum project) to enable
                 sign-in.
               </AlertDescription>
             </Alert>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
@@ -29,6 +29,7 @@ import {
 import { IconArrowElbow, IconPlus } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { EmptyScreen } from "@/components/empty-screen";
+import { track } from "@/lib/analytics";
 
 // The chat API writes its error bodies for users (rate limit, expired session,
 // model failure), and the transport surfaces that body as error.message. Show
@@ -67,7 +68,13 @@ export function DemoChat() {
   const { formRef, onKeyDown } = useEnterSubmit();
   const medplum = useMedplum();
 
+  useEffect(() => {
+    // Error copy is ours (never chart content), so it is safe to report.
+    if (error) track("demo_error_shown", { message: error.message ?? "" });
+  }, [error]);
+
   const ask = async (text: string) => {
+    track("demo_message_sent");
     // Ensure the /api/chat route can read the current Medplum session: the
     // sign-in form isn't mounted once you're already authenticated, so refresh
     // the server-set HttpOnly session cookie here before every send. The token
@@ -121,9 +128,10 @@ export function DemoChat() {
                             <BotCard key={part.toolCallId} showAvatar={false}>
                               <Patients
                                 patients={part.output.patients}
-                                onSelect={(id) =>
-                                  ask(`Show patient info for id ${id}`)
-                                }
+                                onSelect={(id) => {
+                                  track("demo_view_record_clicked");
+                                  ask(`Show patient info for id ${id}`);
+                                }}
                               />
                             </BotCard>
                           );
@@ -170,18 +178,26 @@ export function DemoChat() {
                               <ConfirmWrite
                                 title="Add this note to the chart?"
                                 detail={part.input.text}
-                                onApprove={() =>
+                                onApprove={() => {
+                                  track("demo_write_approval", {
+                                    tool: "add_note",
+                                    approved: true,
+                                  });
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: true,
-                                  })
-                                }
-                                onCancel={() =>
+                                  });
+                                }}
+                                onCancel={() => {
+                                  track("demo_write_approval", {
+                                    tool: "add_note",
+                                    approved: false,
+                                  });
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: false,
-                                  })
-                                }
+                                  });
+                                }}
                               />
                             </BotCard>
                           );
@@ -214,18 +230,26 @@ export function DemoChat() {
                               <ConfirmWrite
                                 title="Record this observation?"
                                 detail={`${part.input.label}: ${part.input.value} ${part.input.unit}`}
-                                onApprove={() =>
+                                onApprove={() => {
+                                  track("demo_write_approval", {
+                                    tool: "record_observation",
+                                    approved: true,
+                                  });
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: true,
-                                  })
-                                }
-                                onCancel={() =>
+                                  });
+                                }}
+                                onCancel={() => {
+                                  track("demo_write_approval", {
+                                    tool: "record_observation",
+                                    approved: false,
+                                  });
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: false,
-                                  })
-                                }
+                                  });
+                                }}
                               />
                             </BotCard>
                           );
