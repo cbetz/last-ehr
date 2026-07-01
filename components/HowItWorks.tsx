@@ -10,55 +10,51 @@ interface FeatureProps {
 
 const features: FeatureProps[] = [
   {
-    icon: <Database aria-hidden="true" />,
+    icon: <Database className="h-5 w-5" aria-hidden="true" />,
     title: "Runs on your FHIR backend",
     description:
-      "Point it at your own Medplum — hosted or self-hosted. Last EHR talks to it over FHIR and keeps no copy of your data.",
+      "Point it at your own Medplum, hosted or self-hosted. Last EHR talks to it over FHIR and keeps no copy of your data.",
   },
   {
-    icon: <KeyRound aria-hidden="true" />,
+    icon: <KeyRound className="h-5 w-5" aria-hidden="true" />,
     title: "Bring your own model key",
     description:
       "OpenAI or Anthropic, your key and your spend. Switch models with a single environment variable.",
   },
   {
-    icon: <ShieldCheck aria-hidden="true" />,
+    icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
     title: "Permissioned by your AccessPolicy",
     description:
-      "The agent runs as the signed-in user, scoped by Medplum's access controls — it can't see what you can't.",
+      "The agent runs as the signed-in user, scoped by Medplum's access controls. It can't see what you can't.",
   },
   {
-    icon: <GitBranch aria-hidden="true" />,
+    icon: <GitBranch className="h-5 w-5" aria-hidden="true" />,
     title: "Self-host, Apache-2.0",
     description:
-      "Clone it and run it in minutes. Open source, no lock-in, and no account required to get started.",
+      "Clone it and run it in minutes. Apache-2.0 licensed, and no account is required to get started.",
   },
 ];
 
 export const HowItWorks = () => {
   return (
-    <section id="howItWorks" className="container py-24 text-center sm:py-32">
-      <h2 className="text-3xl font-bold md:text-4xl">
-        <span className="bg-gradient-to-b from-primary/60 to-primary bg-clip-text text-transparent">
-          How it works
-        </span>
-      </h2>
-      <p className="mx-auto mb-8 mt-4 text-xl text-muted-foreground md:w-3/4">
+    <section id="howItWorks" className="container py-24 sm:py-32">
+      <h2 className="text-3xl font-bold md:text-4xl">How it works</h2>
+      <p className="mb-12 mt-4 max-w-2xl text-xl text-muted-foreground">
         Last EHR is a thin, open-source layer over a FHIR backend you already
         control. Clone it, point it at your Medplum, and bring your own model
         key.
       </p>
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {features.map(({ icon, title, description }: FeatureProps) => (
-          <Card key={title} className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="grid place-items-center gap-4">
+          <Card key={title} className="border-border bg-transparent">
+            <CardHeader className="space-y-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-md border text-muted-foreground">
                 {icon}
-                {title}
-              </CardTitle>
+              </div>
+              <CardTitle className="text-base">{title}</CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground">
+            <CardContent className="text-sm leading-relaxed text-muted-foreground">
               {description}
             </CardContent>
           </Card>
