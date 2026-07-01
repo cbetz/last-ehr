@@ -1,22 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  CableIcon,
-  DatabaseIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
-} from "lucide-react";
+import { BotIcon, CableIcon, DatabaseIcon, ShieldCheckIcon } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
 import { SiteFooter } from "@/components/site-footer";
 import { Faq, type FaqItem } from "@/components/faq";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { IconGitHub } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Headless EHR & EMR Platform",
+  title: "Headless EHR for Modern Clinical Teams",
   description:
-    "Last EHR is a headless EHR / EMR platform — an API-first, FHIR-native clinical backend you build modern, AI-powered patient experiences on. Learn what a headless EHR is and how it compares to a traditional EHR.",
+    "Learn what a headless EHR is and how it compares to a traditional EHR. Last EHR is an open-source AI agent layer that runs on your FHIR backend (Medplum today) and adds approval-gated AI to the chart.",
   keywords: [
     "headless EHR",
     "headless EMR",
@@ -29,34 +25,34 @@ export const metadata: Metadata = {
   alternates: { canonical: "/headless-ehr" },
   openGraph: {
     type: "article",
-    title: "Headless EHR & EMR Platform | Last EHR",
+    title: "Headless EHR for Modern Clinical Teams | Last EHR",
     description:
-      "An API-first, FHIR-native clinical backend you build modern, AI-powered patient experiences on.",
+      "What a headless EHR is, how it compares to a traditional EHR, and how Last EHR adds approval-gated AI agents on top of your FHIR backend.",
     url: "/headless-ehr",
   },
 };
 
 const benefits = [
   {
-    icon: <DatabaseIcon aria-hidden="true" />,
-    title: "FHIR-native & interoperable",
+    icon: <DatabaseIcon className="h-5 w-5" aria-hidden="true" />,
+    title: "FHIR-native and interoperable",
     description:
       "Patient data is stored as standard FHIR resources and exposed through APIs, so it moves cleanly between systems instead of getting locked in a vendor silo.",
   },
   {
-    icon: <CableIcon aria-hidden="true" />,
+    icon: <CableIcon className="h-5 w-5" aria-hidden="true" />,
     title: "Own your experience",
     description:
-      "Build the exact UI and workflows your clinicians and patients need on top of a managed backend — no fighting a fixed, one-size-fits-all application.",
+      "Build the exact UI and workflows your clinicians and patients need on top of a managed backend, instead of adapting to a fixed application.",
   },
   {
-    icon: <SparklesIcon aria-hidden="true" />,
-    title: "AI-ready by design",
+    icon: <BotIcon className="h-5 w-5" aria-hidden="true" />,
+    title: "Add AI agents",
     description:
-      "Because the data is API-first and structured, you can connect AI agents that read and write the chart — summarizing notes, surfacing context, and automating busywork.",
+      "Because the data is API-first and structured, you can add AI agents that read the chart and, with approval, write to it. Last EHR is one such layer.",
   },
   {
-    icon: <ShieldCheckIcon aria-hidden="true" />,
+    icon: <ShieldCheckIcon className="h-5 w-5" aria-hidden="true" />,
     title: "Compliance at the platform",
     description:
       "Audit logging, access controls, and HIPAA-oriented infrastructure live in the backend, so your application inherits the hard parts instead of rebuilding them.",
@@ -66,27 +62,27 @@ const benefits = [
 const faqs: FaqItem[] = [
   {
     q: "What is a headless EHR?",
-    a: "A headless EHR is an electronic health record system where the clinical data layer — patient records, FHIR resources, authentication, and compliance — is decoupled from the user interface and exposed through APIs. Instead of a fixed, one-size-fits-all application, your team builds the exact frontend and workflows you need on top of a managed, standards-based backend.",
+    a: "A headless EHR is an electronic health record system where the clinical data layer (patient records, FHIR resources, authentication, and compliance) is decoupled from the user interface and exposed through APIs. Instead of a fixed application, your team builds the exact frontend and workflows you need on top of a managed, standards-based backend.",
   },
   {
     q: "Is a headless EHR the same as a headless EMR?",
-    a: "In practice, yes. The terms EHR (electronic health record) and EMR (electronic medical record) are often used interchangeably, so a 'headless EHR' and a 'headless EMR' describe the same idea: an API-first clinical backend you build your own experience on. Last EHR fits either label.",
+    a: "In practice, yes. The terms EHR (electronic health record) and EMR (electronic medical record) are often used interchangeably, so a 'headless EHR' and a 'headless EMR' describe the same idea: an API-first clinical backend you build your own experience on. Last EHR is the AI agent layer you run on top of one.",
   },
   {
     q: "What's the difference between an EHR and an EMR?",
-    a: "An EMR is essentially the digital version of a single practice's paper chart, used internally. An EHR is broader — designed to share a patient's record across providers and organizations. For modern, interoperable systems the two terms are frequently used as synonyms.",
+    a: "An EMR is essentially the digital version of a single practice's paper chart, used internally. An EHR is broader: designed to share a patient's record across providers and organizations. For modern, interoperable systems the two terms are frequently used as synonyms.",
   },
   {
     q: "How is a headless EHR different from a traditional EHR?",
-    a: "A traditional EHR ships a monolithic application with a fixed UI and workflows you have to adapt to. A headless EHR gives you the data, APIs, and compliance, and lets you own the interface — so you can build differentiated, modern experiences and add AI without waiting on a vendor's roadmap.",
+    a: "A traditional EHR ships a monolithic application with a fixed UI and workflows you have to adapt to. A headless EHR gives you the data, APIs, and compliance, and lets you own the interface. You build the frontend your team needs and add AI without waiting on a vendor's roadmap.",
   },
   {
     q: "Is a headless EHR HIPAA compliant?",
-    a: "A good headless EHR handles the heavy compliance work — HIPAA-oriented infrastructure, audit logging, access controls, and data residency — at the platform layer, so your application inherits it. Overall compliance still depends on how you build and operate the experience you put on top.",
+    a: "A good headless EHR handles the heavy compliance work (HIPAA-oriented infrastructure, audit logging, access controls, and data residency) at the platform layer, so your application inherits it. Overall compliance still depends on how you build and operate the experience you put on top.",
   },
   {
     q: "Can I add AI agents to a headless EHR?",
-    a: "Yes. Because the data is API-first and FHIR-native, you can connect AI agents that read and write structured clinical data — searching for patients, drafting and summarizing notes, surfacing the right information, and automating routine workflows. That is the core of what Last EHR enables.",
+    a: "Yes. Because the data is API-first and FHIR-native, you can connect AI agents that read and write structured clinical data. Last EHR is one such layer: it searches patients, opens a chart, and makes approval-gated writes (add a note, record an observation) scoped by your access controls.",
   },
 ];
 
@@ -98,26 +94,26 @@ export default function HeadlessEhrPage() {
         <article>
           <section className="container py-16 text-center sm:py-24">
             <h1 className="mx-auto max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
-              A{" "}
-              <span className="bg-gradient-to-b from-primary/60 to-primary bg-clip-text text-transparent">
-                headless EHR &amp; EMR
-              </span>{" "}
-              for modern clinical teams
+              A headless EHR for modern clinical teams
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-xl text-muted-foreground">
-              Last EHR is an API-first, FHIR-native clinical backend. Keep the
-              hard parts — data, interoperability, and compliance — managed, and
-              build the patient and provider experience you actually want on top.
+              A headless EHR keeps your clinical data as FHIR behind an API, so
+              you own the interface. Last EHR is the open-source AI agent layer
+              you run on top: it reads the chart and makes approval-gated writes,
+              scoped by your access controls.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <Link href="/#signup" className={buttonVariants()}>
-                Get early access
+              <Link href="/demo" className={buttonVariants()}>
+                Try the live demo
               </Link>
               <Link
-                href="/demo"
+                href="https://github.com/cbetz/last-ehr"
+                target="_blank"
+                rel="noopener noreferrer"
                 className={buttonVariants({ variant: "outline" })}
               >
-                Try the live demo
+                <IconGitHub className="mr-2 h-4 w-4" aria-hidden="true" />
+                View on GitHub
               </Link>
             </div>
           </section>
@@ -137,11 +133,10 @@ export default function HeadlessEhrPage() {
               <p>
                 Because EHR and EMR are commonly used interchangeably, you&apos;ll
                 also see this called a{" "}
-                <strong className="text-foreground">headless EMR</strong> — the
+                <strong className="text-foreground">headless EMR</strong>. The
                 concept is identical. The point is the same either way: own your
-                product experience, and let the platform handle the
-                undifferentiated heavy lifting of storage, standards, and
-                compliance.
+                product experience, and let the platform handle the storage,
+                standards, and compliance.
               </p>
             </div>
           </section>
@@ -167,27 +162,27 @@ export default function HeadlessEhrPage() {
                 </CardHeader>
                 <CardContent className="text-muted-foreground">
                   A managed, API-first backend with the data, standards, and
-                  compliance built in. You own the UI and ship differentiated,
-                  AI-powered experiences on your own timeline.
+                  compliance built in. You own the UI and ship the experiences
+                  your team needs on your own timeline.
                 </CardContent>
               </Card>
             </div>
           </section>
 
           <section className="container py-12">
-            <h2 className="text-center text-3xl font-bold md:text-4xl">
+            <h2 className="text-3xl font-bold md:text-4xl">
               Why teams build on a headless EHR
             </h2>
-            <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {benefits.map(({ icon, title, description }) => (
-                <Card key={title} className="bg-muted/50">
-                  <CardHeader>
-                    <CardTitle className="grid place-items-center gap-4 text-center">
+                <Card key={title} className="border-border bg-transparent">
+                  <CardHeader className="space-y-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md border text-muted-foreground">
                       {icon}
-                      {title}
-                    </CardTitle>
+                    </div>
+                    <CardTitle className="text-base">{title}</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-center text-muted-foreground">
+                  <CardContent className="text-sm leading-relaxed text-muted-foreground">
                     {description}
                   </CardContent>
                 </Card>
@@ -198,22 +193,24 @@ export default function HeadlessEhrPage() {
           <Faq items={faqs} />
 
           <section className="container py-16 text-center sm:py-24">
-            <h2 className="text-3xl font-bold md:text-4xl">
-              Build on Last EHR
-            </h2>
+            <h2 className="text-3xl font-bold md:text-4xl">Build on Last EHR</h2>
             <p className="mx-auto mt-4 max-w-2xl text-xl text-muted-foreground">
-              Pick a headless EHR, connect your integrations, and add AI agents.
-              Focus on your secret sauce and let us handle the rest.
+              Last EHR is open source and self-hosted. Run it on your Medplum,
+              bring your own model key, and add an approval-gated AI agent to the
+              chart.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <Link href="/#signup" className={buttonVariants()}>
-                Get early access
+              <Link href="/demo" className={buttonVariants()}>
+                Try the live demo
               </Link>
               <Link
-                href="/demo"
+                href="https://github.com/cbetz/last-ehr"
+                target="_blank"
+                rel="noopener noreferrer"
                 className={buttonVariants({ variant: "outline" })}
               >
-                Try the live demo
+                <IconGitHub className="mr-2 h-4 w-4" aria-hidden="true" />
+                View on GitHub
               </Link>
             </div>
           </section>
