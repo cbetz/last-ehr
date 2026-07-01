@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Last EHR — AI-Powered Electronic Health Record";
+export const alt = "Last EHR: Open-source AI agent layer for Medplum and FHIR";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -31,7 +31,7 @@ export default function Image() {
             color: "#94a3b8",
           }}
         >
-          The AI-native EHR for modern clinical teams
+          AI agents over the patient chart. Every write needs your approval.
         </div>
       </div>
     ),

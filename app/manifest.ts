@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Last EHR — AI-Powered Electronic Health Record",
+    name: "Last EHR: Open-source AI agent layer for Medplum and FHIR",
     short_name: "Last EHR",
     description:
-      "AI-powered, low-code Electronic Health Record (EHR) platform for modern clinical teams.",
+      "An open-source AI agent layer over your FHIR backend. The agent reads the chart and proposes writes; nothing is saved until you approve it.",
     start_url: "/",
     display: "standalone",
     background_color: "#0b1120",

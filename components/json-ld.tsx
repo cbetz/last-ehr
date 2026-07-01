@@ -15,7 +15,7 @@ export function JsonLd() {
         url: BASE_URL,
         logo: `${BASE_URL}/icon`,
         description:
-          "AI-powered, low-code Electronic Health Record (EHR) platform for modern clinical teams.",
+          "Last EHR is an open-source AI agent layer for Medplum and FHIR backends.",
         sameAs: ["https://x.com/lastehr"],
       },
       {
@@ -31,12 +31,11 @@ export function JsonLd() {
         "@id": `${BASE_URL}/#software`,
         name: "Last EHR",
         applicationCategory: "HealthApplication",
-        applicationSubCategory: "Electronic Health Record",
         operatingSystem: "Web",
         url: BASE_URL,
         publisher: { "@id": `${BASE_URL}/#organization` },
         description:
-          "AI-native, low-code EHR that lets teams pick a headless EHR, connect integrations, and add AI agents.",
+          "Open-source AI agent layer that reads and writes to a FHIR backend (Medplum today) with human approval on every write. Stores no patient data of its own.",
       },
     ],
   };
