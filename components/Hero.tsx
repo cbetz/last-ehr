@@ -42,7 +42,7 @@ const Hero = () => {
       <div className="relative z-10 w-full">
         <Image
           src={demoImage}
-          alt="The Last EHR clinician dashboard showing a patient chart and AI assistant"
+          alt="The Last EHR demo proposing a heart rate observation for a patient, with Cancel and Approve & save buttons. Nothing is saved to the chart until the user approves."
           priority
           placeholder="blur"
           sizes="(max-width: 1024px) 100vw, 50vw"
