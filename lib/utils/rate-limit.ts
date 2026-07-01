@@ -5,7 +5,7 @@ import { Redis } from "@upstash/redis";
  * Per-IP (and global) request caps for the public demo.
  *
  * Uses Upstash Redis when UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN are
- * set — the only reliable option on Vercel, whose serverless instances don't
+ * set, the only reliable option on Vercel, whose serverless instances don't
  * share memory. Without those, it falls back to a best-effort in-memory limiter
  * (fine for local dev; NOT reliable across serverless instances/cold-starts).
  *
@@ -35,7 +35,7 @@ function initRedis() {
 
   // Accept both the native Upstash names and the Vercel Marketplace
   // integration's KV_* names (which it provisions automatically). Use the
-  // read-write token (KV_REST_API_TOKEN), not the read-only one — the limiter
+  // read-write token (KV_REST_API_TOKEN), not the read-only one; the limiter
   // increments counters.
   const url =
     process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
@@ -46,7 +46,7 @@ function initRedis() {
   try {
     const redis = new Redis({ url, token });
     // analytics:false keeps it to one Redis command per check (analytics adds a
-    // second write returned as an un-awaited promise — wasteful on the free tier).
+    // second write returned as an un-awaited promise, wasteful on the free tier).
     redisPerIp = new Ratelimit({
       redis,
       limiter: Ratelimit.slidingWindow(PER_IP_MAX, WINDOW),

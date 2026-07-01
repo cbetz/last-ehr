@@ -53,6 +53,9 @@ export async function POST(req: Request) {
   } catch {
     return new Response("Invalid request body.", { status: 400 });
   }
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response("Invalid request body.", { status: 400 });
+  }
 
   const result = streamText({
     model: getChatModel(),

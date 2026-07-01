@@ -72,7 +72,7 @@ export function PatientCard({
                 Date of Birth
               </p>
               <p className="text-lg font-semibold leading-none">
-                {birthDate || "—"}
+                {birthDate || "Unknown"}
               </p>
             </div>
             <div className="space-y-2">
@@ -80,7 +80,7 @@ export function PatientCard({
                 Gender
               </p>
               <p className="text-lg font-semibold leading-none">
-                {patient.gender ?? "—"}
+                {patient.gender ?? "Unknown"}
               </p>
             </div>
           </CardContent>

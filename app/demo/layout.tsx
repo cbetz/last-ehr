@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Live Demo",
   description:
-    "Try Last EHR's interactive AI assistant connected to a live headless EHR — look up patients and view charts in natural language.",
+    "Try Last EHR's AI agent on a live FHIR backend: look up patients, view charts, and record to the chart with approval on every write.",
   alternates: { canonical: "/demo" },
 };
 
