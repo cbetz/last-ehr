@@ -7,18 +7,24 @@ import Image from "next/image";
 type Labeled = { id: string; text: string };
 type ObsRow = { id: string; label: string; value: string; date: string };
 type Note = { id: string; text: string; date: string };
+type Medication = { id: string; text: string; dosage: string; status: string };
+type Immunization = { id: string; text: string; date: string };
 
 export function PatientCard({
   patient,
   conditions = [],
   allergies = [],
+  medications = [],
   observations = [],
+  immunizations = [],
   notes = [],
 }: {
   patient: Patient;
   conditions?: Labeled[];
   allergies?: Labeled[];
+  medications?: Medication[];
   observations?: ObsRow[];
+  immunizations?: Immunization[];
   notes?: Note[];
 }) {
   const family = patient.name?.[0]?.family ?? "";
@@ -120,6 +126,32 @@ export function PatientCard({
 
         <Card>
           <CardHeader>
+            <CardTitle>Medications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {medications.length > 0 ? (
+              <ul className="list-none space-y-3 p-2">
+                {medications.map((m) => (
+                  <li key={m.id} className="space-y-1">
+                    <p className="font-medium">{m.text}</p>
+                    {m.dosage && (
+                      <p className="text-sm text-muted-foreground">
+                        {m.dosage}
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="p-2 text-sm text-muted-foreground">
+                No active medications.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Observations</CardTitle>
           </CardHeader>
           <CardContent>
@@ -142,7 +174,7 @@ export function PatientCard({
                   <tbody>
                     {observations.map((o) => (
                       <tr key={o.id}>
-                        <td className="font-semibold">{o.date || "—"}</td>
+                        <td className="font-semibold">{o.date || ""}</td>
                         <td>{o.label}</td>
                         <td>{o.value}</td>
                       </tr>
@@ -153,6 +185,32 @@ export function PatientCard({
             ) : (
               <p className="text-sm text-muted-foreground">
                 No observations recorded yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Immunizations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {immunizations.length > 0 ? (
+              <ul className="list-none space-y-2 p-2">
+                {immunizations.map((i) => (
+                  <li key={i.id} className="flex justify-between gap-4">
+                    <span>{i.text}</span>
+                    {i.date && (
+                      <span className="shrink-0 text-sm text-muted-foreground">
+                        {i.date}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="p-2 text-sm text-muted-foreground">
+                No immunizations on record.
               </p>
             )}
           </CardContent>
