@@ -23,7 +23,7 @@ export function SiteFooter() {
             Last EHR
           </Link>
           <p className="text-sm text-muted-foreground max-w-xs">
-            The AI-native, low-code Electronic Health Record platform.
+            An open-source AI agent layer for Medplum and FHIR.
           </p>
         </div>
 

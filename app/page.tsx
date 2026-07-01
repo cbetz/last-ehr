@@ -20,22 +20,19 @@ export default function Home() {
           <div className="mx-auto w-full max-w-[600px] space-y-6">
             <div className="space-y-2 text-center">
               <h2 className="text-3xl md:text-4xl font-bold">
-                <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-                  Want it hosted?
-                </span>
+                Self-host it, or join the hosted waitlist
               </h2>
               <p className="text-muted-foreground text-xl">
-                Self-hosting is free and open source. If you&apos;d rather we run
-                it for you — managed Medplum, a signed BAA, no infra to operate —
-                leave your email and we&apos;ll reach out as the hosted version
-                comes together.
+                Last EHR is free and open source under Apache-2.0. A managed tier
+                with hosted Medplum and a signed BAA is in development. Leave your
+                email to join the waitlist.
               </p>
             </div>
 
             <SignupForm />
 
             <p className="px-2 text-center text-sm leading-normal text-muted-foreground">
-              Prefer to self-host?{" "}
+              The code is open source.{" "}
               <Link
                 href="https://github.com/cbetz/last-ehr"
                 target="_blank"
