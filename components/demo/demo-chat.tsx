@@ -30,6 +30,22 @@ import { IconArrowElbow, IconPlus } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { EmptyScreen } from "@/components/empty-screen";
 
+// The chat API writes its error bodies for users (rate limit, expired session,
+// model failure), and the transport surfaces that body as error.message. Show
+// messages we recognize verbatim; anything else gets a generic fallback.
+const FRIENDLY_ERROR_PREFIXES = [
+  "Rate limit reached",
+  "Your demo session expired",
+  "The model call failed",
+];
+
+function errorText(error: Error): string {
+  const message = error.message ?? "";
+  return FRIENDLY_ERROR_PREFIXES.some((prefix) => message.startsWith(prefix))
+    ? message
+    : "Something went wrong. Please try again.";
+}
+
 export function DemoChat() {
   const {
     messages,
@@ -52,7 +68,7 @@ export function DemoChat() {
   const medplum = useMedplum();
 
   const ask = async (text: string) => {
-    // Ensure the /api/chat route can read the current Medplum session — the
+    // Ensure the /api/chat route can read the current Medplum session: the
     // sign-in form isn't mounted once you're already authenticated, so refresh
     // the server-set HttpOnly session cookie here before every send. The token
     // is posted to a server route rather than written to document.cookie, so it
@@ -72,7 +88,7 @@ export function DemoChat() {
     <>
       <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center dark:border-amber-500/20 dark:bg-amber-950/40">
         <p className="mx-auto max-w-2xl text-xs text-amber-800 dark:text-amber-200">
-          Live demo on synthetic data — please don&apos;t enter real patient
+          Live demo on synthetic data. Please don&apos;t enter real patient
           information. Changes you make are visible only in your own session.
         </p>
       </div>
@@ -252,9 +268,7 @@ export function DemoChat() {
             )}
             {error && (
               <div className="pb-4">
-                <BotMessage>
-                  Something went wrong. Please try again.
-                </BotMessage>
+                <BotMessage>{errorText(error)}</BotMessage>
               </div>
             )}
           </div>

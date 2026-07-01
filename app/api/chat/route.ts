@@ -19,11 +19,17 @@ export const maxDuration = 30;
 export type ChatTools = InferUITools<ReturnType<typeof buildTools>>;
 export type ChatMessage = UIMessage<never, UIDataTypes, ChatTools>;
 
+// Error bodies double as the user-facing message: the useChat transport turns
+// a non-OK response body into error.message, and the client shows any message
+// matching these openings verbatim (see errorText in demo-chat.tsx).
 export async function POST(req: Request) {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("medplum_access_token")?.value;
   if (!accessToken) {
-    return new Response("Unauthorized", { status: 401 });
+    return new Response(
+      "Your demo session expired. Refresh the page to start a new one.",
+      { status: 401 },
+    );
   }
 
   // Protect the public demo from a traffic spike / abuse: cap requests per IP
@@ -32,7 +38,8 @@ export async function POST(req: Request) {
   if (!success) {
     const retryAfter = Math.max(1, Math.ceil(resetAfter / 1000));
     return new Response(
-      "Rate limit exceeded — please slow down and try again shortly.",
+      "Rate limit reached. To keep this demo up for everyone, requests are " +
+        "capped per visitor and overall. Please wait a minute and try again.",
       { status: 429, headers: { "retry-after": String(retryAfter) } },
     );
   }
@@ -40,7 +47,12 @@ export async function POST(req: Request) {
   // Tags demo writes so a visitor sees seed data + only their own edits.
   const sessionId = cookieStore.get("demo_session_id")?.value;
 
-  const { messages }: { messages: UIMessage[] } = await req.json();
+  let messages: UIMessage[];
+  try {
+    ({ messages } = (await req.json()) as { messages: UIMessage[] });
+  } catch {
+    return new Response("Invalid request body.", { status: 400 });
+  }
 
   const result = streamText({
     model: getChatModel(),
@@ -50,5 +62,15 @@ export async function POST(req: Request) {
     stopWhen: stepCountIs(5),
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toUIMessageStreamResponse({
+    // Without this, mid-stream failures (model provider down, key over quota)
+    // reach the client as a masked "An error occurred".
+    onError: (error) => {
+      console.error("Chat stream error:", error);
+      return (
+        "The model call failed. The demo may be over capacity right now; " +
+        "please wait a minute and try again."
+      );
+    },
+  });
 }
