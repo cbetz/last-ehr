@@ -15,7 +15,7 @@ export function ConfirmWrite({
   onCancel: () => void;
 }) {
   return (
-    <Card className="border-primary/40">
+    <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base font-medium">{title}</CardTitle>
       </CardHeader>

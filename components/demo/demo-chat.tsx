@@ -105,7 +105,10 @@ export function DemoChat() {
         ) : (
           <div className="relative mx-auto max-w-2xl px-4">
             {messages.map((message, mi) => (
-              <div key={`${message.id}-${mi}`} className="pb-4">
+              // space-y-4 keeps a consistent gap between the parts of one
+              // assistant turn (cards, tool results, text), matching the pb-4
+              // gap between turns.
+              <div key={`${message.id}-${mi}`} className="space-y-4 pb-4">
                 {message.role === "user" ? (
                   <UserMessage>
                     {message.parts
