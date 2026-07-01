@@ -9,13 +9,13 @@ basis, and not every feature request will fit the roadmap.
 - **"My Medplum / backend setup doesn't work"** is usually **not** a Last EHR
   bug. Confirm your FHIR backend works independently first (you can hit its API
   directly), then ask in **Discussions** rather than Issues.
-- **Never include real PHI/PII** in issues, PRs, or logs — synthetic data only.
+- **Never include real PHI/PII** in issues, PRs, or logs; synthetic data only.
 - For vulnerabilities, follow [SECURITY.md](./SECURITY.md) (private advisory),
   not a public issue.
 
 ## Pull requests
 
-- Keep PRs **small and focused** — one logical change per PR.
+- Keep PRs **small and focused**: one logical change per PR.
 - Run the checks locally before pushing:
 
   ```bash

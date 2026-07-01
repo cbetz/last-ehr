@@ -12,7 +12,7 @@ import { PostHogProvider } from "posthog-js/react";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-// PostHog is optional — self-hosters without a key get no analytics rather
+// PostHog is optional: self-hosters without a key get no analytics rather
 // than a first-run crash.
 if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {

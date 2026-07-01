@@ -18,7 +18,7 @@ const SESSION_ID_COOKIE = "demo_session_id";
 // Enable by setting MEDPLUM_CLIENT_ID + MEDPLUM_CLIENT_SECRET (and
 // NEXT_PUBLIC_QUICKSTART=true so /demo renders the chat directly). All visitors
 // share one ClientApplication token, so we cache it (below) rather than calling
-// the auth backend on every request — a request storm can't fan out to Medplum.
+// the auth backend on every request, so a request storm can't fan out to Medplum.
 // Each visitor still gets a unique session id used to isolate their demo writes.
 
 type CachedToken = { value: string; expiresAt: number };

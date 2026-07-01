@@ -67,7 +67,7 @@
 
 /* Map the shadcn HSL variables to Tailwind v4 utility tokens.
    @theme inline keeps utilities referencing var(...) live, so the .dark
-   overrides above actually swap colors. Bare var() — hsl() is in the value. */
+   overrides above actually swap colors. Bare var(); hsl() is in the value. */
 @theme inline {
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 

@@ -40,7 +40,7 @@ export function buildTools(accessToken: string, sessionId?: string) {
 
   // A resource is visible to this session if it carries no demo tag (seed /
   // baseline data) or carries this session's own tag. This structurally keeps
-  // one visitor's writes from showing up in another visitor's chart — no
+  // one visitor's writes from showing up in another visitor's chart, with no
   // content filtering or cleanup cron required.
   const isVisible = (res: {
     meta?: { tag?: { system?: string; code?: string }[] };
