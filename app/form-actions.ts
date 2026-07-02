@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { neon } from "@neondatabase/serverless";
 
 export async function create(
@@ -28,13 +29,23 @@ export async function create(
     return { message: "Please try again later." };
   }
 
+  // Context worth keeping with a signup: when it happened (created_at is a
+  // column default), where they came from, and enough client detail to spot
+  // bot floods later. Truncated defensively; headers are attacker-controlled.
+  const h = await headers();
+  const referrer = (h.get("referer") ?? "").slice(0, 500) || null;
+  const userAgent = (h.get("user-agent") ?? "").slice(0, 500) || null;
+  const ip =
+    (h.get("x-forwarded-for") ?? "").split(",")[0].trim().slice(0, 100) ||
+    null;
+
   try {
     const sql = neon(connectionString);
     // ON CONFLICT relies on the unique index; RETURNING tells us whether a
     // row was actually inserted (empty result means the email already exists).
     const inserted = await sql`
-      INSERT INTO waitlist (name, email)
-      VALUES (${name}, ${email})
+      INSERT INTO waitlist (name, email, referrer, user_agent, ip)
+      VALUES (${name}, ${email}, ${referrer}, ${userAgent}, ${ip})
       ON CONFLICT (email) DO NOTHING
       RETURNING id
     `;
