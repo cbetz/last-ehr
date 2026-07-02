@@ -72,9 +72,12 @@ export function buildTools(accessToken: string, sessionId?: string) {
       }),
       execute: async ({ id }) => {
         // Fetch the patient plus the related resources the chart shows, so the
-        // UI renders the patient's actual data (not placeholders).
+        // UI renders the patient's actual data (not placeholders). The patient
+        // is fetched via SEARCH (not a direct read) on purpose: SMART-launched
+        // sessions carry a _compartment-scoped AccessPolicy that Medplum can
+        // only enforce on the search path, so a direct readResource 403s.
         const [
-          patient,
+          patients,
           conditions,
           allergies,
           observations,
@@ -82,7 +85,7 @@ export function buildTools(accessToken: string, sessionId?: string) {
           medications,
           immunizations,
         ] = await Promise.all([
-          medplum.readResource("Patient", id),
+          medplum.searchResources("Patient", { _id: id, _count: "1" }),
           medplum.searchResources("Condition", { patient: id, _count: "50" }),
           medplum.searchResources("AllergyIntolerance", {
             patient: id,
@@ -108,6 +111,13 @@ export function buildTools(accessToken: string, sessionId?: string) {
             _count: "50",
           }),
         ]);
+
+        const patient = patients[0];
+        if (!patient) {
+          throw new Error(
+            "Patient not found or not accessible in this session.",
+          );
+        }
 
         return {
           patient,
