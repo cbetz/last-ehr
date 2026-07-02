@@ -5,8 +5,10 @@ import { IconTwitter } from "./ui/icons";
 
 const footerLinks = [
   { href: "/headless-ehr", label: "Headless EHR" },
+  { href: "/medplum-ai-agent", label: "Medplum AI Agent" },
+  { href: "/approval-gated-writes", label: "Approval-Gated Writes" },
+  { href: "/chat-with-fhir-data", label: "Chat with FHIR Data" },
   { href: "/#howItWorks", label: "How It Works" },
-  { href: "/#ai", label: "AI Agents" },
   { href: "/#signup", label: "Sign Up" },
   { href: "/demo", label: "Live Demo" },
 ];
