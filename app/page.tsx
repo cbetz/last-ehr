@@ -16,6 +16,56 @@ export default function Home() {
         <HowItWorks />
         <AISection />
 
+        <section id="overview" className="container py-24 sm:py-32">
+          <h2 className="text-3xl font-bold md:text-4xl">
+            A thin agent layer over your FHIR backend
+          </h2>
+          <div className="mt-4 max-w-3xl space-y-4 text-lg leading-relaxed text-muted-foreground">
+            <p>
+              Last EHR runs on top of your Medplum project and adds one thing:
+              a chat agent with four FHIR tools. It searches patients, opens a
+              chart (conditions, allergies, medications, observations,
+              immunizations, notes), adds a free-text note, and records an
+              observation. The two write tools are approval-gated: the agent
+              proposes, an approval card shows exactly what will be saved, and
+              nothing reaches the chart until you click Approve. Every call
+              runs as the signed-in user, bounded by your Medplum AccessPolicy,
+              and the layer stores no patient data of its own.
+            </p>
+            <p>
+              Read how{" "}
+              <Link
+                href="/approval-gated-writes"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                approval-gated writes
+              </Link>{" "}
+              work, how the agent{" "}
+              <Link
+                href="/chat-with-fhir-data"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                turns FHIR resources into chart context
+              </Link>
+              , and how to{" "}
+              <Link
+                href="/medplum-ai-agent"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                add the agent to your Medplum project
+              </Link>
+              . New to the architecture? Start with{" "}
+              <Link
+                href="/headless-ehr"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                what a headless EHR is
+              </Link>
+              .
+            </p>
+          </div>
+        </section>
+
         <section id="signup" className="container py-24 sm:py-32">
           <div className="mx-auto w-full max-w-[600px] space-y-6">
             <div className="space-y-2 text-center">

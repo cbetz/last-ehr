@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronLast } from "lucide-react";
 
-import { IconTwitter } from "./ui/icons";
+import { IconGitHub, IconTwitter } from "./ui/icons";
 
 const footerLinks = [
   { href: "/headless-ehr", label: "Headless EHR" },
@@ -44,19 +44,31 @@ export function SiteFooter() {
           </ul>
         </nav>
 
-        <a
-          href="https://x.com/lastehr"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <IconTwitter className="h-4 w-4" aria-hidden="true" />
-          <span>@lastehr</span>
-        </a>
+        <div className="flex items-center gap-5">
+          <a
+            href="https://github.com/cbetz/last-ehr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <IconGitHub className="h-4 w-4" aria-hidden="true" />
+            <span>GitHub</span>
+          </a>
+          <a
+            href="https://x.com/lastehr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <IconTwitter className="h-4 w-4" aria-hidden="true" />
+            <span>@lastehr</span>
+          </a>
+        </div>
       </div>
       <div className="container pb-8">
         <p className="text-xs text-muted-foreground">
-          © {year} Last EHR. All rights reserved.
+          © {year} Last EHR. A personal open-source project, Apache-2.0,
+          built in the open.
         </p>
       </div>
     </footer>

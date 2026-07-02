@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMedplumContext, useMedplumProfile } from "@medplum/react-hooks";
 
 import { DemoHeader } from "@/components/demo/demo-header";
@@ -19,6 +20,29 @@ export default function DemoPage() {
   return (
     <div className="flex min-h-screen flex-col">
       <DemoHeader />
+      {/* Prerendered intro so the page has real, crawlable text (the chat
+          itself is client state). Also gives visitors the two deep links. */}
+      <section className="container max-w-2xl px-4 pt-3 text-center">
+        <p className="text-xs text-muted-foreground">
+          This demo runs Last EHR&apos;s four FHIR tools on synthetic
+          patients: search, view a chart, add a note, record an observation.
+          Writes stop at an approval card until you click Approve. Read{" "}
+          <Link
+            href="/approval-gated-writes"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            how the approval gate works
+          </Link>{" "}
+          or{" "}
+          <Link
+            href="/chat-with-fhir-data"
+            className="underline underline-offset-4 hover:text-foreground"
+          >
+            how the agent reads FHIR data
+          </Link>
+          .
+        </p>
+      </section>
       {quickstart ? (
         <main className="flex flex-1 flex-col">
           <DemoQuickstart />
