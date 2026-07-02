@@ -81,14 +81,18 @@ describe("agent FHIR tools", () => {
   });
 
   it("show_patient_info returns the patient's real conditions, allergies, observations, and notes", async () => {
-    readResource.mockResolvedValue({
-      resourceType: "Patient",
-      id: "p9",
-      name: [{ given: ["Maria"], family: "Garcia" }],
-    });
-    // searchResources is called in order: Condition, AllergyIntolerance,
-    // Observation, Communication, MedicationRequest, Immunization.
+    // searchResources is called in order: Patient (by _id; a search rather
+    // than a read so compartment-scoped SMART sessions work), Condition,
+    // AllergyIntolerance, Observation, Communication, MedicationRequest,
+    // Immunization.
     searchResources
+      .mockResolvedValueOnce([
+        {
+          resourceType: "Patient",
+          id: "p9",
+          name: [{ given: ["Maria"], family: "Garcia" }],
+        },
+      ])
       .mockResolvedValueOnce([{ id: "c1", code: { text: "Asthma" } }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -179,8 +183,8 @@ describe("agent FHIR tools", () => {
   });
 
   it("show_patient_info hides other sessions' writes but keeps seed data and its own", async () => {
-    readResource.mockResolvedValue({ resourceType: "Patient", id: "p9" });
     searchResources
+      .mockResolvedValueOnce([{ resourceType: "Patient", id: "p9" }]) // Patient
       .mockResolvedValueOnce([]) // Condition
       .mockResolvedValueOnce([]) // AllergyIntolerance
       .mockResolvedValueOnce([

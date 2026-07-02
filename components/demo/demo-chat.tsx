@@ -38,6 +38,7 @@ const FRIENDLY_ERROR_PREFIXES = [
   "Rate limit reached",
   "Your demo session expired",
   "The model call failed",
+  "A chart request failed",
 ];
 
 function errorText(error: Error): string {

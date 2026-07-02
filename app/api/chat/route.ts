@@ -67,13 +67,21 @@ export async function POST(req: Request) {
 
   return result.toUIMessageStreamResponse({
     // Without this, mid-stream failures (model provider down, key over quota)
-    // reach the client as a masked "An error occurred".
+    // reach the client as a masked "An error occurred". Model-provider
+    // failures arrive as AI_* API errors; anything else here is a tool
+    // execute throwing (e.g. the FHIR backend rejecting a call), where the
+    // real message is short and worth showing.
     onError: (error) => {
       console.error("Chat stream error:", error);
-      return (
-        "The model call failed. The demo may be over capacity right now; " +
-        "please wait a minute and try again."
-      );
+      const err = error instanceof Error ? error : new Error(String(error));
+      if (err.name === "AI_APICallError" || err.name === "AI_RetryError") {
+        return (
+          "The model call failed. The demo may be over capacity right now; " +
+          "please wait a minute and try again."
+        );
+      }
+      const detail = (err.message || "unknown error").slice(0, 140);
+      return `A chart request failed: ${detail}`;
     },
   });
 }
