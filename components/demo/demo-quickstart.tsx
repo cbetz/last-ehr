@@ -14,6 +14,13 @@ export function DemoQuickstart() {
   const [state, setState] = useState<State>("loading");
 
   useEffect(() => {
+    // A SMART App Launch (see /launch) already set the session cookie; minting
+    // a quickstart token here would clobber that session with the shared demo
+    // credential. The launch callback sets a readable marker cookie to signal.
+    if (document.cookie.includes("smart_session=1")) {
+      setState("ready");
+      return;
+    }
     let cancelled = false;
     fetch("/api/auth/quickstart", { method: "POST" })
       .then((res) => {

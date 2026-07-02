@@ -217,6 +217,32 @@ export default function MedplumAiAgentPage() {
 
           <section className="container max-w-3xl py-8">
             <h2 className="text-3xl font-bold">
+              Launch it inside the Medplum app (SMART on FHIR)
+            </h2>
+            <div className="mt-4 space-y-4 text-lg leading-relaxed text-muted-foreground">
+              <p>
+                You do not have to run Last EHR as a separate destination.
+                Medplum implements SMART App Launch, so registering Last EHR
+                takes one resource: create a ClientApplication in your project
+                with launchUri pointing at your deployment&apos;s /launch route
+                and redirectUri at /launch/callback, and set that
+                application&apos;s id as SMART_CLIENT_ID in your deployment.
+              </p>
+              <p>
+                After that, Last EHR appears on the Apps tab of every Patient
+                and Encounter page in app.medplum.com. Launching it opens the
+                chat already scoped to the patient the clinician was viewing,
+                reusing the Medplum sign-in instead of asking for a separate
+                one. The launch is a standard OAuth2 authorization-code flow
+                with PKCE (public client, no secret), and the resulting session
+                is bounded by the granted SMART scopes and your AccessPolicy.
+                Writes still stop at the approval card.
+              </p>
+            </div>
+          </section>
+
+          <section className="container max-w-3xl py-8">
+            <h2 className="text-3xl font-bold">
               Run it on your Medplum: setup, env vars, and your own model key
             </h2>
             <div className="mt-4 space-y-4 text-lg leading-relaxed text-muted-foreground">

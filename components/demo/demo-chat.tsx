@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
@@ -73,6 +73,13 @@ export function DemoChat() {
     if (error) track("demo_error_shown", { message: error.message ?? "" });
   }, [error]);
 
+  // SMART-launched sessions run against the user's own Medplum project, so
+  // the public demo's synthetic-data banner would be wrong there.
+  const [smartSession, setSmartSession] = useState(false);
+  useEffect(() => {
+    setSmartSession(document.cookie.includes("smart_session=1"));
+  }, []);
+
   const ask = async (text: string) => {
     track("demo_message_sent");
     // Ensure the /api/chat route can read the current Medplum session: the
@@ -91,14 +98,31 @@ export function DemoChat() {
     sendMessage({ text });
   };
 
+  // A SMART App Launch redirects here with ?patient=<id> (the patient the
+  // clinician was viewing). Open that chart immediately so the launch lands in
+  // context. Ref guards against StrictMode double-invoking the effect.
+  const launchedPatient = useRef(false);
+  useEffect(() => {
+    if (launchedPatient.current) return;
+    const id = new URLSearchParams(window.location.search).get("patient");
+    if (id && /^[A-Za-z0-9-]{1,64}$/.test(id)) {
+      launchedPatient.current = true;
+      track("demo_smart_launch");
+      ask(`Show patient info for id ${id}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <>
-      <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center dark:border-amber-500/20 dark:bg-amber-950/40">
-        <p className="mx-auto max-w-2xl text-xs text-amber-800 dark:text-amber-200">
-          Live demo on synthetic data. Please don&apos;t enter real patient
-          information. Changes you make are visible only in your own session.
-        </p>
-      </div>
+      {!smartSession && (
+        <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center dark:border-amber-500/20 dark:bg-amber-950/40">
+          <p className="mx-auto max-w-2xl text-xs text-amber-800 dark:text-amber-200">
+            Live demo on synthetic data. Please don&apos;t enter real patient
+            information. Changes you make are visible only in your own session.
+          </p>
+        </div>
+      )}
       <div className="pb-[200px] pt-4 md:pt-10">
         {messages.length === 0 ? (
           <EmptyScreen submitMessage={ask} />

@@ -69,6 +69,21 @@ At minimum set, in `.env.local`:
 
 `npm run seed` loads a small **synthetic** patient set (`scripts/fixtures/patients.ts`: four patients with conditions, medications, allergies, immunizations, and vitals/labs, two named "Smith"). It wipes and recreates those patients each run, so it is safe to re-run. Then open `/demo` and ask: *"find patients named Smith."* Use synthetic data only.
 
+## Launch from the Medplum app (SMART on FHIR)
+
+Last EHR can launch directly from app.medplum.com. Register it once in your
+Medplum project by creating a **ClientApplication** with:
+
+- `launchUri` = `https://<your-deploy>/launch`
+- `redirectUri` = `https://<your-deploy>/launch/callback`
+
+then set `SMART_CLIENT_ID` to that ClientApplication's id in your deployment.
+Last EHR appears on the **Apps tab of every Patient and Encounter page**;
+launching it opens the chat already scoped to that patient, reusing your
+Medplum sign-in (SMART App Launch with PKCE, public client, no secret). The
+token is bounded by the granted SMART scopes and your AccessPolicy, and writes
+still stop at the approval card.
+
 ## Configuration
 
 Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic: set `AI_PROVIDER` (`openai` | `anthropic`), optionally `MODEL_ID`, and the matching key. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
