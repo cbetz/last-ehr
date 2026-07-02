@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     title: "Headless EHR for Modern Clinical Teams | Last EHR",
     description:
       "What a headless EHR is, how it compares to a traditional EHR, and how Last EHR adds approval-gated AI agents on top of your FHIR backend.",
-    url: "/headless-ehr",
+    url: "https://www.lastehr.com/headless-ehr",
   },
 };
 
@@ -83,6 +83,10 @@ const faqs: FaqItem[] = [
   {
     q: "Can I add AI agents to a headless EHR?",
     a: "Yes. Because the data is API-first and FHIR-native, you can connect AI agents that read and write structured clinical data. Last EHR is one such layer: it searches patients, opens a chart, and makes approval-gated writes (add a note, record an observation) scoped by your access controls.",
+  },
+  {
+    q: "Are there open-source headless EHR options?",
+    a: "Yes. Medplum is an open-source, FHIR-native headless backend with hosted and self-hosted options. HAPI FHIR is a long-standing open-source FHIR server you can build on. OpenEMR is open source but a full EMR rather than headless-first. Commercial options include Aidbox, Firely Server, Canvas Medical, and Oystehr. Last EHR is not a backend at all: it is an open-source AI agent layer that runs on top of one (Medplum today).",
   },
 ];
 
@@ -187,6 +191,104 @@ export default function HeadlessEhrPage() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </section>
+
+          <section className="container max-w-3xl py-12">
+            <h2 className="text-3xl font-bold md:text-4xl">
+              Headless EHR options: open source and commercial
+            </h2>
+            <div className="mt-4 space-y-4 text-lg leading-relaxed text-muted-foreground">
+              <p>
+                The category is small but real, and the options differ more in
+                philosophy than in feature lists. A non-exhaustive map:
+              </p>
+              <ul className="list-disc space-y-3 pl-6">
+                <li>
+                  <strong className="text-foreground">Medplum</strong>: an
+                  open-source, FHIR-native headless backend with hosted and
+                  self-hosted options; authentication, access policies,
+                  subscriptions, and audit come built in. This is the backend
+                  Last EHR runs on today.
+                </li>
+                <li>
+                  <strong className="text-foreground">Aidbox</strong> (Health
+                  Samurai): a commercial FHIR server platform aimed at teams
+                  building products on FHIR.
+                </li>
+                <li>
+                  <strong className="text-foreground">HAPI FHIR</strong>: the
+                  long-standing open-source Java FHIR server. A bare FHIR API;
+                  you assemble auth, tenancy, and tooling around it.
+                </li>
+                <li>
+                  <strong className="text-foreground">Firely Server</strong>: a
+                  commercial FHIR server from one of the major FHIR tooling
+                  vendors.
+                </li>
+                <li>
+                  <strong className="text-foreground">Canvas Medical</strong>:
+                  a developer-first EMR with APIs; closer to a full EMR with a
+                  programmable surface than a bare headless backend.
+                </li>
+                <li>
+                  <strong className="text-foreground">Oystehr</strong>: an
+                  API-first healthcare platform, known for the open-source
+                  Ottehr telehealth project built on it.
+                </li>
+                <li>
+                  <strong className="text-foreground">OpenEMR</strong>: a
+                  mature open-source EMR. Not headless-first, but it has APIs
+                  and a large installed base.
+                </li>
+              </ul>
+              <p>
+                Offerings change; verify current capabilities and terms
+                directly with each project. Last EHR runs on Medplum today,
+                and the FHIR calls are the seam where other backends could
+                slot in later.
+              </p>
+            </div>
+          </section>
+
+          <section className="container max-w-3xl py-12">
+            <h2 className="text-3xl font-bold md:text-4xl">
+              Adding an AI agent to a headless EHR
+            </h2>
+            <div className="mt-4 space-y-4 text-lg leading-relaxed text-muted-foreground">
+              <p>
+                A headless backend changes what an AI agent can be. Because
+                the chart is already structured FHIR behind an API, an agent
+                can read it as data rather than scraping a UI, and its writes
+                can be bounded by the backend&apos;s own access control
+                instead of trust.
+              </p>
+              <p>
+                That is exactly what Last EHR does: a chat agent with four
+                FHIR tools where every write stops at an approval card before
+                it touches the chart. Read{" "}
+                <Link
+                  href="/approval-gated-writes"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  how approval-gated writes work
+                </Link>
+                , how the agent{" "}
+                <Link
+                  href="/chat-with-fhir-data"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  turns FHIR resources into chart context
+                </Link>
+                , or{" "}
+                <Link
+                  href="/medplum-ai-agent"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  how to add it to a Medplum project
+                </Link>
+                .
+              </p>
             </div>
           </section>
 
