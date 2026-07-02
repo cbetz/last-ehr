@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useMedplumContext, useMedplumProfile } from "@medplum/react-hooks";
 
 import { DemoHeader } from "@/components/demo/demo-header";
@@ -16,6 +17,13 @@ const quickstart = process.env.NEXT_PUBLIC_QUICKSTART === "true";
 export default function DemoPage() {
   const { loading } = useMedplumContext();
   const profile = useMedplumProfile();
+  // A SMART App Launch session is server-side (HttpOnly cookie), invisible to
+  // the browser MedplumClient, so profile stays null. The launch callback sets
+  // a readable marker cookie; when present, skip the sign-in gate.
+  const [smartSession, setSmartSession] = useState(false);
+  useEffect(() => {
+    setSmartSession(document.cookie.includes("smart_session=1"));
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -43,7 +51,11 @@ export default function DemoPage() {
           .
         </p>
       </section>
-      {quickstart ? (
+      {smartSession ? (
+        <main className="flex-1">
+          <DemoChat />
+        </main>
+      ) : quickstart ? (
         <main className="flex flex-1 flex-col">
           <DemoQuickstart />
         </main>
