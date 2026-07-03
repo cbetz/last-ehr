@@ -1,6 +1,7 @@
 import { tool, type ToolSet } from "ai";
-import { MedplumClient } from "@medplum/core";
 import { z } from "zod";
+
+import type { FhirBackend } from "@/lib/fhir/backend";
 
 export const SYSTEM_PROMPT = `You are an EHR assistant working over a FHIR backend.
 
@@ -19,19 +20,13 @@ Always reference a patient by the resource id from a prior search. The UI render
 // shared public demo a visitor only ever sees seed data plus their own edits.
 const DEMO_TAG_SYSTEM = "http://lastehr.demo";
 
-// Builds the agent's FHIR tools, scoped to one Medplum session (accessToken).
-// Read tools (search/show) execute freely; write tools (add_note,
+// Builds the agent's FHIR tools over one backend session (see
+// lib/fhir/backend.ts; the chat route constructs it from the visitor's
+// token). Read tools (search/show) execute freely; write tools (add_note,
 // record_observation) set needsApproval so the SDK gates them behind explicit
 // user approval before execute runs. When a sessionId is given (the public
 // demo), writes are tagged with it and reads are filtered to that session.
-export function buildTools(accessToken: string, sessionId?: string) {
-  // baseUrl lets self-hosters point at their own Medplum; falls back to
-  // Medplum's hosted API (api.medplum.com) when unset.
-  const medplum = new MedplumClient({
-    accessToken,
-    baseUrl: process.env.MEDPLUM_BASE_URL || undefined,
-  });
-
+export function buildTools(backend: FhirBackend, sessionId?: string) {
   // meta.tag applied to demo-written resources, scoped to this visitor's
   // session. Undefined when there's no session (e.g. single-tenant self-host).
   const demoTag = sessionId
@@ -60,7 +55,7 @@ export function buildTools(accessToken: string, sessionId?: string) {
         name: z.string().describe("The patient's name, e.g. John Doe."),
       }),
       execute: async ({ name }) => {
-        const bundle = await medplum.search("Patient", `name=${name}`);
+        const bundle = await backend.search("Patient", `name=${name}`);
         return { patients: bundle.entry ?? [] };
       },
     }),
@@ -85,27 +80,27 @@ export function buildTools(accessToken: string, sessionId?: string) {
           medications,
           immunizations,
         ] = await Promise.all([
-          medplum.searchResources("Patient", { _id: id, _count: "1" }),
-          medplum.searchResources("Condition", { patient: id, _count: "50" }),
-          medplum.searchResources("AllergyIntolerance", {
+          backend.searchResources("Patient", { _id: id, _count: "1" }),
+          backend.searchResources("Condition", { patient: id, _count: "50" }),
+          backend.searchResources("AllergyIntolerance", {
             patient: id,
             _count: "50",
           }),
-          medplum.searchResources("Observation", {
+          backend.searchResources("Observation", {
             patient: id,
             _sort: "-date",
             _count: "100",
           }),
-          medplum.searchResources("Communication", {
+          backend.searchResources("Communication", {
             subject: `Patient/${id}`,
             _sort: "-sent",
             _count: "100",
           }),
-          medplum.searchResources("MedicationRequest", {
+          backend.searchResources("MedicationRequest", {
             patient: id,
             _count: "50",
           }),
-          medplum.searchResources("Immunization", {
+          backend.searchResources("Immunization", {
             patient: id,
             _sort: "-date",
             _count: "50",
@@ -175,7 +170,7 @@ export function buildTools(accessToken: string, sessionId?: string) {
       }),
       needsApproval: true,
       execute: async ({ patientId, text }) => {
-        const created = await medplum.createResource({
+        const created = await backend.createResource({
           resourceType: "Communication",
           status: "completed",
           subject: { reference: `Patient/${patientId}` },
@@ -215,7 +210,7 @@ export function buildTools(accessToken: string, sessionId?: string) {
       }),
       needsApproval: true,
       execute: async ({ patientId, label, value, unit }) => {
-        const created = await medplum.createResource({
+        const created = await backend.createResource({
           resourceType: "Observation",
           status: "final",
           code: { text: label },

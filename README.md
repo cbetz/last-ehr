@@ -26,7 +26,7 @@
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through `@medplum/core` against the Medplum instance you configure. **Backend-agnostic is the goal**: Medplum is the first adapter, and the FHIR calls are the seam where other headless EHRs (Aidbox, HAPI, Firely) could slot in.
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) whose only adapter today wraps `@medplum/core` against the Medplum instance you configure. **Backend-agnostic is the goal**: the interface is three methods (search, search resources, create resource) plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. Aidbox, Oystehr, and HAPI adapters are tracked in [#39](https://github.com/cbetz/last-ehr/issues/39), [#40](https://github.com/cbetz/last-ehr/issues/40), and [#44](https://github.com/cbetz/last-ehr/issues/44).
 
 ```mermaid
 flowchart LR
