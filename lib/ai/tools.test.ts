@@ -1,37 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock Medplum so the write tools' execute() doesn't hit a real server.
-// vi.hoisted ensures these exist before the (hoisted) vi.mock factory runs.
-const { createResource, search, readResource, searchResources } = vi.hoisted(
-  () => ({
-    createResource: vi.fn(),
-    search: vi.fn(),
-    readResource: vi.fn(),
-    searchResources: vi.fn(),
-  }),
-);
-
-vi.mock("@medplum/core", () => ({
-  // A class so `new MedplumClient(...)` is constructable.
-  MedplumClient: class {
-    createResource = createResource;
-    search = search;
-    readResource = readResource;
-    searchResources = searchResources;
-  },
-}));
-
 import { buildTools } from "@/lib/ai/tools";
+import type { FhirBackend } from "@/lib/fhir/backend";
+
+// buildTools takes the backend as a plain object, so tests inject a fake
+// directly; no module mocking required. Adapter behavior (client construction,
+// delegation) is covered in lib/fhir/medplum.test.ts.
+const search = vi.fn();
+const searchResources = vi.fn();
+const createResource = vi.fn();
+const backend = { search, searchResources, createResource } as FhirBackend;
 
 describe("agent FHIR tools", () => {
   beforeEach(() => {
+    search.mockReset();
     createResource.mockReset();
-    readResource.mockReset();
     searchResources.mockReset();
   });
 
   it("gates writes behind approval, but never reads", () => {
-    const tools = buildTools("test-token");
+    const tools = buildTools(backend);
     // The core safety property: writes require explicit approval.
     expect(tools.add_note.needsApproval).toBe(true);
     expect(tools.record_observation.needsApproval).toBe(true);
@@ -42,7 +30,7 @@ describe("agent FHIR tools", () => {
 
   it("add_note writes a Communication scoped to the named patient", async () => {
     createResource.mockResolvedValue({ id: "comm-1" });
-    const tools = buildTools("test-token");
+    const tools = buildTools(backend);
 
     await (tools.add_note.execute as (input: unknown, opts: unknown) => unknown)(
       { patientId: "p1", text: "follow up in two weeks" },
@@ -61,7 +49,7 @@ describe("agent FHIR tools", () => {
 
   it("record_observation writes an Observation with the value and unit", async () => {
     createResource.mockResolvedValue({ id: "obs-1" });
-    const tools = buildTools("test-token");
+    const tools = buildTools(backend);
 
     await (
       tools.record_observation.execute as (
@@ -126,7 +114,7 @@ describe("agent FHIR tools", () => {
         },
       ]);
 
-    const tools = buildTools("test-token");
+    const tools = buildTools(backend);
     const out = await (
       tools.show_patient_info.execute as unknown as (
         input: unknown,
@@ -166,7 +154,7 @@ describe("agent FHIR tools", () => {
 
   it("record_observation tags the write with the session id", async () => {
     createResource.mockResolvedValue({ id: "obs-1" });
-    const tools = buildTools("test-token", "A");
+    const tools = buildTools(backend, "A");
 
     await (
       tools.record_observation.execute as (
@@ -252,7 +240,7 @@ describe("agent FHIR tools", () => {
         },
       ]); // Immunization
 
-    const tools = buildTools("test-token", "A");
+    const tools = buildTools(backend, "A");
     const out = await (
       tools.show_patient_info.execute as unknown as (
         input: unknown,

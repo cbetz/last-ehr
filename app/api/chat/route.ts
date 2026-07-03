@@ -10,6 +10,7 @@ import { cookies } from "next/headers";
 
 import { getChatModel } from "@/lib/ai/model";
 import { buildTools, SYSTEM_PROMPT } from "@/lib/ai/tools";
+import { createFhirBackend } from "@/lib/fhir/backend";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 // Node runtime so @medplum/core works; allow time for the multi-step tool loop.
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
     model: getChatModel(),
     system: SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
-    tools: buildTools(accessToken, sessionId),
+    tools: buildTools(createFhirBackend(accessToken), sessionId),
     stopWhen: stepCountIs(5),
   });
 
