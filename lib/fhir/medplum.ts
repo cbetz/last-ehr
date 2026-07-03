@@ -10,17 +10,21 @@ import type { FhirBackend } from "./backend";
 
 // The Medplum adapter. MedplumClient already speaks the FhirBackend surface,
 // so this wrapper only pins down construction (token plus base URL fallback)
-// in one place.
+// in one place. Callers that manage their own client lifecycle (for example
+// the MCP server's client-credentials login) pass the client in directly.
 export class MedplumBackend implements FhirBackend {
   private readonly medplum: MedplumClient;
 
-  constructor(accessToken: string) {
+  constructor(auth: string | MedplumClient) {
     // baseUrl lets self-hosters point at their own Medplum; falls back to
     // Medplum's hosted API (api.medplum.com) when unset or empty.
-    this.medplum = new MedplumClient({
-      accessToken,
-      baseUrl: process.env.MEDPLUM_BASE_URL || undefined,
-    });
+    this.medplum =
+      typeof auth === "string"
+        ? new MedplumClient({
+            accessToken: auth,
+            baseUrl: process.env.MEDPLUM_BASE_URL || undefined,
+          })
+        : auth;
   }
 
   search<K extends ResourceType>(

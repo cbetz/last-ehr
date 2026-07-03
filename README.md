@@ -84,6 +84,30 @@ Medplum sign-in (SMART App Launch with PKCE, public client, no secret). The
 token is bounded by the granted SMART scopes and your AccessPolicy, and writes
 still stop at the approval card.
 
+## Use the tools over MCP
+
+The same four FHIR tools run as an MCP server (stdio), so Claude Desktop,
+Claude Code, or any MCP client can work a chart against your Medplum project:
+
+```bash
+npm run mcp
+```
+
+Auth mirrors the seed script: `MEDPLUM_CLIENT_ID` + `MEDPLUM_CLIENT_SECRET`
+(or `MEDPLUM_ACCESS_TOKEN`), plus `MEDPLUM_BASE_URL` if self-hosted, from
+`.env.local` or your MCP client's server config. Register with Claude Code,
+for example:
+
+```bash
+claude mcp add lastehr -- npm --prefix /path/to/last-ehr run mcp
+```
+
+**The server starts read-only.** There is no approval card over MCP; your MCP
+client's own tool prompt is the only gate. Start it with
+`LASTEHR_MCP_WRITES=true` to also expose `add_note` and `record_observation`,
+and treat every approved call as a direct chart write. Design discussion in
+[#45](https://github.com/cbetz/last-ehr/issues/45).
+
 ## Configuration
 
 Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic: set `AI_PROVIDER` (`openai` | `anthropic`), optionally `MODEL_ID`, and the matching key. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
