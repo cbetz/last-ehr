@@ -8,6 +8,7 @@ import { DemoHeader } from "@/components/demo/demo-header";
 import { DemoGate } from "@/components/demo/demo-gate";
 import { DemoChat } from "@/components/demo/demo-chat";
 import { DemoQuickstart } from "@/components/demo/demo-quickstart";
+import { DismissibleNotice } from "@/components/demo/dismissible-notice";
 import { IconSpinner } from "@/components/ui/icons";
 
 // Quickstart mode skips the Google-OAuth sign-in gate and starts the demo from
@@ -30,11 +31,13 @@ export default function DemoPage() {
       <DemoHeader />
       {/* Prerendered intro so the page has real, crawlable text (the chat
           itself is client state). Also gives visitors the two deep links. */}
-      <section className="container max-w-2xl px-4 pt-3 text-center">
-        <p className="text-xs text-muted-foreground">
-          This demo runs Last EHR&apos;s four FHIR tools on synthetic
-          patients: search, view a chart, add a note, record an observation.
-          Writes stop at an approval card until you click Approve. Read{" "}
+      <DismissibleNotice
+        storageKey="lastehr-demo-intro-dismissed"
+        className="container max-w-2xl px-4 pt-3 text-center"
+      >
+        <p className="px-8 text-xs text-muted-foreground">
+          A live demo of Last EHR&apos;s four FHIR tools on synthetic
+          patients. Writes stop at an approval card. Read{" "}
           <Link
             href="/approval-gated-writes"
             className="underline underline-offset-4 hover:text-foreground"
@@ -50,7 +53,7 @@ export default function DemoPage() {
           </Link>
           .
         </p>
-      </section>
+      </DismissibleNotice>
       {smartSession ? (
         <main className="flex-1">
           <DemoChat />

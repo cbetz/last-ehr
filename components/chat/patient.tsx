@@ -160,10 +160,10 @@ export function PatientCard({
                 <table className="w-full text-left whitespace-nowrap">
                   <thead>
                     <tr>
-                      <th className="pb-2 text-xs font-medium uppercase text-muted-foreground">
+                      <th className="pb-2 pr-4 text-xs font-medium uppercase text-muted-foreground">
                         Date
                       </th>
-                      <th className="pb-2 text-xs font-medium uppercase text-muted-foreground">
+                      <th className="pb-2 pr-4 text-xs font-medium uppercase text-muted-foreground">
                         Type
                       </th>
                       <th className="pb-2 text-xs font-medium uppercase text-muted-foreground">
@@ -174,8 +174,8 @@ export function PatientCard({
                   <tbody>
                     {observations.map((o) => (
                       <tr key={o.id}>
-                        <td className="font-semibold">{o.date || ""}</td>
-                        <td>{o.label}</td>
+                        <td className="pr-4 font-semibold">{o.date || ""}</td>
+                        <td className="pr-4">{o.label}</td>
                         <td>{o.value}</td>
                       </tr>
                     ))}
