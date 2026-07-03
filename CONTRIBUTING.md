@@ -25,6 +25,37 @@ basis, and not every feature request will fit the roadmap.
 
 - Match the surrounding code style; no large unrelated reformatting.
 
+## Writing a backend adapter
+
+The most wanted contribution: adapters for FHIR backends beyond Medplum
+(tracked: [Aidbox #39](https://github.com/cbetz/last-ehr/issues/39),
+[Oystehr #40](https://github.com/cbetz/last-ehr/issues/40),
+[HAPI #44](https://github.com/cbetz/last-ehr/issues/44)). The seam is the
+`FhirBackend` interface in [`lib/fhir/backend.ts`](./lib/fhir/backend.ts):
+three methods (`search`, `searchResources`, `createResource`) over plain FHIR
+R4 REST. [`lib/fhir/medplum.ts`](./lib/fhir/medplum.ts) is the reference
+implementation and is about 40 lines.
+
+An adapter PR needs:
+
+1. **The adapter**: `lib/fhir/<backend>.ts` implementing `FhirBackend`,
+   including whatever auth story that backend needs (client credentials,
+   static token). Honor the two contract notes documented on the interface:
+   fetch single resources via search (`_id=`), never a direct read, because
+   compartment-scoped policies may only be enforced on the search path; and
+   persist `meta.tag` exactly as given, because the public demo relies on it
+   for per-session write isolation.
+2. **Tests**: mirror `lib/fhir/medplum.test.ts` (construction and
+   delegation), plus anything specific to that backend's auth.
+3. **How you verified it**: the backend you ran (Docker image, cloud
+   sandbox), and confirmation that the four tools work against it end to
+   end. Synthetic data only.
+4. **Docs**: a short setup note in the README or the adapter file header,
+   including honest caveats (for example, HAPI ships with no auth or access
+   policy by default).
+
+Open a draft PR early if you want direction before finishing.
+
 ## Developer Certificate of Origin (DCO)
 
 This project uses the [DCO](https://developercertificate.org/) instead of a CLA.
