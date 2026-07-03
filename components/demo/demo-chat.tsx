@@ -142,7 +142,23 @@ export function DemoChat() {
           <EmptyScreen submitMessage={ask} />
         ) : (
           <div className="relative mx-auto max-w-2xl px-4">
-            {messages.map((message, mi) => (
+            {messages.map((message, mi) => {
+              // A tool part in a non-terminal state (input streaming, waiting
+              // to execute) only deserves a loading skeleton while it can
+              // still finish: its message is the latest one and a request is
+              // in flight. Otherwise (the stream errored, or the conversation
+              // moved on) render nothing, so a failed turn degrades to the
+              // error line instead of pulsing boxes that never resolve.
+              const stillRunning =
+                mi === messages.length - 1 &&
+                (status === "submitted" || status === "streaming");
+              const pendingSkeleton = (key: string) =>
+                stillRunning ? (
+                  <BotCard key={key}>
+                    <MessageSkeleton />
+                  </BotCard>
+                ) : null;
+              return (
               // space-y-4 keeps a consistent gap between the parts of one
               // assistant turn (cards, tool results, text), matching the pb-4
               // gap between turns.
@@ -184,11 +200,7 @@ export function DemoChat() {
                             </BotMessage>
                           );
                         }
-                        return (
-                          <BotCard key={part.toolCallId}>
-                            <MessageSkeleton />
-                          </BotCard>
-                        );
+                        return pendingSkeleton(part.toolCallId);
 
                       case "tool-show_patient_info":
                         if (part.state === "output-available") {
@@ -206,11 +218,7 @@ export function DemoChat() {
                             </BotMessage>
                           );
                         }
-                        return (
-                          <BotCard key={part.toolCallId}>
-                            <MessageSkeleton />
-                          </BotCard>
-                        );
+                        return pendingSkeleton(part.toolCallId);
 
                       case "tool-add_note":
                         if (part.state === "approval-requested") {
@@ -267,11 +275,7 @@ export function DemoChat() {
                             </BotMessage>
                           );
                         }
-                        return (
-                          <BotCard key={part.toolCallId}>
-                            <MessageSkeleton />
-                          </BotCard>
-                        );
+                        return pendingSkeleton(part.toolCallId);
 
                       case "tool-record_observation":
                         if (part.state === "approval-requested") {
@@ -332,11 +336,7 @@ export function DemoChat() {
                             </BotMessage>
                           );
                         }
-                        return (
-                          <BotCard key={part.toolCallId}>
-                            <MessageSkeleton />
-                          </BotCard>
-                        );
+                        return pendingSkeleton(part.toolCallId);
 
                       default:
                         return null;
@@ -344,7 +344,8 @@ export function DemoChat() {
                   })
                 )}
               </div>
-            ))}
+              );
+            })}
 
             {status === "submitted" && (
               <div className="pb-4">
