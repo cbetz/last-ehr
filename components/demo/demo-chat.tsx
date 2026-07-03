@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { IconArrowElbow, IconPlus } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import { DismissibleNotice } from "@/components/demo/dismissible-notice";
 import { EmptyScreen } from "@/components/empty-screen";
 import { track } from "@/lib/analytics";
 
@@ -130,12 +131,15 @@ export function DemoChat() {
   return (
     <>
       {!smartSession && (
-        <div className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center dark:border-amber-500/20 dark:bg-amber-950/40">
-          <p className="mx-auto max-w-2xl text-xs text-amber-800 dark:text-amber-200">
-            Live demo on synthetic data. Please don&apos;t enter real patient
-            information. Changes you make are visible only in your own session.
+        <DismissibleNotice
+          storageKey="lastehr-demo-synthetic-dismissed"
+          className="border-b border-amber-300/40 bg-amber-50 px-4 py-2 text-center dark:border-amber-500/20 dark:bg-amber-950/40"
+        >
+          <p className="mx-auto max-w-2xl px-8 text-xs text-amber-800 dark:text-amber-200">
+            Synthetic data only: don&apos;t enter real patient information.
+            Changes are visible only in your session.
           </p>
-        </div>
+        </DismissibleNotice>
       )}
       <div className="pb-[200px] pt-4 md:pt-10">
         {messages.length === 0 ? (

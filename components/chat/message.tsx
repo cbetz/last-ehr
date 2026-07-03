@@ -54,7 +54,10 @@ export function BotCard({
       >
         <IconSparkles />
       </div>
-      <div className="ml-4 flex-1 px-1">{children}</div>
+      {/* min-w-0 lets this flex item shrink below its content's intrinsic
+          width, so wide children (the observations table) scroll inside their
+          own overflow container instead of stretching the page sideways. */}
+      <div className="ml-4 min-w-0 flex-1 px-1">{children}</div>
     </div>
   );
 }
