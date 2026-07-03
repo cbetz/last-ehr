@@ -9,7 +9,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: BASE_URL,
-      lastModified: new Date("2026-07-02"),
+      lastModified: new Date("2026-07-03"),
       changeFrequency: "weekly",
       priority: 1,
     },
@@ -21,19 +21,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/medplum-ai-agent`,
-      lastModified: new Date("2026-07-02"),
+      lastModified: new Date("2026-07-03"),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/approval-gated-writes`,
-      lastModified: new Date("2026-07-02"),
+      lastModified: new Date("2026-07-03"),
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${BASE_URL}/chat-with-fhir-data`,
-      lastModified: new Date("2026-07-02"),
+      lastModified: new Date("2026-07-03"),
       changeFrequency: "monthly",
       priority: 0.8,
     },

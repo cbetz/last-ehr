@@ -348,6 +348,17 @@ export default function ApprovalGatedWritesPage() {
                   Conditions, medications, and orders would each raise the
                   stakes and demand more than a single confirm click.
                 </li>
+                <li>
+                  <strong className="text-foreground">
+                    Surfaces without a card.
+                  </strong>{" "}
+                  Over MCP there is no approval card at all; the host&apos;s
+                  generic tool prompt is the only gate. The MCP server
+                  therefore starts read-only, with the write tools behind an
+                  explicit opt-in flag. Is that the right default, or should
+                  MCP writes be proposal-shaped: a draft plus a separate
+                  explicit confirm call?
+                </li>
               </ul>
               <p>
                 If you have opinions on any of these, the{" "}

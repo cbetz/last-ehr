@@ -30,7 +30,9 @@ export default function Home() {
               proposes, an approval card shows exactly what will be saved, and
               nothing reaches the chart until you click Approve. Every call
               runs as the signed-in user, bounded by your Medplum AccessPolicy,
-              and the layer stores no patient data of its own.
+              and the layer stores no patient data of its own. The same four
+              tools also run as an MCP server, read-only by default, for
+              Claude Desktop, Claude Code, or any MCP client.
             </p>
             <p>
               Read how{" "}

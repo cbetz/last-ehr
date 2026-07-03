@@ -304,10 +304,11 @@ export default function ChatWithFhirDataPage() {
                 <strong className="text-foreground">Last EHR</strong> is an
                 application layer: a ready-to-run chat UI with four FHIR tools
                 and the approval card built in. It runs on Medplum today;
-                other FHIR backends are a goal, not yet supported. It is not a
-                replacement for MCP servers or the research; it is what you
-                run when you want a working, permissioned chat over a chart
-                without building one.
+                other FHIR backends are a goal, not yet supported. It also
+                exposes its four tools as an MCP server of its own, read-only
+                by default, so the categories meet in the middle: use the chat
+                UI when you want the approval card in front of a person, or
+                the MCP surface when you are bringing your own client.
               </p>
             </div>
           </section>

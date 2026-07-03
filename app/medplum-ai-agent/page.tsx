@@ -53,6 +53,10 @@ const faqs: FaqItem[] = [
     q: "What model providers does Last EHR support?",
     a: "OpenAI and Anthropic are supported out of the box: set AI_PROVIDER and the matching API key. The agent is built on the Vercel AI SDK, so other providers the SDK supports can be added with a small code change.",
   },
+  {
+    q: "Can I use the tools from Claude Desktop or another MCP client?",
+    a: "Yes. npm run mcp starts an MCP server (stdio) exposing the same four tools, authenticated with the same Medplum credentials the seed script uses. It starts read-only because there is no approval card over MCP; start it with LASTEHR_MCP_WRITES=true to expose the write tools, and treat every approved call as a direct chart write.",
+  },
 ];
 
 export default function MedplumAiAgentPage() {
@@ -154,6 +158,8 @@ export default function MedplumAiAgentPage() {
                 exposes Medplum data to MCP-compatible clients such as Claude.
                 That is lower-level infrastructure for wiring models to data;
                 it does not include a clinician-facing UI or an approval gate.
+                Last EHR ships an MCP server of its own for its four chart
+                tools; the difference is scope and defaults, covered below.
               </p>
               <p>
                 Last EHR is a self-contained web chat with the approval gate
@@ -237,6 +243,38 @@ export default function MedplumAiAgentPage() {
                 with PKCE (public client, no secret), and the resulting session
                 is bounded by the granted SMART scopes and your AccessPolicy.
                 Writes still stop at the approval card.
+              </p>
+            </div>
+          </section>
+
+          <section className="container max-w-3xl py-8">
+            <h2 className="text-3xl font-bold">
+              Use the same tools over MCP
+            </h2>
+            <div className="mt-4 space-y-4 text-lg leading-relaxed text-muted-foreground">
+              <p>
+                The four FHIR tools also run as an MCP server over stdio: run
+                npm run mcp from a checkout with the same Medplum credentials
+                the seed script uses. Claude Desktop, Claude Code, or any MCP
+                client can then search patients and read charts in your
+                Medplum project, with the same tool definitions the web agent
+                uses.
+              </p>
+              <p>
+                There is no approval card over MCP, so the server starts
+                read-only. The write tools (add_note, record_observation) are
+                only exposed when the server is started with
+                LASTEHR_MCP_WRITES=true, and every approved call is a direct
+                chart write. That default is deliberate: the web app&apos;s
+                approval card shows exactly what will be saved, while an MCP
+                host&apos;s generic tool prompt is a weaker gate, so writes
+                are opt-in.
+              </p>
+              <p>
+                This is a different thing from Medplum&apos;s own MCP server:
+                theirs exposes Medplum data broadly for building your own
+                agent; this one exposes Last EHR&apos;s four chart tools with
+                the read-only default.
               </p>
             </div>
           </section>
