@@ -109,8 +109,15 @@ export async function POST(req: Request) {
     maxAge: minted.maxAge,
   });
   // Per-visitor id used server-side to isolate demo writes; nothing reads it
-  // client-side, so keep it HttpOnly.
-  cookieStore.set(SESSION_ID_COOKIE, randomUUID(), {
+  // client-side, so keep it HttpOnly. Keep the existing id when a visitor
+  // re-arms an expiring session (the chat re-POSTs here before each send), so
+  // their earlier demo writes stay visible to them.
+  const existingSessionId = cookieStore.get(SESSION_ID_COOKIE)?.value;
+  const sessionId =
+    existingSessionId && /^[A-Za-z0-9-]{1,64}$/.test(existingSessionId)
+      ? existingSessionId
+      : randomUUID();
+  cookieStore.set(SESSION_ID_COOKIE, sessionId, {
     httpOnly: true,
     secure,
     sameSite: "lax",

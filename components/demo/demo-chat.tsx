@@ -81,13 +81,17 @@ export function DemoChat() {
     setSmartSession(document.cookie.includes("smart_session=1"));
   }, []);
 
-  const ask = async (text: string) => {
-    track("demo_message_sent");
-    // Ensure the /api/chat route can read the current Medplum session: the
-    // sign-in form isn't mounted once you're already authenticated, so refresh
-    // the server-set HttpOnly session cookie here before every send. The token
-    // is posted to a server route rather than written to document.cookie, so it
-    // never lives in a JS-readable cookie.
+  // Re-arm the server session cookie before every send and approval response.
+  // Sign-in sessions renew from the client-side Medplum token (posted to a
+  // server route rather than written to document.cookie, so it never lives in
+  // a JS-readable cookie; the sign-in form isn't mounted once authenticated).
+  // Quickstart sessions re-POST /api/auth/quickstart, which is cheap (the
+  // server reuses its cached shared token): the cookie's life is capped at
+  // that shared token's remaining life, so a visitor who lands late in the
+  // token's window would otherwise lose the session mid-conversation. SMART
+  // sessions are left alone; their cookie belongs to the launch flow, and
+  // minting quickstart would clobber it with the shared demo credential.
+  const ensureSession = async () => {
     const token = medplum.getAccessToken();
     if (token) {
       await fetch("/api/auth/session", {
@@ -95,7 +99,16 @@ export function DemoChat() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ accessToken: token }),
       });
+      return;
     }
+    if (document.cookie.includes("smart_session=1")) return;
+    if (process.env.NEXT_PUBLIC_QUICKSTART !== "true") return;
+    await fetch("/api/auth/quickstart", { method: "POST" }).catch(() => {});
+  };
+
+  const ask = async (text: string) => {
+    track("demo_message_sent");
+    await ensureSession();
     sendMessage({ text });
   };
 
@@ -213,21 +226,23 @@ export function DemoChat() {
                                   },
                                   { label: "Note", value: part.input.text },
                                 ]}
-                                onApprove={() => {
+                                onApprove={async () => {
                                   track("demo_write_approval", {
                                     tool: "add_note",
                                     approved: true,
                                   });
+                                  await ensureSession();
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: true,
                                   });
                                 }}
-                                onCancel={() => {
+                                onCancel={async () => {
                                   track("demo_write_approval", {
                                     tool: "add_note",
                                     approved: false,
                                   });
+                                  await ensureSession();
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: false,
@@ -276,21 +291,23 @@ export function DemoChat() {
                                     value: `${part.input.value} ${part.input.unit}`,
                                   },
                                 ]}
-                                onApprove={() => {
+                                onApprove={async () => {
                                   track("demo_write_approval", {
                                     tool: "record_observation",
                                     approved: true,
                                   });
+                                  await ensureSession();
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: true,
                                   });
                                 }}
-                                onCancel={() => {
+                                onCancel={async () => {
                                   track("demo_write_approval", {
                                     tool: "record_observation",
                                     approved: false,
                                   });
+                                  await ensureSession();
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: false,
