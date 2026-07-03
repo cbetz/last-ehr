@@ -205,7 +205,14 @@ export function DemoChat() {
                             <BotCard key={part.toolCallId} showAvatar={false}>
                               <ConfirmWrite
                                 title="Add this note to the chart?"
-                                detail={part.input.text}
+                                resourceType="Communication"
+                                fields={[
+                                  {
+                                    label: "Patient",
+                                    value: `Patient/${part.input.patientId}`,
+                                  },
+                                  { label: "Note", value: part.input.text },
+                                ]}
                                 onApprove={() => {
                                   track("demo_write_approval", {
                                     tool: "add_note",
@@ -257,7 +264,18 @@ export function DemoChat() {
                             <BotCard key={part.toolCallId} showAvatar={false}>
                               <ConfirmWrite
                                 title="Record this observation?"
-                                detail={`${part.input.label}: ${part.input.value} ${part.input.unit}`}
+                                resourceType="Observation"
+                                fields={[
+                                  {
+                                    label: "Patient",
+                                    value: `Patient/${part.input.patientId}`,
+                                  },
+                                  { label: "Label", value: part.input.label },
+                                  {
+                                    label: "Value",
+                                    value: `${part.input.value} ${part.input.unit}`,
+                                  },
+                                ]}
                                 onApprove={() => {
                                   track("demo_write_approval", {
                                     tool: "record_observation",
