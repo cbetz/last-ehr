@@ -8,5 +8,5 @@
 
 - [ ] Small, focused change (one logical thing)
 - [ ] `npm run lint` and `npm run build` pass locally
-- [ ] Commits are signed off — `git commit -s` (DCO, see [CONTRIBUTING.md](../CONTRIBUTING.md))
-- [ ] No real patient data anywhere — synthetic only
+- [ ] Commits are signed off: `git commit -s` (DCO, see [CONTRIBUTING.md](../CONTRIBUTING.md))
+- [ ] No real patient data anywhere: synthetic only

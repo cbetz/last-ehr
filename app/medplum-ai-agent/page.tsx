@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Add an open-source, approval-gated AI agent to Medplum. Reads the chart, proposes writes, and saves nothing without your approval.",
     url: "https://www.lastehr.com/medplum-ai-agent",
+    images: ["https://www.lastehr.com/opengraph-image"],
   },
 };
 

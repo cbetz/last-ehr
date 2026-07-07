@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "The agent proposes, you approve, then it saves to FHIR. How the pattern works and what it does not protect against.",
     url: "https://www.lastehr.com/approval-gated-writes",
+    images: ["https://www.lastehr.com/opengraph-image"],
   },
 };
 
