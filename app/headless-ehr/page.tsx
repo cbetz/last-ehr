@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     description:
       "What a headless EHR is, how it compares to a traditional EHR, and how Last EHR adds approval-gated AI agents on top of your FHIR backend.",
     url: "https://www.lastehr.com/headless-ehr",
+    images: ["https://www.lastehr.com/opengraph-image"],
   },
 };
 

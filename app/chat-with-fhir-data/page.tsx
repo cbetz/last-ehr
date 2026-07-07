@@ -25,6 +25,7 @@ export const metadata: Metadata = {
     description:
       "Chart context assembly, the read and write paths, approval gates, and where FHIR data actually goes when you chat with it.",
     url: "https://www.lastehr.com/chat-with-fhir-data",
+    images: ["https://www.lastehr.com/opengraph-image"],
   },
 };
 
