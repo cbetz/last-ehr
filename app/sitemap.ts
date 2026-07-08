@@ -9,13 +9,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: BASE_URL,
-      lastModified: new Date("2026-07-03"),
+      lastModified: new Date("2026-07-08"),
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${BASE_URL}/headless-ehr`,
-      lastModified: new Date("2026-07-02"),
+      lastModified: new Date("2026-07-08"),
       changeFrequency: "monthly",
       priority: 0.9,
     },
@@ -33,7 +33,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/chat-with-fhir-data`,
-      lastModified: new Date("2026-07-03"),
+      lastModified: new Date("2026-07-08"),
       changeFrequency: "monthly",
       priority: 0.8,
     },

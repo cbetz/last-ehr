@@ -37,7 +37,7 @@ export function JsonLd() {
         license: "https://www.apache.org/licenses/LICENSE-2.0",
         isAccessibleForFree: true,
         description:
-          "Open-source AI agent layer that reads and writes to a FHIR backend (Medplum today) with human approval on every write. Stores no patient data of its own.",
+          "Open-source AI agent layer that reads and writes to a FHIR backend (Medplum, or HAPI for local self-hosting) with human approval on every write. Stores no patient data of its own.",
       },
     ],
   };
