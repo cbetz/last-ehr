@@ -31,6 +31,12 @@ import { Button } from "@/components/ui/button";
 import { DismissibleNotice } from "@/components/demo/dismissible-notice";
 import { EmptyScreen } from "@/components/empty-screen";
 import { track } from "@/lib/analytics";
+import { parseDemoModels } from "@/lib/ai/demo-models";
+
+// Build-time inlined picker options; empty means no picker rendered. The
+// server re-checks every request against the same list, so this is display
+// state, not a control.
+const DEMO_MODELS = parseDemoModels(process.env.NEXT_PUBLIC_DEMO_MODELS);
 
 // The chat API writes its error bodies for users (rate limit, expired session,
 // model failure), and the transport surfaces that body as error.message. Show
@@ -50,6 +56,27 @@ function errorText(error: Error): string {
 }
 
 export function DemoChat() {
+  // Demo model picker choice (empty string = deployment default). Persisted
+  // per browser; read back in an effect to avoid a hydration mismatch.
+  const demoModelRef = useRef("");
+  const [demoModel, setDemoModel] = useState("");
+  useEffect(() => {
+    const saved = window.localStorage.getItem("lastehr-demo-model") ?? "";
+    if (saved && DEMO_MODELS.some((m) => m.id === saved)) {
+      demoModelRef.current = saved;
+      setDemoModel(saved);
+    }
+  }, []);
+  const pickDemoModel = (id: string) => {
+    demoModelRef.current = id;
+    setDemoModel(id);
+    try {
+      window.localStorage.setItem("lastehr-demo-model", id);
+    } catch {
+      // Storage unavailable; the choice still applies for this session.
+    }
+  };
+
   const {
     messages,
     sendMessage,
@@ -58,7 +85,14 @@ export function DemoChat() {
     setMessages,
     addToolApprovalResponse,
   } = useChat<ChatMessage>({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
+    // headers is a function so the transport (constructed once) reads the
+    // CURRENT picker choice from a ref; state alone would go stale in the
+    // closure.
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      headers: (): Record<string, string> =>
+        demoModelRef.current ? { "x-demo-model": demoModelRef.current } : {},
+    }),
     // Resume automatically only after the user answers a write approval, so the
     // gated tool's execute runs. All tools execute server-side inside
     // streamText's own step loop, so we must NOT auto-resend on completed tool
@@ -399,6 +433,26 @@ export function DemoChat() {
                   </TooltipTrigger>
                   <TooltipContent>New Chat</TooltipContent>
                 </Tooltip>
+                {DEMO_MODELS.length > 0 && (
+                  <div className="absolute bottom-1.5 left-0 sm:left-4">
+                    <label className="sr-only" htmlFor="demo-model">
+                      Model
+                    </label>
+                    <select
+                      id="demo-model"
+                      value={demoModel}
+                      onChange={(e) => pickDemoModel(e.target.value)}
+                      className="max-w-[180px] rounded border bg-background px-1.5 py-0.5 text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">Default model</option>
+                      {DEMO_MODELS.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <Textarea
                   tabIndex={0}
                   onKeyDown={onKeyDown}
