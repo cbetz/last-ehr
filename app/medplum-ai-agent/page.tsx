@@ -163,12 +163,47 @@ export default function MedplumAiAgentPage() {
                 tools; the difference is scope and defaults, covered below.
               </p>
               <p>
-                Last EHR is a self-contained web chat with the approval gate
-                built in, and it is provider-agnostic: OpenAI, Anthropic, and
-                any model the Vercel AI SDK supports. Medplum continues to ship
-                its own AI features on its own roadmap; this project is
-                independent of that and focuses on one interaction done
-                carefully: approval-gated chat over the chart.
+                And Medplum now has{" "}
+                <strong className="text-foreground">Spaces</strong>, an in-app
+                AI assistant in Medplum Provider, shipped as an{" "}
+                <Link
+                  href="https://www.medplum.com/docs/provider/spaces"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  example implementation
+                </Link>
+                . A chain of bots translates a question into FHIR calls, the
+                Provider UI executes them under the signed-in user&apos;s
+                AccessPolicy, and summary and visualizer bots narrate the
+                results and render charts. It is a capable assistant with a
+                real access model: every call runs as the signed-in user, the
+                same posture Last EHR takes.
+              </p>
+              <p>
+                The write model is where the two part ways. Spaces executes
+                writes as soon as its loop reaches them; its own docs advise
+                reviewing the resulting resources and scoping the ai feature
+                to AccessPolicies without write access to high-risk types.
+                That control is policy scoping at the account level. Last EHR
+                puts a human approval in front of each individual write
+                instead. Neither is a superset of the other: policy scoping
+                bounds what the assistant can ever touch, a per-write gate
+                makes each change an explicit human decision. Beyond the
+                gate, the practical differences are setup and portability:
+                Spaces runs one vendor&apos;s models (OpenAI, via a project
+                secret) inside Medplum Provider and requires the gated ai and
+                bots project features plus deploying three bots and authoring
+                their prompts; Last EHR is a standalone app you run yourself,
+                with OpenAI, Anthropic, and any model the Vercel AI SDK
+                supports.
+              </p>
+              <p>
+                Medplum continues to ship its own AI features on its own
+                roadmap; this project is independent of that and focuses on
+                one interaction done carefully: approval-gated chat over the
+                chart.
               </p>
             </div>
           </section>

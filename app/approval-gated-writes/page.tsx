@@ -114,6 +114,26 @@ export default function ApprovalGatedWritesPage() {
                 writes. But it is not magic: it is a boundary, and boundaries
                 only work if someone stands there and pays attention.
               </p>
+              <p>
+                This tradeoff is not hypothetical. Medplum&apos;s own{" "}
+                <Link
+                  href="https://www.medplum.com/docs/provider/spaces"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  Spaces assistant
+                </Link>{" "}
+                takes the other branch: its agent loop executes writes as soon
+                as it reaches them, and its docs recommend reviewing the
+                resulting resources and scoping the ai feature to
+                AccessPolicies without write access to high-risk types. That
+                is a legitimate design (account-level policy scoping bounds
+                what the assistant can ever touch), and it is exactly the
+                design this page argues against for clinically meaningful
+                writes: a policy decides what an agent may write, a gate makes
+                a person decide whether it writes this, now.
+              </p>
             </div>
           </section>
 
