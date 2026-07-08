@@ -52,10 +52,19 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
       description:
         "Search for patients by name. Use whenever the user wants to find or look up a patient.",
       inputSchema: z.object({
-        name: z.string().describe("The patient's name, e.g. John Doe."),
+        name: z
+          .string()
+          .min(1)
+          .max(120)
+          .describe("The patient's name, e.g. John Doe."),
       }),
       execute: async ({ name }) => {
-        const bundle = await backend.search("Patient", `name=${name}`);
+        // Structured params, never string interpolation: a name containing
+        // & or = must stay a name, not become extra search parameters.
+        const bundle = await backend.search("Patient", {
+          name,
+          _count: "20",
+        });
         return { patients: bundle.entry ?? [] };
       },
     }),
