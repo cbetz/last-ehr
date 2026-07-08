@@ -75,7 +75,17 @@ export async function POST(req: Request) {
     onError: (error) => {
       console.error("Chat stream error:", error);
       const err = error instanceof Error ? error : new Error(String(error));
-      if (err.name === "AI_APICallError" || err.name === "AI_RetryError") {
+      // Gateway errors carry a symbol marker instead of an AI_* name (the
+      // base GatewayError never sets .name), so duck-type on the marker.
+      const isGatewayError =
+        typeof error === "object" &&
+        error !== null &&
+        Symbol.for("vercel.ai.gateway.error") in error;
+      if (
+        err.name === "AI_APICallError" ||
+        err.name === "AI_RetryError" ||
+        isGatewayError
+      ) {
         return (
           "The model call failed. The demo may be over capacity right now; " +
           "please wait a minute and try again."
