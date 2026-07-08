@@ -19,11 +19,13 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
  * namespace and dot the same model as "anthropic/claude-sonnet-4.6". Pick a
  * TOOL-CAPABLE model; the agent is tool calls or nothing.
  */
-export function getChatModel() {
+export function getChatModel(overrideModelId?: string) {
   // `||` (not `??`) so an empty-string env var (e.g. MODEL_ID= in .env)
   // falls back to the default instead of being passed through as "".
+  // overrideModelId is the demo model picker's ALREADY-ALLOWLISTED choice
+  // (see lib/ai/demo-models.ts); it never comes from raw user input.
   const provider = (process.env.AI_PROVIDER || "openai").toLowerCase();
-  const modelId = process.env.MODEL_ID || "";
+  const modelId = overrideModelId || process.env.MODEL_ID || "";
 
   switch (provider) {
     case "openai":

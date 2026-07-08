@@ -21,6 +21,7 @@
     "seed": "tsx scripts/seed.ts",
     "mcp": "tsx mcp/server.ts",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",
+    "check:models": "tsx scripts/check-models.ts",
     "test": "vitest run"
   },
   "dependencies": {

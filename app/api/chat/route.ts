@@ -9,6 +9,7 @@ import {
 import { cookies } from "next/headers";
 
 import { getChatModel } from "@/lib/ai/model";
+import { parseDemoModels, resolveDemoModel } from "@/lib/ai/demo-models";
 import { buildTools, SYSTEM_PROMPT } from "@/lib/ai/tools";
 import { createFhirBackend } from "@/lib/fhir/backend";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
@@ -58,8 +59,16 @@ export async function POST(req: Request) {
     return new Response("Invalid request body.", { status: 400 });
   }
 
+  // Optional demo model picker: the header is honored only for allowlisted
+  // ids on aggregator providers; anything else falls back to MODEL_ID.
+  const demoModel = resolveDemoModel(
+    req.headers.get("x-demo-model"),
+    (process.env.AI_PROVIDER || "openai").toLowerCase(),
+    parseDemoModels(process.env.NEXT_PUBLIC_DEMO_MODELS),
+  );
+
   const result = streamText({
-    model: getChatModel(),
+    model: getChatModel(demoModel),
     system: SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
     tools: buildTools(createFhirBackend(accessToken), sessionId),
