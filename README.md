@@ -112,7 +112,16 @@ and treat every approved call as a direct chart write. Design discussion in
 
 ## Configuration
 
-Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic: set `AI_PROVIDER` (`openai` | `anthropic`), optionally `MODEL_ID`, and the matching key. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
+Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic: set `AI_PROVIDER`, optionally `MODEL_ID`, and the matching key. Any tool-capable model works.
+
+| AI_PROVIDER | Key | Example MODEL_ID | Notes |
+|---|---|---|---|
+| `openai` (default) | `OPENAI_API_KEY` | `gpt-4.1-mini` | Direct, no middleman. |
+| `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | Direct; ids use dashes. |
+| `gateway` | `AI_GATEWAY_API_KEY` | `anthropic/claude-sonnet-4.6` | Vercel AI Gateway: one key, hundreds of models, works on and off Vercel. |
+| `openrouter` | `OPENROUTER_API_KEY` | `meta-llama/llama-4-maverick` | Same idea; note OpenRouter charges a fee on credit purchases. |
+
+Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
 
 ## Security & data
 
