@@ -71,7 +71,52 @@ async function getQuickstartToken(
   return { token, maxAge: usableTtl };
 }
 
+/**
+ * Set the HttpOnly session cookie pair the chat route requires: the access
+ * token and the per-visitor demo session id. An existing session id is kept
+ * (the chat re-POSTs here before each send to re-arm an expiring session),
+ * so a visitor's earlier demo writes stay visible to them.
+ */
+async function setSessionCookies(token: string, maxAge: number): Promise<void> {
+  const secure = process.env.NODE_ENV === "production";
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge,
+  });
+  const existingSessionId = cookieStore.get(SESSION_ID_COOKIE)?.value;
+  const sessionId =
+    existingSessionId && /^[A-Za-z0-9-]{1,64}$/.test(existingSessionId)
+      ? existingSessionId
+      : randomUUID();
+  cookieStore.set(SESSION_ID_COOKIE, sessionId, {
+    httpOnly: true,
+    secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge,
+  });
+}
+
 export async function POST(req: Request) {
+  // Local FHIR mode (FHIR_BACKEND=hapi): there is no token to mint, because
+  // the HAPI adapter sends no credentials. The chat route still requires the
+  // session cookie pair, so set a placeholder token and the session id that
+  // keeps per-browser demo writes isolated. Local, single-tenant use only.
+  if ((process.env.FHIR_BACKEND || "medplum") === "hapi") {
+    const { success } = await checkRateLimit(`quickstart:${getClientIp(req)}`);
+    if (!success) {
+      return new Response("Too many requests. Please try again shortly.", {
+        status: 429,
+      });
+    }
+    await setSessionCookies("local-fhir", 8 * 60 * 60);
+    return new Response(null, { status: 204 });
+  }
+
   const clientId = process.env.MEDPLUM_CLIENT_ID;
   const clientSecret = process.env.MEDPLUM_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
@@ -99,31 +144,7 @@ export async function POST(req: Request) {
     return new Response("Quickstart login produced no token", { status: 502 });
   }
 
-  const secure = process.env.NODE_ENV === "production";
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, minted.token, {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: minted.maxAge,
-  });
-  // Per-visitor id used server-side to isolate demo writes; nothing reads it
-  // client-side, so keep it HttpOnly. Keep the existing id when a visitor
-  // re-arms an expiring session (the chat re-POSTs here before each send), so
-  // their earlier demo writes stay visible to them.
-  const existingSessionId = cookieStore.get(SESSION_ID_COOKIE)?.value;
-  const sessionId =
-    existingSessionId && /^[A-Za-z0-9-]{1,64}$/.test(existingSessionId)
-      ? existingSessionId
-      : randomUUID();
-  cookieStore.set(SESSION_ID_COOKIE, sessionId, {
-    httpOnly: true,
-    secure,
-    sameSite: "lax",
-    path: "/",
-    maxAge: minted.maxAge,
-  });
+  await setSessionCookies(minted.token, minted.maxAge);
 
   return new Response(null, { status: 204 });
 }
