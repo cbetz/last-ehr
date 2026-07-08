@@ -48,7 +48,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Does Last EHR work with backends other than Medplum?",
-    a: "Today, Medplum is the only supported backend. The architecture is designed to be backend-agnostic (all the FHIR calls go through the same seam), and other FHIR backends such as Aidbox, HAPI, and Firely are a goal for future work. For now, Medplum is the only adapter.",
+    a: "Two backends work today: Medplum (hosted or self-hosted, with real auth) and HAPI FHIR or any open FHIR R4 server, in a local self-host mode with the repo's docker compose stack. Aidbox and Firely adapters are a goal; the FHIR calls all go through the same small interface, so new adapters are well-scoped contributions.",
   },
   {
     q: "What model providers does Last EHR support?",

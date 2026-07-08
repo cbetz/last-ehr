@@ -12,7 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 export const metadata: Metadata = {
   title: "Headless EHR for Modern Clinical Teams",
   description:
-    "Learn what a headless EHR is and how it compares to a traditional EHR. Last EHR is an open-source AI agent layer that runs on your FHIR backend (Medplum today) and adds approval-gated AI to the chart.",
+    "Learn what a headless EHR is and how it compares to a traditional EHR. Last EHR is an open-source AI agent layer that runs on your FHIR backend (Medplum, or HAPI locally) and adds approval-gated AI to the chart.",
   keywords: [
     "headless EHR",
     "headless EMR",
@@ -87,7 +87,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Are there open-source headless EHR options?",
-    a: "Yes. Medplum is an open-source, FHIR-native headless backend with hosted and self-hosted options. HAPI FHIR is a long-standing open-source FHIR server you can build on. OpenEMR is open source but a full EMR rather than headless-first. Commercial options include Aidbox, Firely Server, Canvas Medical, and Oystehr. Last EHR is not a backend at all: it is an open-source AI agent layer that runs on top of one (Medplum today).",
+    a: "Yes. Medplum is an open-source, FHIR-native headless backend with hosted and self-hosted options. HAPI FHIR is a long-standing open-source FHIR server you can build on. OpenEMR is open source but a full EMR rather than headless-first. Commercial options include Aidbox, Firely Server, Canvas Medical, and Oystehr. Last EHR is not a backend at all: it is an open-source AI agent layer that runs on top of one (Medplum, or HAPI for fully local self-hosting).",
   },
 ];
 
@@ -245,7 +245,7 @@ export default function HeadlessEhrPage() {
               </ul>
               <p>
                 Offerings change; verify current capabilities and terms
-                directly with each project. Last EHR runs on Medplum today,
+                directly with each project. Last EHR runs on Medplum or locally on HAPI FHIR,
                 and the FHIR calls are the seam where other backends could
                 slot in later.
               </p>

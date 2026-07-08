@@ -5,7 +5,7 @@
 
 **Open-source AI agent layer for Medplum and FHIR.** A permissioned agent over the patient chart: it reads the chart and proposes writes, and nothing is saved until you approve it. Bring your own backend and your own model key.
 
-> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum today) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
+> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum, or HAPI FHIR for fully local self-hosting) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
@@ -26,12 +26,12 @@
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) whose only adapter today wraps `@medplum/core` against the Medplum instance you configure. **Backend-agnostic is the goal**: the interface is three methods (search, search resources, create resource) plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. Aidbox, Oystehr, and HAPI adapters are tracked in [#39](https://github.com/cbetz/last-ehr/issues/39), [#40](https://github.com/cbetz/last-ehr/issues/40), and [#44](https://github.com/cbetz/last-ehr/issues/44).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with two adapters: Medplum (hosted or self-hosted, token-authenticated) and HAPI FHIR or any open FHIR R4 server (local self-host mode, see the quickstart). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution: Aidbox and Oystehr are tracked in [#39](https://github.com/cbetz/last-ehr/issues/39) and [#40](https://github.com/cbetz/last-ehr/issues/40).
 
 ```mermaid
 flowchart LR
     B["Browser chat"] --> A["/api/chat<br/>streamText + 4 FHIR tools"]
-    A -- "reads<br/>search_patients, show_patient_info" --> M[("Your Medplum<br/>FHIR backend")]
+    A -- "reads<br/>search_patients, show_patient_info" --> M[("Your FHIR backend<br/>(Medplum or HAPI)")]
     A -- "writes<br/>add_note, record_observation" --> C{"Approval card"}
     C -- "Approve & save" --> M
     C -- "Cancel" --> N["Nothing saved"]
