@@ -9,7 +9,13 @@ import type { FhirBackend } from "@/lib/fhir/backend";
 const search = vi.fn();
 const searchResources = vi.fn();
 const createResource = vi.fn();
-const backend = { search, searchResources, createResource } as FhirBackend;
+const deleteResource = vi.fn();
+const backend = {
+  search,
+  searchResources,
+  createResource,
+  deleteResource,
+} as FhirBackend;
 
 describe("agent FHIR tools", () => {
   beforeEach(() => {
@@ -26,6 +32,20 @@ describe("agent FHIR tools", () => {
     // Reads execute freely.
     expect(tools.search_patients.needsApproval).toBeFalsy();
     expect(tools.show_patient_info.needsApproval).toBeFalsy();
+  });
+
+  it("search_patients passes the name as a structured param, never a query string", async () => {
+    search.mockResolvedValue({ entry: [] });
+    const tools = buildTools(backend);
+
+    await (
+      tools.search_patients.execute as (input: unknown, opts: unknown) => unknown
+    )({ name: "Smith & Sons" }, {});
+
+    expect(search).toHaveBeenCalledWith("Patient", {
+      name: "Smith & Sons",
+      _count: "20",
+    });
   });
 
   it("add_note writes a Communication scoped to the named patient", async () => {

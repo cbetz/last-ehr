@@ -29,9 +29,9 @@ export class MedplumBackend implements FhirBackend {
 
   search<K extends ResourceType>(
     resourceType: K,
-    query?: string,
+    params?: Record<string, string>,
   ): Promise<Bundle<ExtractResource<K>>> {
-    return this.medplum.search(resourceType, query);
+    return this.medplum.search(resourceType, params);
   }
 
   searchResources<K extends ResourceType>(
@@ -43,5 +43,9 @@ export class MedplumBackend implements FhirBackend {
 
   createResource<T extends Resource>(resource: T): Promise<T & { id: string }> {
     return this.medplum.createResource(resource);
+  }
+
+  async deleteResource(resourceType: ResourceType, id: string): Promise<void> {
+    await this.medplum.deleteResource(resourceType, id);
   }
 }
