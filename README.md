@@ -69,7 +69,15 @@ At minimum set, in `.env.local`:
 
 `npm run seed` loads a small **synthetic** patient set (`scripts/fixtures/patients.ts`: four patients with conditions, medications, allergies, immunizations, and vitals/labs, two named "Smith"). It wipes and recreates those patients each run, so it is safe to re-run. Then open `/demo` and ask: *"find patients named Smith."* Use synthetic data only.
 
-**Fully local FHIR backend (no Medplum account):** the repo ships a docker compose stack with HAPI FHIR and Postgres. `docker compose up -d && npm run fhir:wait` brings it up (first boot pulls the image and initializes the schema, allow a few minutes). Point the app at it with `FHIR_BACKEND=hapi` and `FHIR_BASE_URL=http://localhost:8080/fhir`; full setup lands with the self-host guide. Local, single-tenant use only: the HAPI server runs with no auth.
+**Fully local, no Medplum account:** the repo ships a docker compose stack with HAPI FHIR and Postgres, and the whole demo runs against it:
+
+```bash
+docker compose up -d && npm run fhir:wait   # HAPI FHIR + Postgres; first boot takes a few minutes
+npm run seed                                 # with the env below in .env.local
+npm run dev                                  # http://localhost:3000/demo
+```
+
+with `.env.local` containing `FHIR_BACKEND=hapi`, `FHIR_BASE_URL=http://localhost:8080/fhir`, `NEXT_PUBLIC_QUICKSTART=true`, and one model key. Honest scope: the local HAPI server runs with **no auth**, so this mode is for local, single-tenant use only; per-browser session isolation is client-side filtering, not a security boundary; and the MCP server still requires Medplum credentials for now. The hosted public demo stays on Medplum.
 
 ## Launch from the Medplum app (SMART on FHIR)
 
