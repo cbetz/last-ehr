@@ -20,6 +20,7 @@
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
     "mcp": "tsx mcp/server.ts",
+    "fhir:wait": "tsx scripts/wait-for-fhir.ts",
     "test": "vitest run"
   },
   "dependencies": {
