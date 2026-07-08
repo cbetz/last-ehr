@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/hapi
+    username: hapi
+    password: hapi
+    driverClassName: org.postgresql.Driver
+  jpa:
+    properties:
+      hibernate.dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect
+      hibernate.search.enabled: false
+hapi:
+  fhir:
+    fhir_version: R4
+    enforce_referential_integrity_on_delete: false
+    reuse_cached_search_results_millis: 0
