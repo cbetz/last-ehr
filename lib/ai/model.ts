@@ -1,23 +1,25 @@
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { gateway } from "ai";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
 /**
  * Resolve the chat model from the environment so self-hosters can bring their
  * own provider + key. Defaults preserve the original behavior (OpenAI
  * gpt-4.1-mini), so an existing deployment needs no new env vars.
  *
- *   AI_PROVIDER  "openai" (default) | "anthropic" | "gateway" | "openrouter"
+ *   AI_PROVIDER  "openai" (default) | "anthropic"
  *   MODEL_ID     provider-specific model id (optional)
  *
- * The matching server-side key must be set: OPENAI_API_KEY,
- * ANTHROPIC_API_KEY, AI_GATEWAY_API_KEY, or OPENROUTER_API_KEY.
+ * The matching server-side key must be set: OPENAI_API_KEY or
+ * ANTHROPIC_API_KEY.
  *
- * Model id shapes differ between native and aggregator providers: native
- * Anthropic is "claude-sonnet-4-6" (dashes), while the gateway and OpenRouter
- * namespace and dot the same model as "anthropic/claude-sonnet-4.6". Pick a
- * TOOL-CAPABLE model; the agent is tool calls or nothing.
+ * Provider policy: every provider shipped here must be able to carry a BAA,
+ * because deployments of this project head toward real clinical data even
+ * though the demo is synthetic-only. OpenAI and Anthropic sign BAAs with
+ * zero-retention options for API traffic on qualifying plans. Aggregators
+ * that cannot sign a BAA (OpenRouter, as of their current public terms) are
+ * deliberately not offered; a multi-model, BAA-capable path via AWS Bedrock
+ * is tracked and lands separately. Pick a TOOL-CAPABLE model either way; the
+ * agent is tool calls or nothing.
  */
 export function getChatModel(overrideModelId?: string) {
   // `||` (not `??`) so an empty-string env var (e.g. MODEL_ID= in .env)
@@ -33,18 +35,9 @@ export function getChatModel(overrideModelId?: string) {
     case "anthropic":
       // Overridable via MODEL_ID, e.g. claude-opus-4-8 / claude-haiku-4-5.
       return anthropic(modelId || "claude-sonnet-4-6");
-    case "gateway":
-      // Vercel AI Gateway: one AI_GATEWAY_API_KEY, models addressed as
-      // "creator/model". Works on and off Vercel hosting.
-      return gateway(modelId || "openai/gpt-4.1-mini");
-    case "openrouter":
-      // OpenRouter: same "creator/model" addressing, OPENROUTER_API_KEY.
-      return createOpenRouter({
-        apiKey: process.env.OPENROUTER_API_KEY,
-      }).chat(modelId || "openai/gpt-4.1-mini");
     default:
       throw new Error(
-        `Unsupported AI_PROVIDER "${provider}". Use "openai", "anthropic", "gateway", or "openrouter".`,
+        `Unsupported AI_PROVIDER "${provider}". Use "openai" or "anthropic".`,
       );
   }
 }

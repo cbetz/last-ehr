@@ -37,21 +37,20 @@ describe("parseDemoModels", () => {
 describe("resolveDemoModel", () => {
   const allow = parseDemoModels("a|A,b|B");
 
-  it("honors a listed model on aggregator providers", () => {
-    expect(resolveDemoModel("a", "gateway", allow)).toBe("a");
-    expect(resolveDemoModel("b", "openrouter", allow)).toBe("b");
+  it("honors a listed model", () => {
+    expect(resolveDemoModel("a", allow)).toBe("a");
+    expect(resolveDemoModel("b", allow)).toBe("b");
   });
 
   it("silently ignores unlisted models (no probing signal)", () => {
-    expect(resolveDemoModel("gpt-5-pro", "gateway", allow)).toBeUndefined();
-  });
-
-  it("ignores the header entirely on native providers", () => {
-    expect(resolveDemoModel("a", "openai", allow)).toBeUndefined();
-    expect(resolveDemoModel("a", "anthropic", allow)).toBeUndefined();
+    expect(resolveDemoModel("gpt-5-pro", allow)).toBeUndefined();
   });
 
   it("ignores a missing header", () => {
-    expect(resolveDemoModel(null, "gateway", allow)).toBeUndefined();
+    expect(resolveDemoModel(null, allow)).toBeUndefined();
+  });
+
+  it("honors nothing when the allowlist is empty", () => {
+    expect(resolveDemoModel("a", [])).toBeUndefined();
   });
 });
