@@ -26,7 +26,7 @@
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with two adapters: Medplum (hosted or self-hosted, token-authenticated) and HAPI FHIR or any open FHIR R4 server (local self-host mode, see the quickstart). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution: Aidbox and Oystehr are tracked in [#39](https://github.com/cbetz/last-ehr/issues/39) and [#40](https://github.com/cbetz/last-ehr/issues/40).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with two adapters: Medplum (hosted or self-hosted, token-authenticated) and HAPI FHIR or any open FHIR R4 server (local self-host mode, see the quickstart). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,7 @@ On the public demo, writes are also tagged with your session, so you only ever s
 
 You'll still need a **Medplum** project seeded with the synthetic patients (`npm run seed`, below) for the demo to have data.
 
-**Run it locally.** Prerequisites: Node ≥ 20.9, a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one model API key (OpenAI or Anthropic).
+**Run it locally.** Prerequisites: Node ≥ 20.9, a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one tool-capable model API key (OpenAI, Anthropic, or Amazon Bedrock).
 
 ```bash
 git clone https://github.com/cbetz/last-ehr.git
@@ -63,7 +63,7 @@ npm run dev                      # http://localhost:3000/demo
 
 At minimum set, in `.env.local`:
 
-- a model key: `OPENAI_API_KEY` (default provider) **or** `ANTHROPIC_API_KEY` with `AI_PROVIDER=anthropic`;
+- a model key: `OPENAI_API_KEY` (default provider), **or** `ANTHROPIC_API_KEY` with `AI_PROVIDER=anthropic`, **or** AWS credentials plus `AI_PROVIDER=bedrock` and `MODEL_ID`;
 - `NEXT_PUBLIC_MEDPLUM_BASE_URL` / `MEDPLUM_BASE_URL` if you're pointing at your own Medplum (leave blank to use Medplum's hosted API);
 - `MEDPLUM_CLIENT_ID` + `MEDPLUM_CLIENT_SECRET` (a Medplum [ClientApplication](https://www.medplum.com/docs/auth/methods/client-credentials)): used by `npm run seed`, and by the **no-sign-in quickstart** when you also set `NEXT_PUBLIC_QUICKSTART=true`. Or set `NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID` to sign in via Medplum's Google OAuth instead.
 
@@ -78,6 +78,22 @@ npm run dev                                  # http://localhost:3000/demo
 ```
 
 with `.env.local` containing `FHIR_BACKEND=hapi`, `FHIR_BASE_URL=http://localhost:8080/fhir`, `NEXT_PUBLIC_QUICKSTART=true`, and one model key. Honest scope: the local HAPI server runs with **no auth**, so this mode is for local, single-tenant use only; per-browser session isolation is client-side filtering, not a security boundary; and the MCP server still requires Medplum credentials for now. The hosted public demo stays on Medplum.
+
+To run the app container too, use `npm run docker:local` after filling
+`.env.local`; it combines the HAPI/Postgres compose stack with the app image.
+
+For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
+
+## Docs
+
+- [Quickstart](./docs/quickstart.md): hosted demo, Medplum local run, and fully local HAPI run.
+- [Architecture](./docs/architecture.md): the chat route, tools, backend adapters, and data boundary.
+- [Backend adapters](./docs/adapters.md): the adapter contract, checklist, and contribution path.
+- [Approval-gated writes](./docs/approval-gates.md): what the gate protects and what it does not.
+- [MCP server](./docs/mcp.md): read-only default, opt-in writes, and client registration.
+- [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
+- [Threat model](./docs/threat-model.md): trust boundaries and known limitations.
+- [Roadmap](./ROADMAP.md): what is current, next, and deliberately out of scope.
 
 ## Launch from the Medplum app (SMART on FHIR)
 
@@ -126,8 +142,9 @@ Every variable is documented in [`.env.example`](./.env.example). The model is p
 |---|---|---|---|
 | `openai` (default) | `OPENAI_API_KEY` | `gpt-4.1-mini` | OpenAI signs BAAs with zero-retention options for API traffic on qualifying plans. |
 | `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | Anthropic signs BAAs with zero-retention options for API traffic on qualifying plans. |
+| `bedrock` | AWS credential env + `AWS_REGION` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | Amazon Bedrock is available under an AWS BAA for eligible services; set an explicit model id or inference profile. |
 
-Signing the BAA is the operator's step, not a default: a bare API key is not PHI-ready on any provider. Aggregators that cannot sign a BAA (OpenRouter, per their current public terms) are deliberately not offered; a multi-model, BAA-capable path via AWS Bedrock is tracked in the issues. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
+Signing the BAA is the operator's step, not a default: a bare API key is not PHI-ready on any provider. Aggregators that cannot sign a BAA (OpenRouter, per their current public terms) are deliberately not offered. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
 
 ## Security & data
 
@@ -151,4 +168,4 @@ A personal open-source project. Not affiliated with, endorsed by, or sponsored b
 
 ## License
 
-[Apache-2.0](./LICENSE). See [NOTICE](./NOTICE) for third-party attributions and [CONTRIBUTING.md](./CONTRIBUTING.md) to contribute.
+[Apache-2.0](./LICENSE). See [NOTICE](./NOTICE) for third-party attributions, [CONTRIBUTING.md](./CONTRIBUTING.md) to contribute, and [GOVERNANCE.md](./GOVERNANCE.md) for how the project is run.

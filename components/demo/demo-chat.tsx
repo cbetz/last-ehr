@@ -272,6 +272,17 @@ export function DemoChat() {
                                   },
                                   { label: "Note", value: part.input.text },
                                 ]}
+                                preview={{
+                                  resourceType: "Communication",
+                                  status: "completed",
+                                  subject: {
+                                    reference: `Patient/${part.input.patientId}`,
+                                  },
+                                  sent: "<server time when approved>",
+                                  payload: [
+                                    { contentString: part.input.text },
+                                  ],
+                                }}
                                 onApprove={async () => {
                                   track("demo_write_approval", {
                                     tool: "add_note",
@@ -333,6 +344,22 @@ export function DemoChat() {
                                     value: `${part.input.value} ${part.input.unit}`,
                                   },
                                 ]}
+                                preview={{
+                                  resourceType: "Observation",
+                                  status: "final",
+                                  code: { text: part.input.label },
+                                  subject: {
+                                    reference: `Patient/${part.input.patientId}`,
+                                  },
+                                  effectiveDateTime:
+                                    "<server time when approved>",
+                                  valueQuantity: {
+                                    value: part.input.value,
+                                    unit: part.input.unit,
+                                    system: "http://unitsofmeasure.org",
+                                    code: part.input.unit,
+                                  },
+                                }}
                                 onApprove={async () => {
                                   track("demo_write_approval", {
                                     tool: "record_observation",

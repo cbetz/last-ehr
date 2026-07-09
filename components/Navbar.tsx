@@ -11,11 +11,10 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 
 import { Button, buttonVariants } from "./ui/button";
-import { ModeToggle } from "./ModeToggle"; 
+import { ModeToggle } from "./ModeToggle";
 
 interface RouteProps {
   href: string;
@@ -24,20 +23,20 @@ interface RouteProps {
 
 const routeList: RouteProps[] = [
   {
-    href: "/headless-ehr",
-    label: "Headless EHR",
+    href: "/docs",
+    label: "Docs",
   },
   {
-    href: "/#howItWorks",
-    label: "How It Works",
+    href: "/roadmap",
+    label: "Roadmap",
   },
   {
-    href: "/#ai",
-    label: "AI Agents",
+    href: "/medplum-ai-agent",
+    label: "Medplum",
   },
   {
-    href: "/#signup",
-    label: "Hosted",
+    href: "https://github.com/cbetz/last-ehr/blob/main/CONTRIBUTING.md",
+    label: "Contribute",
   },
 ];
 
@@ -75,20 +74,24 @@ const Navbar = () => {
                 </SheetHeader>
                 <div className="flex flex-col justify-center items-start space-y-3 mt-6">
                   <ul className="flex flex-col space-y-3">
-                    {routeList.map(({ href, label }: RouteProps) => (
-                      <li key={label}>
-                        <Link
-                          key={label}
-                          href={href}
-                          onClick={() => setIsOpen(false)}
-                          className={buttonVariants({
-                            variant: "ghost",
-                          })}
-                        >
-                          {label}
-                        </Link>
-                      </li>
-                    ))}
+                    {routeList.map(({ href, label }: RouteProps) => {
+                      const external = href.startsWith("http");
+                      return (
+                        <li key={label}>
+                          <Link
+                            href={href}
+                            target={external ? "_blank" : undefined}
+                            rel={external ? "noopener noreferrer" : undefined}
+                            onClick={() => setIsOpen(false)}
+                            className={buttonVariants({
+                              variant: "ghost",
+                            })}
+                          >
+                            {label}
+                          </Link>
+                        </li>
+                      );
+                    })}
                   </ul>
                   <Link
                     href="/demo"
@@ -126,18 +129,23 @@ const Navbar = () => {
           {/* desktop */}
           <div className="hidden md:flex gap-2">
             <ul className="flex space-x-2">
-              {routeList.map((route: RouteProps, i) => (
-                <li key={i}>
-                  <Link
-                    href={route.href}
-                    className={`text-[17px] ${buttonVariants({
-                      variant: "ghost",
-                    })}`}
-                  >
-                    {route.label}
-                  </Link>
-                </li>
-              ))}
+              {routeList.map((route: RouteProps) => {
+                const external = route.href.startsWith("http");
+                return (
+                  <li key={route.label}>
+                    <Link
+                      href={route.href}
+                      target={external ? "_blank" : undefined}
+                      rel={external ? "noopener noreferrer" : undefined}
+                      className={`text-[17px] ${buttonVariants({
+                        variant: "ghost",
+                      })}`}
+                    >
+                      {route.label}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 

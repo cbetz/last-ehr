@@ -19,7 +19,7 @@ const features: FeatureProps[] = [
     icon: <KeyRound className="h-5 w-5" aria-hidden="true" />,
     title: "Bring your own model key",
     description:
-      "OpenAI or Anthropic, your key and your spend. Switch models with a single environment variable.",
+      "OpenAI, Anthropic, or Amazon Bedrock, your key and your spend. Switch providers with environment variables.",
   },
   {
     icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,

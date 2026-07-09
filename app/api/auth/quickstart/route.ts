@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { MedplumClient } from "@medplum/core";
 
-import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
+import { checkIpRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 // Node runtime so @medplum/core works.
 export const runtime = "nodejs";
@@ -107,7 +107,9 @@ export async function POST(req: Request) {
   // session cookie pair, so set a placeholder token and the session id that
   // keeps per-browser demo writes isolated. Local, single-tenant use only.
   if ((process.env.FHIR_BACKEND || "medplum") === "hapi") {
-    const { success } = await checkRateLimit(`quickstart:${getClientIp(req)}`);
+    const { success } = await checkIpRateLimit(
+      `quickstart:${getClientIp(req)}`,
+    );
     if (!success) {
       return new Response("Too many requests. Please try again shortly.", {
         status: 429,
@@ -126,7 +128,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const { success } = await checkRateLimit(`quickstart:${getClientIp(req)}`);
+  const { success } = await checkIpRateLimit(
+    `quickstart:${getClientIp(req)}`,
+  );
   if (!success) {
     return new Response("Too many requests. Please try again shortly.", {
       status: 429,

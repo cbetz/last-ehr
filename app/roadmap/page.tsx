@@ -1,0 +1,124 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import {
+  ClipboardCheck,
+  GitBranch,
+  LineChart,
+  LockKeyhole,
+  ServerCog,
+} from "lucide-react";
+
+import Navbar from "@/components/Navbar";
+import { SiteFooter } from "@/components/site-footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Roadmap: Approval-Gated FHIR Agents",
+  description:
+    "Where Last EHR is headed: local adoption, backend adapters, approval workflows, MCP, and safer FHIR agent tools.",
+  alternates: { canonical: "/roadmap" },
+  openGraph: {
+    type: "website",
+    title: "Last EHR Roadmap",
+    description:
+      "The public roadmap for the open-source approval-gated FHIR agent layer.",
+    url: "https://www.lastehr.com/roadmap",
+    images: ["https://www.lastehr.com/opengraph-image"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Last EHR Roadmap",
+    description:
+      "Local adoption, backend adapters, approval workflows, MCP, and safer FHIR agent tools.",
+  },
+};
+
+const tracks = [
+  {
+    title: "Demo to Local",
+    description:
+      "Keep the no-signup demo sharp, make HAPI local mode repeatable, and measure where evaluators drop off.",
+    icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
+  },
+  {
+    title: "Backend Portability",
+    description:
+      "Add well-tested adapters for Aidbox, Oystehr, Firely, and other FHIR R4 backends through the FhirBackend contract.",
+    icon: <GitBranch className="h-5 w-5" aria-hidden="true" />,
+  },
+  {
+    title: "Approval Workflows",
+    description:
+      "Improve proposed-write previews, rejected-proposal handling, and policy hooks without weakening explicit human review.",
+    icon: <ClipboardCheck className="h-5 w-5" aria-hidden="true" />,
+  },
+  {
+    title: "Clinical Tool Catalog",
+    description:
+      "Expand beyond notes and observations carefully: Task, DocumentReference, encounter context, and better unit/coding support.",
+    icon: <ServerCog className="h-5 w-5" aria-hidden="true" />,
+  },
+  {
+    title: "MCP Safety",
+    description:
+      "Keep MCP read-only by default, add clearer tool annotations, and package the server once the surface stabilizes.",
+    icon: <LockKeyhole className="h-5 w-5" aria-hidden="true" />,
+  },
+];
+
+export default function RoadmapPage() {
+  return (
+    <>
+      <Navbar />
+      <main>
+        <section className="container max-w-4xl py-16 sm:py-24">
+          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            Roadmap
+          </p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">
+            The open-source path for approval-gated FHIR agents
+          </h1>
+          <p className="mt-6 max-w-2xl text-xl text-muted-foreground">
+            Last EHR is intentionally narrow: chart reads, explicit write
+            proposals, backend-enforced permissions, and no chart database in
+            the layer. The roadmap expands that pattern without turning the
+            project into an EHR.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-4">
+            <Link
+              href="https://github.com/cbetz/last-ehr/blob/main/ROADMAP.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants()}
+            >
+              Read full roadmap
+            </Link>
+            <Link href="/docs" className={buttonVariants({ variant: "outline" })}>
+              Read docs
+            </Link>
+          </div>
+        </section>
+
+        <section className="container pb-24">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+            {tracks.map(({ title, description, icon }) => (
+              <Card key={title} className="bg-transparent">
+                <CardHeader className="space-y-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-md border text-muted-foreground">
+                    {icon}
+                  </div>
+                  <CardTitle className="text-base">{title}</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm leading-relaxed text-muted-foreground">
+                  {description}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}

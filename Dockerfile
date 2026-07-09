@@ -1,0 +1,38 @@
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+
+FROM node:20-alpine AS builder
+WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_QUICKSTART=
+ARG NEXT_PUBLIC_MEDPLUM_BASE_URL=
+ARG NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID=
+ARG NEXT_PUBLIC_GOOGLE_AUTH_ORIGINS=
+ARG NEXT_PUBLIC_DEMO_MODELS=
+ARG NEXT_PUBLIC_POSTHOG_KEY=
+ARG NEXT_PUBLIC_POSTHOG_HOST=
+ENV NEXT_PUBLIC_QUICKSTART=$NEXT_PUBLIC_QUICKSTART
+ENV NEXT_PUBLIC_MEDPLUM_BASE_URL=$NEXT_PUBLIC_MEDPLUM_BASE_URL
+ENV NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_MEDPLUM_GOOGLE_CLIENT_ID
+ENV NEXT_PUBLIC_GOOGLE_AUTH_ORIGINS=$NEXT_PUBLIC_GOOGLE_AUTH_ORIGINS
+ENV NEXT_PUBLIC_DEMO_MODELS=$NEXT_PUBLIC_DEMO_MODELS
+ENV NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY
+ENV NEXT_PUBLIC_POSTHOG_HOST=$NEXT_PUBLIC_POSTHOG_HOST
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/package-lock.json ./package-lock.json
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
+EXPOSE 3000
+CMD ["npm", "run", "start"]

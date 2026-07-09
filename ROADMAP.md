@@ -1,0 +1,97 @@
+# Last EHR Roadmap
+
+Last EHR's north star is to be the open-source reference implementation for
+approval-gated AI agent workflows over FHIR charts. The project should stay
+small enough to inspect, but useful enough that teams can clone it, run it on
+synthetic data, and adapt it to their own FHIR backend.
+
+This roadmap is intentionally public. It tells users what is safe to depend on,
+and it gives contributors concrete places to help.
+
+## Current focus
+
+### 1. Demo-to-local adoption
+
+- Keep the hosted demo no-signup and synthetic-data only.
+- Make the first demo path reach the approval gate in one click.
+- Keep the HAPI FHIR local path working end to end.
+- Add Docker packaging so a full local stack is repeatable.
+- Track where evaluators drop off: demo start, first tool call, first approval,
+  local quickstart, and GitHub/docs handoff.
+
+### 2. Backend portability
+
+The `FhirBackend` interface is the main extension point. Medplum and local HAPI
+work today; the next useful adapters are:
+
+- Aidbox
+- Oystehr
+- Firely Server
+- OpenEMR FHIR API, if the API surface can satisfy the tool contract
+
+Every adapter needs tests, a setup note, and an honest auth/tenant caveat.
+
+### 3. Safer approval workflows
+
+Approval-gated writes are the wedge. Near-term work:
+
+- Show exact proposed fields and a FHIR-shaped preview before approval.
+- Support cancel/retry flows that are easy to understand.
+- Add optional rejected-proposal audit events for deployments that want them.
+- Explore editable proposals without weakening the "what you see is what saves"
+  rule.
+- Add policy hooks so operators can require approval by resource type,
+  project, environment, or SMART scope.
+
+### 4. More useful clinical tools
+
+The default agent should remain narrow, but the tool catalog should grow in
+well-reviewed steps:
+
+- Task creation and assignment
+- DocumentReference read support
+- Encounter-scoped notes
+- Goal and CarePlan read support
+- Better Observation coding and unit normalization
+- Condition/MedicationRequest write experiments behind stricter gates
+
+High-risk writes should not be added as a casual demo feature.
+
+### 5. MCP as a serious interface
+
+The MCP server starts read-only because there is no Last EHR approval card in
+an MCP host. Planned work:
+
+- Backend parity beyond Medplum.
+- Optional write exposure with clearer operator warnings.
+- Tool annotations that help clients distinguish read-only and destructive
+  operations.
+- A separate package once the server surface stabilizes.
+
+## Stability
+
+The repo is alpha. The current stable promises are:
+
+- Apache-2.0 license.
+- Synthetic-data-first development posture.
+- No chart database inside Last EHR.
+- Reads go to the configured model provider under the operator's key.
+- Writes through the web app remain approval-gated.
+- Backend access control belongs to the FHIR backend, not this UI layer.
+
+Everything else, including file structure, tool schemas, and UI flows, can
+change until the first 1.0 line is declared.
+
+## Not planned
+
+- Becoming a full EHR or source of truth.
+- Bundling a forked FHIR backend.
+- Shipping non-BAA-capable model aggregators as first-class providers.
+- Claiming HIPAA compliance for the open-source repo.
+- Silent autonomous writes to clinically meaningful chart resources.
+
+## How to help
+
+Start with `docs/adapters.md`, `docs/approval-gates.md`, or `docs/mcp.md`.
+Small PRs are preferred. If a change touches real clinical risk, open an issue
+or draft PR before implementing the whole feature.

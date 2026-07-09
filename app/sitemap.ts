@@ -20,6 +20,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      url: `${BASE_URL}/docs`,
+      lastModified: new Date("2026-07-09"),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${BASE_URL}/roadmap`,
+      lastModified: new Date("2026-07-09"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${BASE_URL}/medplum-ai-agent`,
       lastModified: new Date("2026-07-08"),
       changeFrequency: "monthly",

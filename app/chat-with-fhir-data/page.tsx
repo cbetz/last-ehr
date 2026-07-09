@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 const faqs: FaqItem[] = [
   {
     q: "When I open a chart in Last EHR, where does the patient data go?",
-    a: "The agent fetches the FHIR resources from your backend (Medplum), projects them into a structured summary, and sends that summary to your configured model provider (OpenAI or Anthropic) as part of the chat prompt, under your API key. The data does not stay in Last EHR; the layer stores no patient data of its own. This is why a BAA with your model provider matters if you ever handle real PHI.",
+    a: "The agent fetches the FHIR resources from your backend, projects them into a structured summary, and sends that summary to your configured model provider as part of the chat prompt, under your key or provider credentials. The data does not stay in Last EHR; the layer stores no patient data of its own. This is why a BAA with your model provider matters if you ever handle real PHI.",
   },
   {
     q: "What does the approval gate actually protect against?",
@@ -304,8 +304,9 @@ export default function ChatWithFhirDataPage() {
               <p>
                 <strong className="text-foreground">Last EHR</strong> is an
                 application layer: a ready-to-run chat UI with four FHIR tools
-                and the approval card built in. It runs on Medplum, or fully locally on HAPI FHIR;
-                other FHIR backends are a goal, not yet supported. It also
+                and the approval card built in. It runs on Medplum, or fully
+                locally on HAPI FHIR. Additional backends plug in through the
+                FhirBackend adapter seam. It also
                 exposes its four tools as an MCP server of its own, read-only
                 by default, so the categories meet in the middle: use the chat
                 UI when you want the approval card in front of a person, or
@@ -321,8 +322,8 @@ export default function ChatWithFhirDataPage() {
             <div className="mt-4 space-y-4 text-lg leading-relaxed text-muted-foreground">
               <p>
                 You need a Medplum project (their free tier works for
-                evaluation), a model API key (OpenAI or Anthropic), and the
-                code:
+                evaluation), or local HAPI FHIR, plus one supported model
+                provider credential and the code:
               </p>
               <pre className="overflow-x-auto rounded-lg border bg-card p-4 text-sm text-foreground">
                 <code>{`git clone https://github.com/cbetz/last-ehr.git
@@ -337,8 +338,8 @@ npm run dev                  # http://localhost:3000/demo`}</code>
                 app/api/chat/route.ts. Multi-tenancy, users, and permissions
                 come from your Medplum project (Project, ProjectMembership,
                 AccessPolicy); the layer does not reimplement them. Porting to
-                Aidbox, HAPI, or Firely means adapting the tool
-                implementations; that is the intended seam, and contributions
+                Aidbox, Oystehr, or Firely means implementing the backend
+                adapter contract; that is the intended seam, and contributions
                 are welcome. Setup details are on the{" "}
                 <Link
                   href="/medplum-ai-agent"

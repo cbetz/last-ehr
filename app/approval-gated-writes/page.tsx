@@ -44,7 +44,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "What data does the AI see, and where does it go?",
-    a: "When the agent reads the chart, it pulls FHIR resources from your Medplum backend and sends them to your model provider (OpenAI or Anthropic) as context, under your API key. Last EHR stores no patient data itself. For real PHI, you would need BAAs with both your model provider and your backend. The demo runs on synthetic data only.",
+    a: "When the agent reads the chart, it pulls FHIR resources from your backend and sends them to your model provider as context, under your key or provider credentials. Last EHR stores no patient data itself. For real PHI, you would need BAAs with both your model provider and your backend. The demo runs on synthetic data only.",
   },
   {
     q: "Can I edit a proposal before I approve it?",

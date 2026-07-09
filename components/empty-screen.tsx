@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/ui/icons";
 import { track } from "@/lib/analytics";
@@ -31,14 +33,30 @@ export function EmptyScreen({
 }) {
   return (
     <div className="mx-auto max-w-2xl px-4">
-      <div className="rounded-lg border bg-background p-8 mb-4">
-        <h1 className="mb-2 text-lg font-semibold">Last EHR</h1>
-        <p className="mb-2 leading-normal text-muted-foreground">
-          This is a demo of our interactive EHR assistant, connected to a
-          live Headless EHR. 
+      <div className="mb-4 rounded-lg border bg-background p-6 sm:p-8">
+        <div className="space-y-2">
+          <h1 className="text-xl font-semibold">Try the approval loop</h1>
+          <p className="leading-normal text-muted-foreground">
+            Search a synthetic chart, open the record, then watch a proposed
+            write stop at the approval card before anything saves.
+          </p>
+        </div>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          {["Search", "Review", "Approve"].map((label, index) => (
+            <div key={label} className="rounded-md border bg-muted/40 p-3">
+              <div className="font-mono text-xs text-muted-foreground">
+                0{index + 1}
+              </div>
+              <div className="mt-1 text-sm font-medium">{label}</div>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-6 leading-normal text-muted-foreground">
+          Start with one of these:
         </p>
-        <p className="leading-normal text-muted-foreground">Try an example:</p>
-        <div className="mt-4 flex flex-col items-start space-y-2 mb-4">
+        <div className="mb-5 mt-4 flex flex-col items-start space-y-2">
           {exampleMessages.map((message, index) => (
             <Button
               key={index}
@@ -54,8 +72,29 @@ export function EmptyScreen({
             </Button>
           ))}
         </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
+          <Link
+            href="/docs"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Run it locally
+          </Link>
+          <Link
+            href="/approval-gated-writes"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            Read the approval contract
+          </Link>
+          <Link
+            href="https://github.com/cbetz/last-ehr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground underline underline-offset-4"
+          >
+            View source
+          </Link>
+        </div>
       </div>
-      {/*<FooterText />*/}
     </div>
   );
 }

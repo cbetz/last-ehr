@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_QUICKSTART: "true"
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.local
+    environment:
+      FHIR_BACKEND: hapi
+      FHIR_BASE_URL: http://hapi:8080/fhir
+      NEXT_PUBLIC_QUICKSTART: "true"
+    depends_on:
+      hapi:
+        condition: service_started

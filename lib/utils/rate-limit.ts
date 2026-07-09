@@ -83,9 +83,25 @@ async function redisCheck(limiter: Ratelimit, id: string): Promise<LimitResult> 
 // ── In-memory fallback ──────────────────────────────────────────────────
 const memory = new Map<string, number[]>();
 let warnedInMemory = false;
+let lastMemorySweep = 0;
+
+function sweepMemory(now: number): void {
+  if (now - lastMemorySweep < WINDOW_MS) return;
+  lastMemorySweep = now;
+  const windowStart = now - WINDOW_MS;
+  for (const [key, hits] of memory.entries()) {
+    const liveHits = hits.filter((ts) => ts > windowStart);
+    if (liveHits.length === 0) {
+      memory.delete(key);
+    } else if (liveHits.length !== hits.length) {
+      memory.set(key, liveHits);
+    }
+  }
+}
 
 function memoryCheck(key: string, max: number): LimitResult {
   const now = Date.now();
+  sweepMemory(now);
   const windowStart = now - WINDOW_MS;
   const hits = (memory.get(key) ?? []).filter((ts) => ts > windowStart);
 
@@ -95,6 +111,41 @@ function memoryCheck(key: string, max: number): LimitResult {
 
   const resetAfter = hits.length ? Math.max(0, hits[0] + WINDOW_MS - now) : 0;
   return { success, remaining: Math.max(0, max - hits.length), resetAfter };
+}
+
+function warnInMemory(): void {
+  if (!warnedInMemory) {
+    console.warn(
+      "[rate-limit] Using best-effort in-memory limiter (not shared across " +
+        "serverless instances). Set UPSTASH_REDIS_REST_URL + " +
+        "UPSTASH_REDIS_REST_TOKEN for reliable limits.",
+    );
+    warnedInMemory = true;
+  }
+}
+
+/**
+ * Check only the per-IP bucket. Use this for cheap auth/session routes so they
+ * do not spend the global model-call budget.
+ */
+export async function checkIpRateLimit(
+  identifier: string,
+): Promise<LimitResult> {
+  initRedis();
+
+  if (redisPerIp) {
+    try {
+      return await redisCheck(redisPerIp, identifier);
+    } catch (err) {
+      console.error(
+        "[rate-limit] Redis check failed; using in-memory fallback:",
+        err,
+      );
+    }
+  }
+
+  warnInMemory();
+  return memoryCheck(`ip:${identifier}`, PER_IP_MAX);
 }
 
 /**
@@ -118,14 +169,7 @@ export async function checkRateLimit(identifier: string): Promise<LimitResult> {
     }
   }
 
-  if (!warnedInMemory) {
-    console.warn(
-      "[rate-limit] Using best-effort in-memory limiter (not shared across " +
-        "serverless instances). Set UPSTASH_REDIS_REST_URL + " +
-        "UPSTASH_REDIS_REST_TOKEN for reliable limits.",
-    );
-    warnedInMemory = true;
-  }
+  warnInMemory();
 
   const perIp = memoryCheck(`ip:${identifier}`, PER_IP_MAX);
   if (!perIp.success) return perIp;

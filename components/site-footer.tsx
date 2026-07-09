@@ -4,12 +4,21 @@ import { ChevronLast } from "lucide-react";
 import { IconGitHub, IconTwitter } from "./ui/icons";
 
 const footerLinks = [
+  { href: "/docs", label: "Docs" },
+  { href: "/roadmap", label: "Roadmap" },
   { href: "/headless-ehr", label: "Headless EHR" },
   { href: "/medplum-ai-agent", label: "Medplum AI Agent" },
   { href: "/approval-gated-writes", label: "Approval-Gated Writes" },
   { href: "/chat-with-fhir-data", label: "Chat with FHIR Data" },
-  { href: "/#howItWorks", label: "How It Works" },
-  { href: "/#signup", label: "Sign Up" },
+  {
+    href: "https://github.com/cbetz/last-ehr/blob/main/docs/mcp.md",
+    label: "MCP",
+  },
+  {
+    href: "https://github.com/cbetz/last-ehr/blob/main/CONTRIBUTING.md",
+    label: "Contribute",
+  },
+  { href: "/#signup", label: "Hosted" },
   { href: "/demo", label: "Live Demo" },
 ];
 
@@ -35,6 +44,10 @@ export function SiteFooter() {
               <li key={href}>
                 <Link
                   href={href}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={
+                    href.startsWith("http") ? "noopener noreferrer" : undefined
+                  }
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {label}

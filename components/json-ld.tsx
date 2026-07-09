@@ -16,7 +16,7 @@ export function JsonLd() {
         logo: `${BASE_URL}/icon`,
         description:
           "Last EHR is an open-source AI agent layer for Medplum and FHIR backends.",
-        sameAs: ["https://x.com/lastehr"],
+        sameAs: ["https://github.com/cbetz/last-ehr", "https://x.com/lastehr"],
       },
       {
         "@type": "WebSite",

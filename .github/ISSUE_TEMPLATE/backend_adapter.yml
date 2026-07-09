@@ -1,0 +1,45 @@
+name: Backend adapter
+description: Add support for another FHIR backend
+labels: ["enhancement", "backend-adapter"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make Last EHR portable. Use synthetic data only.
+  - type: input
+    id: backend
+    attributes:
+      label: Backend
+      placeholder: "Aidbox / Oystehr / Firely Server / other"
+    validations:
+      required: true
+  - type: textarea
+    id: auth
+    attributes:
+      label: Auth mode
+      description: What auth path should the first adapter support?
+      placeholder: "Client credentials, static bearer token, local no-auth, etc."
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: Verification plan
+      description: How can maintainers or reviewers run the backend and test all four tools?
+    validations:
+      required: true
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Adapter checklist
+      options:
+        - label: Search patients works with structured params.
+          required: true
+        - label: Show chart works through search, including `_id=` for single patients.
+          required: true
+        - label: Create preserves `meta.tag`.
+          required: true
+        - label: Synthetic seed or equivalent test data is available.
+          required: true
+        - label: No real PHI/PII is included.
+          required: true

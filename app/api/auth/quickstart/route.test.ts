@@ -19,11 +19,13 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-const { checkRateLimit } = vi.hoisted(() => ({
-  checkRateLimit: vi.fn().mockResolvedValue({ success: true, resetAfter: 0 }),
+const { checkIpRateLimit } = vi.hoisted(() => ({
+  checkIpRateLimit: vi
+    .fn()
+    .mockResolvedValue({ success: true, resetAfter: 0 }),
 }));
 vi.mock("@/lib/utils/rate-limit", () => ({
-  checkRateLimit,
+  checkIpRateLimit,
   getClientIp: () => "203.0.113.7",
 }));
 
@@ -51,7 +53,7 @@ describe("quickstart route, hapi mode", () => {
   beforeEach(() => {
     jar.clear();
     cookieSets.length = 0;
-    checkRateLimit.mockResolvedValue({ success: true, resetAfter: 0 });
+    checkIpRateLimit.mockResolvedValue({ success: true, resetAfter: 0 });
     vi.stubEnv("FHIR_BACKEND", "hapi");
     vi.stubEnv("FHIR_BASE_URL", "http://localhost:8080/fhir");
   });
@@ -86,7 +88,7 @@ describe("quickstart route, hapi mode", () => {
   });
 
   it("rate limits", async () => {
-    checkRateLimit.mockResolvedValue({ success: false, resetAfter: 30000 });
+    checkIpRateLimit.mockResolvedValue({ success: false, resetAfter: 30000 });
     const res = await POST(request());
     expect(res.status).toBe(429);
     expect(cookieSets).toHaveLength(0);
@@ -97,7 +99,7 @@ describe("quickstart route, medplum mode", () => {
   beforeEach(() => {
     jar.clear();
     cookieSets.length = 0;
-    checkRateLimit.mockResolvedValue({ success: true, resetAfter: 0 });
+    checkIpRateLimit.mockResolvedValue({ success: true, resetAfter: 0 });
   });
 
   afterEach(() => {

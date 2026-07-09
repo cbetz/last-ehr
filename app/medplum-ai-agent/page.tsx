@@ -52,7 +52,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "What model providers does Last EHR support?",
-    a: "OpenAI and Anthropic are supported out of the box: set AI_PROVIDER and the matching API key. The agent is built on the Vercel AI SDK, so other providers the SDK supports can be added with a small code change.",
+    a: "OpenAI, Anthropic, and Amazon Bedrock are supported out of the box. Set AI_PROVIDER, MODEL_ID when needed, and the matching provider credentials. The project intentionally ships BAA-capable provider paths only.",
   },
   {
     q: "Can I use the tools from Claude Desktop or another MCP client?",
@@ -196,8 +196,7 @@ export default function MedplumAiAgentPage() {
                 secret) inside Medplum Provider and requires the gated ai and
                 bots project features plus deploying three bots and authoring
                 their prompts; Last EHR is a standalone app you run yourself,
-                with OpenAI, Anthropic, and any model the Vercel AI SDK
-                supports.
+                with OpenAI, Anthropic, or Amazon Bedrock.
               </p>
               <p>
                 Medplum continues to ship its own AI features on its own
@@ -344,8 +343,9 @@ npm run dev                  # http://localhost:3000/demo`}</code>
               <p>At minimum, set:</p>
               <ul className="list-disc space-y-2 pl-6">
                 <li>
-                  A model key: OPENAI_API_KEY (default provider) or
-                  ANTHROPIC_API_KEY with AI_PROVIDER=anthropic.
+                  A model key: OPENAI_API_KEY (default provider),
+                  ANTHROPIC_API_KEY with AI_PROVIDER=anthropic, or AWS
+                  credentials with AI_PROVIDER=bedrock and MODEL_ID.
                 </li>
                 <li>
                   MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET: a Medplum

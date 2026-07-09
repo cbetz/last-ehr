@@ -21,20 +21,27 @@ const Hero = () => {
 
         <div className="space-y-4 md:space-x-4 md:space-y-0">
           <Link
-            href="https://github.com/cbetz/last-ehr"
-            target="_blank"
-            rel="noopener noreferrer"
             className={`w-full md:w-auto ${buttonVariants({ variant: "default" })}`}
+            href="/demo"
           >
-            <IconGitHub className="mr-2 h-4 w-4" aria-hidden="true" />
-            View on GitHub
+            Try the live demo
           </Link>
 
           <Link
-            href="/demo"
+            href="/docs"
             className={`w-full md:w-auto ${buttonVariants({ variant: "outline" })}`}
           >
-            Live demo
+            Read the docs
+          </Link>
+
+          <Link
+            href="https://github.com/cbetz/last-ehr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-sm font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            <IconGitHub className="mr-2 h-4 w-4" aria-hidden="true" />
+            View source
           </Link>
         </div>
       </div>

@@ -22,6 +22,8 @@
     "mcp": "tsx mcp/server.ts",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",
     "check:models": "tsx scripts/check-models.ts",
+    "docker:local": "docker compose -f docker-compose.yml -f docker-compose.app.yml up --build",
+    "docker:local:down": "docker compose -f docker-compose.yml -f docker-compose.app.yml down",
     "test": "vitest run"
   },
   "dependencies": {

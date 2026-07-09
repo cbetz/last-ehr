@@ -25,16 +25,26 @@ basis, and not every feature request will fit the roadmap.
 
 - Match the surrounding code style; no large unrelated reformatting.
 
+Good first PRs are usually one of:
+
+- Docs that make setup or safety boundaries clearer.
+- Small demo UX improvements that do not change clinical behavior.
+- Tests around existing tool behavior.
+- A backend adapter spike opened as a draft PR with synthetic data only.
+
+For larger changes, open an issue or draft PR early so scope and safety
+expectations are clear before you invest heavily.
+
 ## Writing a backend adapter
 
-The most wanted contribution: adapters for FHIR backends beyond Medplum
-(tracked: [Aidbox #39](https://github.com/cbetz/last-ehr/issues/39),
-[Oystehr #40](https://github.com/cbetz/last-ehr/issues/40),
-[HAPI #44](https://github.com/cbetz/last-ehr/issues/44)). The seam is the
-`FhirBackend` interface in [`lib/fhir/backend.ts`](./lib/fhir/backend.ts):
-three methods (`search`, `searchResources`, `createResource`) over plain FHIR
-R4 REST. [`lib/fhir/medplum.ts`](./lib/fhir/medplum.ts) is the reference
-implementation and is about 40 lines.
+The most wanted contribution: adapters for FHIR backends beyond Medplum and
+local HAPI FHIR. Aidbox, Oystehr, Firely, and OpenEMR's FHIR API are good
+targets if their auth/search behavior can satisfy the adapter contract. The
+seam is the `FhirBackend` interface in
+[`lib/fhir/backend.ts`](./lib/fhir/backend.ts): four methods (`search`,
+`searchResources`, `createResource`, `deleteResource`) over plain FHIR R4 REST.
+[`lib/fhir/medplum.ts`](./lib/fhir/medplum.ts) is the reference implementation.
+See [docs/adapters.md](./docs/adapters.md) for the full checklist.
 
 An adapter PR needs:
 
@@ -53,6 +63,15 @@ An adapter PR needs:
 4. **Docs**: a short setup note in the README or the adapter file header,
    including honest caveats (for example, HAPI ships with no auth or access
    policy by default).
+
+Use the backend adapter issue template when proposing a new target.
+
+## Safety-sensitive changes
+
+Anything that changes reads, writes, approval behavior, auth, session handling,
+or PHI/privacy copy needs tests or a clear verification note. For approval-gate
+work, read [docs/approval-gates.md](./docs/approval-gates.md) and
+[docs/threat-model.md](./docs/threat-model.md) first.
 
 Open a draft PR early if you want direction before finishing.
 

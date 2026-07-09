@@ -16,6 +16,60 @@ export default function Home() {
         <HowItWorks />
         <AISection />
 
+        <section id="builders" className="container py-24 sm:py-32">
+          <h2 className="text-3xl font-bold md:text-4xl">
+            Built for people who need to inspect the boundary
+          </h2>
+          <p className="mt-4 max-w-3xl text-xl text-muted-foreground">
+            The demo is the front door, but the repo is the product: run the
+            tools locally, read the approval contract, and add another backend
+            without touching the agent loop.
+          </p>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <div className="rounded-lg border bg-transparent p-6">
+              <h3 className="text-lg font-semibold">Run it locally</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Use Medplum, or run HAPI FHIR and Postgres with Docker for a
+                fully local synthetic demo.
+              </p>
+              <Link
+                href="/docs"
+                className="mt-4 inline-block text-sm font-medium underline underline-offset-4"
+              >
+                Open quickstart
+              </Link>
+            </div>
+            <div className="rounded-lg border bg-transparent p-6">
+              <h3 className="text-lg font-semibold">Port the backend</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                The FHIR adapter surface is four methods. Aidbox, Oystehr, and
+                Firely are natural next targets.
+              </p>
+              <Link
+                href="https://github.com/cbetz/last-ehr/blob/main/docs/adapters.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block text-sm font-medium underline underline-offset-4"
+              >
+                Read adapter guide
+              </Link>
+            </div>
+            <div className="rounded-lg border bg-transparent p-6">
+              <h3 className="text-lg font-semibold">Inspect the gate</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                Write tools propose FHIR resources and pause before execution.
+                Approval is explicit, and backend policy still applies.
+              </p>
+              <Link
+                href="/approval-gated-writes"
+                className="mt-4 inline-block text-sm font-medium underline underline-offset-4"
+              >
+                See how it works
+              </Link>
+            </div>
+          </div>
+        </section>
+
         <section id="overview" className="container py-24 sm:py-32">
           <h2 className="text-3xl font-bold md:text-4xl">
             A thin agent layer over your FHIR backend

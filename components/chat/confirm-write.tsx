@@ -11,12 +11,14 @@ export function ConfirmWrite({
   title,
   resourceType,
   fields,
+  preview,
   onApprove,
   onCancel,
 }: {
   title: string;
   resourceType: string;
   fields: { label: string; value: string }[];
+  preview?: unknown;
   onApprove: () => void;
   onCancel: () => void;
 }) {
@@ -46,9 +48,19 @@ export function ConfirmWrite({
         <p className="text-xs text-muted-foreground">
           Nothing is saved to the chart until you approve.
         </p>
+        {preview ? (
+          <details className="rounded-md border bg-background">
+            <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-muted-foreground">
+              FHIR preview
+            </summary>
+            <pre className="max-h-56 overflow-auto border-t p-3 text-xs text-muted-foreground">
+              <code>{JSON.stringify(preview, null, 2)}</code>
+            </pre>
+          </details>
+        ) : null}
         <div className="flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={onCancel}>
-            Cancel
+            Cancel &amp; revise
           </Button>
           <Button size="sm" onClick={onApprove}>
             Approve &amp; save
