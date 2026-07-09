@@ -120,16 +120,14 @@ and treat every approved call as a direct chart write. Design discussion in
 
 ## Configuration
 
-Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic: set `AI_PROVIDER`, optionally `MODEL_ID`, and the matching key. Any tool-capable model works.
+Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic with one hard rule: **every provider offered here can carry a BAA**, because deployments of this project head toward real clinical data even though the demo is synthetic-only. Set `AI_PROVIDER`, optionally `MODEL_ID`, and the matching key; any tool-capable model works.
 
-| AI_PROVIDER | Key | Example MODEL_ID | Notes |
+| AI_PROVIDER | Key | Example MODEL_ID | BAA path |
 |---|---|---|---|
-| `openai` (default) | `OPENAI_API_KEY` | `gpt-4.1-mini` | Direct, no middleman. |
-| `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | Direct; ids use dashes. |
-| `gateway` | `AI_GATEWAY_API_KEY` | `anthropic/claude-sonnet-4.6` | Vercel AI Gateway: one key, hundreds of models, works on and off Vercel. |
-| `openrouter` | `OPENROUTER_API_KEY` | `meta-llama/llama-4-maverick` | Same idea; note OpenRouter charges a fee on credit purchases. |
+| `openai` (default) | `OPENAI_API_KEY` | `gpt-4.1-mini` | OpenAI signs BAAs with zero-retention options for API traffic on qualifying plans. |
+| `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | Anthropic signs BAAs with zero-retention options for API traffic on qualifying plans. |
 
-Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
+Signing the BAA is the operator's step, not a default: a bare API key is not PHI-ready on any provider. Aggregators that cannot sign a BAA (OpenRouter, per their current public terms) are deliberately not offered; a multi-model, BAA-capable path via AWS Bedrock is tracked in the issues. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
 
 ## Security & data
 

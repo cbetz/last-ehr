@@ -4,7 +4,7 @@
 //
 // NEXT_PUBLIC_DEMO_MODELS declares the picker options as a comma-separated
 // list of "model-id|Label" pairs, e.g.
-//   NEXT_PUBLIC_DEMO_MODELS=openai/gpt-4.1-mini|GPT-4.1 mini,anthropic/claude-haiku-4.5|Claude Haiku
+//   NEXT_PUBLIC_DEMO_MODELS=gpt-4.1-mini|GPT-4.1 mini,gpt-5-mini|GPT-5 mini
 // Next.js inlines NEXT_PUBLIC_* into both bundles at build time, so changing
 // the list requires a rebuild (the normal Vercel model). The server side
 // stays authoritative: a request naming a model off this list falls back to
@@ -28,18 +28,17 @@ export function parseDemoModels(raw: string | undefined): DemoModel[] {
 }
 
 /**
- * Server-side gate for the x-demo-model header. Honored only when the
- * deployment runs an aggregator provider (the native providers have exactly
- * one configured model and key) AND the requested id is on the allowlist.
- * Anything else returns undefined: unlisted values fall back to MODEL_ID
- * without erroring, so probing yields no signal.
+ * Server-side gate for the x-demo-model header: honored only for ids on the
+ * operator-authored allowlist. One provider key already serves several
+ * models (gpt-4.1-mini and gpt-5-mini on one OpenAI key; haiku and sonnet on
+ * one Anthropic key), so the picker works on any provider. Unlisted values
+ * return undefined and fall back to MODEL_ID without erroring, so probing
+ * yields no signal.
  */
 export function resolveDemoModel(
   requested: string | null,
-  provider: string,
   allowlist: DemoModel[],
 ): string | undefined {
   if (!requested) return undefined;
-  if (provider !== "gateway" && provider !== "openrouter") return undefined;
   return allowlist.some((m) => m.id === requested) ? requested : undefined;
 }

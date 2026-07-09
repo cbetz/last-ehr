@@ -22,7 +22,11 @@ bundle).
   you point it at a backend and a model provider with your own keys, **you** are
   responsible for the data that flows through them, including any business
   associate agreements (with your FHIR backend and your model provider) required
-  for real PHI.
+  for real PHI. Every entity that receives PHI needs a BAA, which is why Last
+  EHR ships only BAA-capable model providers (OpenAI, Anthropic) and does not
+  offer aggregators that cannot sign one (OpenRouter, per their current public
+  terms). Zero-data-retention routing is not a substitute for a BAA. Signing
+  the BAA is your step: a bare API key is not PHI-ready on any provider.
 - **Reads are not gated.** The approval gate applies to writes. Anything the
   agent reads from the chart is sent to your configured model provider as
   context, with no approval step. Choose a provider and agreement appropriate
