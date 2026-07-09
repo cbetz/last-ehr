@@ -26,6 +26,21 @@ describe("getChatModel", () => {
     expect(getChatModel().modelId).toBe("gpt-5-mini");
   });
 
+  it("resolves bedrock with an explicit model id", () => {
+    vi.stubEnv("AI_PROVIDER", "bedrock");
+    vi.stubEnv("MODEL_ID", "us.anthropic.claude-haiku-4-5-20251001-v1:0");
+    vi.stubEnv("AWS_REGION", "us-east-1");
+    expect(getChatModel().modelId).toBe(
+      "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    );
+  });
+
+  it("refuses bedrock without MODEL_ID instead of guessing a default", () => {
+    vi.stubEnv("AI_PROVIDER", "bedrock");
+    vi.stubEnv("MODEL_ID", "");
+    expect(() => getChatModel()).toThrow("requires MODEL_ID");
+  });
+
   it("throws on unknown providers", () => {
     vi.stubEnv("AI_PROVIDER", "cohere");
     expect(() => getChatModel()).toThrow('Unsupported AI_PROVIDER "cohere"');

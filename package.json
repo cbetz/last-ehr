@@ -25,6 +25,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^3.0.105",
     "@ai-sdk/anthropic": "^3.0.90",
     "@ai-sdk/openai": "^3.0.0",
     "@ai-sdk/react": "^3.0.195",
