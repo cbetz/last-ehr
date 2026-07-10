@@ -1,23 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
 import { JsonLd } from "@/components/json-ld";
-
-const fontSans = FontSans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.lastehr.com"),
   title: {
-    default: "Last EHR: Open-source approval-gated FHIR agents",
+    default: "Last EHR: Approval-gated FHIR agents",
     template: "%s | Last EHR",
   },
   description:
-    "An open-source reference implementation for approval-gated FHIR agents. The agent reads the chart and proposes writes; nothing is saved until you approve it. Medplum-supported, HAPI for local synthetic evaluation, Apache-2.0.",
+    "An open-source reference implementation for FHIR agents that propose structured writes and wait for explicit human approval. Medplum-supported, with a zero-key local HAPI evaluation path.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
@@ -38,17 +31,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Last EHR",
-    title: "Last EHR: Open-source approval-gated FHIR agents",
+    title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "An AI agent over the patient chart with explicit human approval on every write. Open source, self-hosted, Medplum-supported.",
+      "AI agents over the patient chart, with an explicit human decision before every write. Open source, self-hosted, FHIR-native.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Last EHR: Open-source approval-gated FHIR agents",
+    title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "An AI agent over the patient chart with explicit human approval on every write. Open source, self-hosted, Medplum-supported.",
+      "AI agents over the patient chart, with an explicit human decision before every write. Open source, self-hosted, FHIR-native.",
     site: "@lastehr",
     creator: "@lastehr",
   },
@@ -67,8 +60,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f8f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#081314" },
   ],
   colorScheme: "light dark",
 };
@@ -80,12 +73,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={cn(
-          "min-h-screen bg-background font-sans antialiased",
-          fontSans.variable,
-        )}
-      >
+      <body className="min-h-screen bg-background font-sans antialiased">
         <JsonLd />
         <Providers
           attribute="class"

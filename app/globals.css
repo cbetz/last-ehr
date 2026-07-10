@@ -4,72 +4,70 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(222.2 84% 4.9%);
+  --background: hsl(164 28% 97%);
+  --foreground: hsl(186 35% 11%);
 
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(222.2 84% 4.9%);
+  --card-foreground: hsl(186 35% 11%);
 
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222.2 84% 4.9%);
+  --popover-foreground: hsl(186 35% 11%);
 
-  --primary: hsl(222.2 47.4% 11.2%);
-  --primary-foreground: hsl(210 40% 98%);
+  --primary: hsl(169 67% 28%);
+  --primary-foreground: hsl(165 100% 97%);
 
-  --secondary: hsl(210 40% 96.1%);
-  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --secondary: hsl(165 24% 92%);
+  --secondary-foreground: hsl(186 35% 11%);
 
-  --muted: hsl(210 40% 96.1%);
-  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --muted: hsl(164 21% 93%);
+  --muted-foreground: hsl(187 12% 39%);
 
-  --accent: hsl(210 40% 96.1%);
-  --accent-foreground: hsl(222.2 47.4% 11.2%);
+  --accent: hsl(164 27% 90%);
+  --accent-foreground: hsl(186 35% 11%);
 
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 70% 50%);
+  --destructive-foreground: hsl(0 0% 100%);
 
-  --border: hsl(214.3 31.8% 91.4%);
-  --input: hsl(214.3 31.8% 91.4%);
-  --ring: hsl(222.2 84% 4.9%);
+  --border: hsl(169 16% 84%);
+  --input: hsl(169 16% 84%);
+  --ring: hsl(169 67% 28%);
 
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
+  --background: hsl(186 39% 7%);
+  --foreground: hsl(156 35% 95%);
 
-  --card: hsl(222.2 84% 4.9%);
-  --card-foreground: hsl(210 40% 98%);
+  --card: hsl(185 32% 11%);
+  --card-foreground: hsl(156 35% 95%);
 
-  --popover: hsl(222.2 84% 4.9%);
-  --popover-foreground: hsl(210 40% 98%);
+  --popover: hsl(185 32% 11%);
+  --popover-foreground: hsl(156 35% 95%);
 
-  --primary: hsl(210 40% 98%);
-  --primary-foreground: hsl(222.2 47.4% 11.2%);
+  --primary: hsl(156 77% 72%);
+  --primary-foreground: hsl(186 43% 10%);
 
-  --secondary: hsl(217.2 32.6% 17.5%);
-  --secondary-foreground: hsl(210 40% 98%);
+  --secondary: hsl(183 25% 16%);
+  --secondary-foreground: hsl(156 35% 95%);
 
-  --muted: hsl(217.2 32.6% 17.5%);
-  --muted-foreground: hsl(215 20.2% 65.1%);
+  --muted: hsl(183 24% 15%);
+  --muted-foreground: hsl(164 14% 66%);
 
-  --accent: hsl(217.2 32.6% 17.5%);
-  --accent-foreground: hsl(210 40% 98%);
+  --accent: hsl(182 25% 18%);
+  --accent-foreground: hsl(156 35% 95%);
 
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(210 40% 98%);
+  --destructive: hsl(0 68% 58%);
+  --destructive-foreground: hsl(0 0% 100%);
 
-  --border: hsl(217.2 32.6% 17.5%);
-  --input: hsl(217.2 32.6% 17.5%);
-  --ring: hsl(212.7 26.8% 83.9%);
+  --border: hsl(181 23% 22%);
+  --input: hsl(181 23% 22%);
+  --ring: hsl(156 77% 72%);
 }
 
-/* Map the shadcn HSL variables to Tailwind v4 utility tokens.
-   @theme inline keeps utilities referencing var(...) live, so the .dark
-   overrides above actually swap colors. Bare var(); hsl() is in the value. */
 @theme inline {
-  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -107,6 +105,7 @@
     height: var(--radix-accordion-content-height);
   }
 }
+
 @keyframes accordion-up {
   from {
     height: var(--radix-accordion-content-height);
@@ -116,15 +115,15 @@
   }
 }
 
-/* Recreate the v3 theme.container (center + 2rem padding + 1400px 2xl cap);
-   Tailwind v4 dropped theme.container options. */
 @utility container {
   margin-inline: auto;
-  padding-inline: 2rem;
+  max-width: 82rem;
+  padding-inline: 1.25rem;
 }
-@media (width >= 1400px) {
+
+@media (width >= 640px) {
   .container {
-    max-width: 1400px;
+    padding-inline: 2rem;
   }
 }
 
@@ -132,7 +131,18 @@
   * {
     @apply border-border;
   }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.24);
+    color: hsl(var(--foreground));
   }
 }

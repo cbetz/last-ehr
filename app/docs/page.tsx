@@ -1,32 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Boxes,
+  ArrowRight,
+  ArrowUpRight,
+  BookOpen,
+  Braces,
+  Check,
   ClipboardCheck,
   FileText,
   GitBranch,
   Rocket,
   ServerCog,
-  ShieldCheck,
   ShieldAlert,
-  TerminalSquare,
+  ShieldCheck,
+  Terminal,
 } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
 import { SiteFooter } from "@/components/site-footer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Docs: Build an Approval-Gated FHIR Agent",
   description:
-    "Last EHR documentation: quickstart, architecture, backend adapters, approval-gated writes, MCP, deployment, and threat model.",
+    "Evaluate Last EHR locally, inspect the approval boundary, understand supported configurations, and build FHIR backend adapters.",
   alternates: { canonical: "/docs" },
   openGraph: {
     type: "website",
     title: "Last EHR Docs",
     description:
-      "Run the demo locally, inspect the approval gate, add FHIR backend adapters, and deploy Last EHR.",
+      "A practical path to evaluate, understand, and extend approval-gated FHIR agents.",
     url: "https://www.lastehr.com/docs",
     images: ["https://www.lastehr.com/opengraph-image"],
   },
@@ -34,162 +37,351 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Last EHR Docs",
     description:
-      "Quickstart, architecture, backend adapters, approval-gated writes, MCP, deployment, and threat model.",
+      "Evaluate, inspect, and extend approval-gated FHIR agents.",
   },
 };
 
-const docs = [
+const repositoryUrl = "https://github.com/cbetz/last-ehr/blob/main";
+
+const paths = [
   {
-    title: "Quickstart",
+    number: "01",
+    title: "Evaluate locally",
     description:
-      "Run the hosted demo, Medplum-backed demo, or fully local HAPI stack.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/quickstart.md",
-    icon: <Rocket className="h-5 w-5" aria-hidden="true" />,
+      "Run a synthetic HAPI stack and a deterministic, approval-gated walkthrough without a model key.",
+    href: "#local",
+    icon: Rocket,
   },
   {
-    title: "Architecture",
+    number: "02",
+    title: "Integrate Medplum",
     description:
-      "Understand the chat route, FHIR tools, backend adapters, and data boundary.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/architecture.md",
-    icon: <Boxes className="h-5 w-5" aria-hidden="true" />,
+      "Connect the authenticated path, bring your own model provider, and rely on backend access policy.",
+    href: `${repositoryUrl}/docs/quickstart.md`,
+    icon: ShieldCheck,
   },
   {
-    title: "Backend Adapters",
+    number: "03",
+    title: "Extend a backend",
     description:
-      "Implement the FhirBackend contract for Aidbox, Oystehr, Firely, or another FHIR R4 server.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/adapters.md",
-    icon: <GitBranch className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    title: "Support Status",
-    description:
-      "See which backends and interfaces are supported, local-evaluation-only, or ready for an adapter.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/support.md",
-    icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    title: "Approval Gates",
-    description:
-      "See what the write gate protects, what it does not, and where the pattern goes next.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/approval-gates.md",
-    icon: <ClipboardCheck className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    title: "MCP",
-    description:
-      "Expose the same chart tools to MCP clients, read-only by default.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/mcp.md",
-    icon: <TerminalSquare className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    title: "Deployment",
-    description:
-      "Configure env vars, rate limiting, Docker, and public-demo hardening.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/deployment.md",
-    icon: <ServerCog className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    title: "Threat Model",
-    description:
-      "Review trust boundaries, known limitations, and contributor safety rules.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/threat-model.md",
-    icon: <ShieldAlert className="h-5 w-5" aria-hidden="true" />,
-  },
-  {
-    title: "Adoption Metrics",
-    description:
-      "Separate OSS adoption from hosted-interest tracking without capturing chart content.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/metrics.md",
-    icon: <FileText className="h-5 w-5" aria-hidden="true" />,
+      "Start from the executable adapter starter and prove the FHIR contract against synthetic data.",
+    href: `${repositoryUrl}/docs/adapters.md`,
+    icon: GitBranch,
   },
 ];
+
+const docCollections = [
+  {
+    eyebrow: "Start and orient",
+    title: "Get the operating context first",
+    docs: [
+      {
+        title: "Quickstart",
+        description: "Hosted demo, Medplum integration, and the local HAPI path.",
+        href: `${repositoryUrl}/docs/quickstart.md`,
+        icon: Rocket,
+      },
+      {
+        title: "Support status",
+        description: "Supported, local-evaluation-only, and unverified configurations.",
+        href: `${repositoryUrl}/docs/support.md`,
+        icon: ShieldCheck,
+      },
+      {
+        title: "Architecture",
+        description: "How the route, FHIR tools, and backend boundary fit together.",
+        href: `${repositoryUrl}/docs/architecture.md`,
+        icon: BookOpen,
+      },
+    ],
+  },
+  {
+    eyebrow: "Understand the safety boundary",
+    title: "Know the limits before adding capability",
+    docs: [
+      {
+        title: "Approval-gated writes",
+        description: "What the proposal-and-review pattern protects, and what it cannot prove.",
+        href: `${repositoryUrl}/docs/approval-gates.md`,
+        icon: ClipboardCheck,
+      },
+      {
+        title: "Threat model",
+        description: "Trust boundaries, prompt risks, and deployment assumptions.",
+        href: `${repositoryUrl}/docs/threat-model.md`,
+        icon: ShieldAlert,
+      },
+      {
+        title: "MCP server",
+        description: "Read-only by default, with the approval caveat made explicit.",
+        href: `${repositoryUrl}/docs/mcp.md`,
+        icon: Braces,
+      },
+    ],
+  },
+  {
+    eyebrow: "Operate and contribute",
+    title: "Take it from reference app to your environment",
+    docs: [
+      {
+        title: "Deployment",
+        description: "Environment variables, Docker, rate limiting, and public demo hardening.",
+        href: `${repositoryUrl}/docs/deployment.md`,
+        icon: ServerCog,
+      },
+      {
+        title: "Backend adapters",
+        description: "Contract harnesses, an executable bearer-token starter, and verification steps.",
+        href: `${repositoryUrl}/docs/adapters.md`,
+        icon: GitBranch,
+      },
+      {
+        title: "Adoption metrics",
+        description: "Measure OSS usage without sending chart content to analytics.",
+        href: `${repositoryUrl}/docs/metrics.md`,
+        icon: FileText,
+      },
+    ],
+  },
+];
+
+function DocumentLink({
+  title,
+  description,
+  href,
+  icon: Icon,
+}: {
+  title: string;
+  description: string;
+  href: string;
+  icon: typeof Rocket;
+}) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex min-h-36 flex-col rounded-xl border border-border bg-background p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+    >
+      <span className="flex items-start justify-between gap-4">
+        <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
+      </span>
+      <span className="mt-5 text-sm font-semibold text-foreground">{title}</span>
+      <span className="mt-2 text-xs leading-5 text-muted-foreground">{description}</span>
+    </Link>
+  );
+}
 
 export default function DocsPage() {
   return (
     <>
       <Navbar />
       <main>
-        <section className="container max-w-4xl py-16 sm:py-24">
-          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-            Documentation
-          </p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">
-            Build and verify an approval-gated FHIR agent
-          </h1>
-          <p className="mt-6 max-w-2xl text-xl text-muted-foreground">
-            Start with the live demo, then run the same four tools locally,
-            inspect the backend adapter seam, and understand the safety
-            boundary before expanding the agent.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Link href="/demo" className={buttonVariants()}>
-              Try the live demo
-            </Link>
-            <Link
-              href="https://github.com/cbetz/last-ehr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonVariants({ variant: "outline" })}
-            >
-              View source
-            </Link>
+        <section className="relative isolate overflow-hidden border-b border-border/70">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_74%_12%,hsl(var(--primary)/0.15),transparent_25rem)]"
+          />
+          <div className="container py-16 sm:py-24 lg:py-28">
+            <div className="max-w-3xl">
+              <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card/75 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-primary">
+                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                Documentation
+              </p>
+              <h1 className="mt-7 text-5xl font-semibold tracking-[-0.065em] text-balance sm:text-6xl sm:leading-[0.98]">
+                Get to a responsible first integration faster.
+              </h1>
+              <p className="mt-7 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">
+                A guided path through local evaluation, safety boundaries,
+                supported configurations, and the small adapter contract behind
+                Last EHR.
+              </p>
+              <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                <Link href="#local" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-6" })}>
+                  Start locally
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link
+                  href="https://github.com/cbetz/last-ehr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-full px-6" })}
+                >
+                  Browse source
+                  <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="container pb-20">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {docs.map(({ title, description, href, icon }) => (
-              <Card key={title} className="bg-transparent">
-                <CardHeader className="space-y-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md border text-muted-foreground">
-                    {icon}
+        <section id="local" className="container scroll-mt-24 py-20 sm:py-28">
+          <div className="grid gap-10 rounded-[1.5rem] border border-border bg-card p-6 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+            <div className="max-w-md">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
+                The shortest path
+              </p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
+                See the full approval loop, without a model key.
+              </h2>
+              <p className="mt-5 text-base leading-7 text-muted-foreground">
+                This explicitly limited local mode starts HAPI FHIR, seeds only
+                synthetic data, and runs one fixed Maria Garcia / 72 bpm
+                observation proposal. It does not read arbitrary charts or
+                call an external model provider.
+              </p>
+              <ul className="mt-6 space-y-3 text-sm text-muted-foreground">
+                {["No account or .env.local required", "No external model request", "One visible approval before the synthetic write"].map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <div className="overflow-hidden rounded-2xl border border-border bg-[#071417] text-[#e9f7f2]">
+                <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-3 font-mono text-[0.68rem] text-[#8da7a0]">
+                  <span className="inline-flex items-center gap-2">
+                    <Terminal className="h-3.5 w-3.5 text-[#9ef2d0]" aria-hidden="true" />
+                    ZERO-KEY EVALUATION
+                  </span>
+                  <span>localhost:3000</span>
+                </div>
+                <pre className="overflow-x-auto p-6 font-mono text-sm leading-7 sm:p-8 sm:text-[0.95rem]">
+                  <code><span className="text-[#78958c]">$</span> npm install{`\n`}<span className="text-[#78958c]">$</span> npm run demo:local</code>
+                </pre>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                {[
+                  ["01", "Start", "Docker Compose brings up HAPI and Postgres."],
+                  ["02", "Seed", "The repository creates its synthetic records."],
+                  ["03", "Review", "The scripted agent stops before the write."],
+                ].map(([number, title, description]) => (
+                  <div key={number} className="rounded-xl border border-border bg-muted/30 p-4">
+                    <span className="font-mono text-xs text-primary">{number}</span>
+                    <p className="mt-3 text-sm font-semibold">{title}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
                   </div>
-                  <CardTitle className="text-base">{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
-                  <p>{description}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-y border-border/70 bg-muted/20">
+          <div className="container py-20 sm:py-28">
+            <div className="max-w-2xl">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
+                Choose a path
+              </p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
+                Start where your architecture actually is.
+              </h2>
+            </div>
+            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+              {paths.map(({ number, title, description, href, icon: Icon }) => {
+                const external = href.startsWith("http");
+                return (
                   <Link
+                    key={number}
                     href={href}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? "noopener noreferrer" : undefined}
+                    className="group rounded-[1.25rem] border border-border bg-background p-6 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+                  >
+                    <span className="flex items-center justify-between">
+                      <span className="font-mono text-xs text-primary">{number}</span>
+                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                    </span>
+                    <span className="mt-10 block text-xl font-semibold tracking-[-0.03em] text-foreground">{title}</span>
+                    <span className="mt-3 block text-sm leading-6 text-muted-foreground">{description}</span>
+                    <span className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground group-hover:text-primary">
+                      Continue
+                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="container py-20 sm:py-28">
+          <div className="max-w-2xl">
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
+              Reference library
+            </p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
+              Documentation organized around real decisions.
+            </h2>
+            <p className="mt-5 text-lg leading-8 text-muted-foreground">
+              Each guide states the scope, the verification path, and the
+              caveats needed to make an informed call—not just the happy path.
+            </p>
+          </div>
+
+          <div className="mt-12 space-y-12">
+            {docCollections.map(({ eyebrow, title, docs }) => (
+              <section key={title}>
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                  <div>
+                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.15em] text-primary">{eyebrow}</p>
+                    <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em]">{title}</h3>
+                  </div>
+                  <Link
+                    href="https://github.com/cbetz/last-ehr/tree/main/docs"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium text-foreground underline underline-offset-4"
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    Open doc
+                    Browse all docs
+                    <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </Link>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-3">
+                  {docs.map((doc) => (
+                    <DocumentLink key={doc.title} {...doc} />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         </section>
 
-        <section className="container max-w-4xl pb-24">
-          <div className="rounded-lg border bg-muted/40 p-6">
-            <h2 className="text-2xl font-semibold">
-              Shortest zero-key local path
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              For a no-Medplum, no-model-key local walkthrough, run HAPI with
-              Docker and the explicit scripted mode. It is synthetic,
-              single-tenant, and deterministic—not a general chart agent.
-            </p>
-            <pre className="mt-4 overflow-x-auto rounded-md border bg-background p-4 text-sm">
-              <code>{`npm install
-npm run demo:local`}</code>
-            </pre>
-            <p className="mt-4 text-sm text-muted-foreground">
-              No <code>.env.local</code> or model credential is needed: the
-              command starts HAPI, waits, seeds, and runs the fixed Maria
-              Garcia / 72 bpm approval flow without an external model request.
-              It does not overwrite your existing local configuration. See the{" "}
-              <Link
-                href="https://github.com/cbetz/last-ehr/blob/main/docs/support.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-foreground underline underline-offset-4"
-              >
-                support matrix
-              </Link>{" "}
-              before using another FHIR server.
+        <section className="border-t border-border/70 bg-muted/20">
+          <div className="container py-20 sm:py-24">
+            <div className="max-w-2xl">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
+                Support at a glance
+              </p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
+                The product boundary is part of the documentation.
+              </h2>
+            </div>
+            <div className="mt-10 overflow-x-auto rounded-[1.25rem] border border-border bg-background">
+              <div className="grid min-w-[44rem] grid-cols-[1.1fr_0.8fr_1.35fr] gap-px bg-border text-sm">
+                <div className="bg-muted/40 p-4 font-semibold">Configuration</div>
+                <div className="bg-muted/40 p-4 font-semibold">Status</div>
+                <div className="bg-muted/40 p-4 font-semibold">What that means</div>
+                <div className="bg-background p-4">Medplum, hosted or self-hosted</div>
+                <div className="bg-background p-4"><span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">Supported</span></div>
+                <div className="bg-background p-4 text-muted-foreground">Authenticated path with backend identity, policy, and audit controls.</div>
+                <div className="bg-background p-4">Included HAPI Docker stack</div>
+                <div className="bg-background p-4"><span className="rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Local only</span></div>
+                <div className="bg-background p-4 text-muted-foreground">Synthetic, single-tenant evaluation—not a general deployment path.</div>
+                <div className="bg-background p-4">Other FHIR R4 backends</div>
+                <div className="bg-background p-4"><span className="rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Adapter wanted</span></div>
+                <div className="bg-background p-4 text-muted-foreground">Start from the contract harness and document the auth and verification story.</div>
+              </div>
+            </div>
+            <p className="mt-5 text-sm leading-6 text-muted-foreground">
+              Read the complete <Link href={`${repositoryUrl}/docs/support.md`} target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline decoration-primary/60 underline-offset-4">support matrix</Link> before choosing a deployment path.
             </p>
           </div>
         </section>
