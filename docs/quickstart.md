@@ -14,7 +14,7 @@ account or model-provider key.
 
 Prerequisites:
 
-- Node 20.9 or newer
+- Node 22.18+ (or 24.2+)
 - Docker
 
 From a fresh checkout:
@@ -95,7 +95,7 @@ behavior.
 
 Prerequisites:
 
-- Node 20.9 or newer
+- Node 22.18+ (or 24.2+)
 - A Medplum project
 - A Medplum ClientApplication with client credentials
 - One tool-capable model key

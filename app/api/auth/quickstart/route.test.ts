@@ -29,9 +29,9 @@ vi.mock("@/lib/utils/rate-limit", () => ({
   getClientIp: () => "203.0.113.7",
 }));
 
-// The Medplum path is exercised elsewhere; mock the module so importing the
-// route never touches the network (and never references WebSocket, absent on
-// the Node 20 CI floor).
+// The Medplum path is exercised elsewhere; mock the module so importing this
+// route stays focused on quickstart-session behavior and never touches the
+// network.
 vi.mock("@medplum/core", () => ({
   MedplumClient: class {
     async startClientLogin(): Promise<void> {}

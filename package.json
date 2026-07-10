@@ -11,7 +11,7 @@
     "url": "https://github.com/cbetz/last-ehr.git"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": "^22.18.0 || >=24.2.0"
   },
   "scripts": {
     "dev": "next dev",

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
-// @medplum/core references WebSocket at import time (absent on Node 20, the
-// CI floor); the wipe tests never construct a client.
+// The wipe tests never construct a Medplum client, so keep the dependency
+// mocked and focused on the seed cleanup behavior.
 vi.mock("@medplum/core", () => ({
   MedplumClient: class {},
 }));

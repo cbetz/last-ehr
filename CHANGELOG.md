@@ -5,6 +5,9 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Raised the Node.js runtime baseline to 22.18 (or 24.2+) to match
+  `@medplum/core` and avoid Node 20's missing global `WebSocket`.
+
 ## 0.2.0 — 2026-07-09
 
 - Added public roadmap, governance, and adoption-focused docs.

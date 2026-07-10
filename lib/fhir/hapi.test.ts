@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-// Mock the Medplum client: importing the real @medplum/core references
-// WebSocket at module scope, which is not a global on Node 20 (the CI
-// floor). The factory tests only need MedplumBackend to be constructable.
+// Mock the Medplum client: the factory tests only need MedplumBackend to be
+// constructable and should not exercise the SDK's client behavior.
 vi.mock("@medplum/core", () => ({
   MedplumClient: class {},
 }));

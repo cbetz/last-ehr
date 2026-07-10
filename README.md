@@ -62,7 +62,7 @@ On the public demo, writes are also tagged with your session, so you only ever s
 
 You'll still need a **Medplum** project seeded with the synthetic patients (`npm run seed`, below) for the demo to have data.
 
-**Run it locally.** Prerequisites: Node ≥ 20.9, a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one tool-capable model API key (OpenAI, Anthropic, or Amazon Bedrock).
+**Run it locally.** Prerequisites: Node 22.18+ (or 24.2+), a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one tool-capable model API key (OpenAI, Anthropic, or Amazon Bedrock).
 
 ```bash
 git clone https://github.com/cbetz/last-ehr.git
