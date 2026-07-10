@@ -10,13 +10,14 @@ const Hero = () => {
     <section className="container grid place-items-center gap-10 py-20 md:py-32 lg:grid-cols-2">
       <div className="space-y-6 text-start">
         <h1 className="text-4xl font-bold leading-tight md:text-6xl">
-          The open-source AI agent layer for Medplum and FHIR
+          Approval-gated FHIR agents, open source
         </h1>
 
         <p className="text-xl text-muted-foreground md:w-10/12">
-          A permissioned AI agent over your patient chart. Bring your own FHIR
-          backend and model key. It is a layer, not an EHR: it runs on top of
-          Medplum and stores no patient data of its own.
+          A reference implementation for agents that can read the chart and
+          only write what a person explicitly approves. Run it with Medplum,
+          or evaluate the approval loop locally against HAPI FHIR with
+          synthetic data and no external model key.
         </p>
 
         <div className="space-y-4 md:space-x-4 md:space-y-0">
@@ -31,7 +32,7 @@ const Hero = () => {
             href="/docs"
             className={`w-full md:w-auto ${buttonVariants({ variant: "outline" })}`}
           >
-            Read the docs
+            Run locally
           </Link>
 
           <Link

@@ -26,24 +26,41 @@ const exampleMessages = [
   },
 ];
 
+const scriptedExampleMessages = [
+  {
+    heading: "Run the scripted 72 bpm approval demo",
+    message: "Run the local scripted approval demo",
+  },
+];
+
 export function EmptyScreen({
   submitMessage,
+  scriptedDemo = false,
 }: {
   submitMessage: (message: string) => void;
+  scriptedDemo?: boolean;
 }) {
+  const messages = scriptedDemo ? scriptedExampleMessages : exampleMessages;
+  const steps = scriptedDemo
+    ? ["Find Maria", "Propose 72 bpm", "Approve"]
+    : ["Search", "Review", "Approve"];
+
   return (
     <div className="mx-auto max-w-2xl px-4">
       <div className="mb-4 rounded-lg border bg-background p-6 sm:p-8">
         <div className="space-y-2">
-          <h1 className="text-xl font-semibold">Try the approval loop</h1>
+          <h1 className="text-xl font-semibold">
+            {scriptedDemo ? "Try the fixed local walkthrough" : "Try the approval loop"}
+          </h1>
           <p className="leading-normal text-muted-foreground">
-            Search a synthetic chart, open the record, then watch a proposed
-            write stop at the approval card before anything saves.
+            {scriptedDemo
+              ? "This deterministic, synthetic-only run finds Maria Garcia and proposes one fixed heart-rate observation. It does not interpret your prompt or call a model provider."
+              : "Search a synthetic chart, open the record, then watch a proposed write stop at the approval card before anything saves."}
           </p>
         </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
-          {["Search", "Review", "Approve"].map((label, index) => (
+          {steps.map((label, index) => (
             <div key={label} className="rounded-md border bg-muted/40 p-3">
               <div className="font-mono text-xs text-muted-foreground">
                 0{index + 1}
@@ -54,10 +71,10 @@ export function EmptyScreen({
         </div>
 
         <p className="mt-6 leading-normal text-muted-foreground">
-          Start with one of these:
+          {scriptedDemo ? "Start the walkthrough:" : "Start with one of these:"}
         </p>
         <div className="mb-5 mt-4 flex flex-col items-start space-y-2">
-          {exampleMessages.map((message, index) => (
+          {messages.map((message, index) => (
             <Button
               key={index}
               variant="link"

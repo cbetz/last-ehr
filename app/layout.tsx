@@ -13,11 +13,11 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.lastehr.com"),
   title: {
-    default: "Last EHR: Open-source AI agent layer for Medplum and FHIR",
+    default: "Last EHR: Open-source approval-gated FHIR agents",
     template: "%s | Last EHR",
   },
   description:
-    "An open-source AI agent layer over your FHIR backend. The agent reads the chart and proposes writes; nothing is saved until you approve it. Runs on Medplum, stores no patient data, Apache-2.0.",
+    "An open-source reference implementation for approval-gated FHIR agents. The agent reads the chart and proposes writes; nothing is saved until you approve it. Medplum-supported, HAPI for local synthetic evaluation, Apache-2.0.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
@@ -38,17 +38,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Last EHR",
-    title: "Last EHR: Open-source AI agent layer for Medplum and FHIR",
+    title: "Last EHR: Open-source approval-gated FHIR agents",
     description:
-      "An AI agent over the patient chart with human approval on every write. Open source, self-hosted, runs on Medplum.",
+      "An AI agent over the patient chart with explicit human approval on every write. Open source, self-hosted, Medplum-supported.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Last EHR: Open-source AI agent layer for Medplum and FHIR",
+    title: "Last EHR: Open-source approval-gated FHIR agents",
     description:
-      "An AI agent over the patient chart with human approval on every write. Open source, self-hosted, runs on Medplum.",
+      "An AI agent over the patient chart with explicit human approval on every write. Open source, self-hosted, Medplum-supported.",
     site: "@lastehr",
     creator: "@lastehr",
   },

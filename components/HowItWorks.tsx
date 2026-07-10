@@ -13,13 +13,13 @@ const features: FeatureProps[] = [
     icon: <Database className="h-5 w-5" aria-hidden="true" />,
     title: "Runs on your FHIR backend",
     description:
-      "Point it at your own Medplum, hosted or self-hosted. Last EHR talks to it over FHIR and keeps no copy of your data.",
+      "Medplum is the authenticated path today; HAPI FHIR is included for local synthetic evaluation. Last EHR keeps no chart database.",
   },
   {
     icon: <KeyRound className="h-5 w-5" aria-hidden="true" />,
-    title: "Bring your own model key",
+    title: "Start zero-key, then bring your model",
     description:
-      "OpenAI, Anthropic, or Amazon Bedrock, your key and your spend. Switch providers with environment variables.",
+      "The local HAPI walkthrough needs no external key. When you want a real agent, use OpenAI, Anthropic, or Amazon Bedrock with your own credentials.",
   },
   {
     icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
@@ -31,7 +31,7 @@ const features: FeatureProps[] = [
     icon: <GitBranch className="h-5 w-5" aria-hidden="true" />,
     title: "Self-host, Apache-2.0",
     description:
-      "Clone it and run it in minutes. Apache-2.0 licensed, and no account is required to get started.",
+      "Run the synthetic HAPI stack without a Medplum account, or adapt the four-method backend seam for another FHIR server.",
   },
 ];
 
@@ -41,8 +41,8 @@ export const HowItWorks = () => {
       <h2 className="text-3xl font-bold md:text-4xl">How it works</h2>
       <p className="mb-12 mt-4 max-w-2xl text-xl text-muted-foreground">
         Last EHR is a thin, open-source layer over a FHIR backend you already
-        control. Clone it, point it at your Medplum, and bring your own model
-        key.
+        control. Clone it, try the zero-key local walkthrough, then point it at
+        your Medplum and bring your own model key.
       </p>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

@@ -43,8 +43,11 @@ targets if their auth/search behavior can satisfy the adapter contract. The
 seam is the `FhirBackend` interface in
 [`lib/fhir/backend.ts`](./lib/fhir/backend.ts): four methods (`search`,
 `searchResources`, `createResource`, `deleteResource`) over plain FHIR R4 REST.
-[`lib/fhir/medplum.ts`](./lib/fhir/medplum.ts) is the reference implementation.
-See [docs/adapters.md](./docs/adapters.md) for the full checklist.
+Start with the executable
+[`examples/fhir-adapter-starter`](./examples/fhir-adapter-starter) for a
+REST/bearer-token baseline, [`lib/fhir/hapi.ts`](./lib/fhir/hapi.ts) for the
+plain REST transport, or [`lib/fhir/medplum.ts`](./lib/fhir/medplum.ts) for an
+SDK wrapper. See [docs/adapters.md](./docs/adapters.md) for the full checklist.
 
 An adapter PR needs:
 
@@ -55,8 +58,9 @@ An adapter PR needs:
    compartment-scoped policies may only be enforced on the search path; and
    persist `meta.tag` exactly as given, because the public demo relies on it
    for per-session write isolation.
-2. **Tests**: mirror `lib/fhir/medplum.test.ts` (construction and
-   delegation), plus anything specific to that backend's auth.
+2. **Tests**: run the network-free REST contract suite from
+   `test/fhir-rest-adapter-contract.ts`, add auth-specific coverage, and add
+   an opt-in real-server synthetic test with `test/fhir-backend-contract.ts`.
 3. **How you verified it**: the backend you ran (Docker image, cloud
    sandbox), and confirmation that the four tools work against it end to
    end. Synthetic data only.

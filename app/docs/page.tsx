@@ -7,6 +7,7 @@ import {
   GitBranch,
   Rocket,
   ServerCog,
+  ShieldCheck,
   ShieldAlert,
   TerminalSquare,
 } from "lucide-react";
@@ -58,6 +59,13 @@ const docs = [
       "Implement the FhirBackend contract for Aidbox, Oystehr, Firely, or another FHIR R4 server.",
     href: "https://github.com/cbetz/last-ehr/blob/main/docs/adapters.md",
     icon: <GitBranch className="h-5 w-5" aria-hidden="true" />,
+  },
+  {
+    title: "Support Status",
+    description:
+      "See which backends and interfaces are supported, local-evaluation-only, or ready for an adapter.",
+    href: "https://github.com/cbetz/last-ehr/blob/main/docs/support.md",
+    icon: <ShieldCheck className="h-5 w-5" aria-hidden="true" />,
   },
   {
     title: "Approval Gates",
@@ -156,17 +164,33 @@ export default function DocsPage() {
 
         <section className="container max-w-4xl pb-24">
           <div className="rounded-lg border bg-muted/40 p-6">
-            <h2 className="text-2xl font-semibold">Shortest local path</h2>
+            <h2 className="text-2xl font-semibold">
+              Shortest zero-key local path
+            </h2>
             <p className="mt-2 text-muted-foreground">
-              For a no-Medplum local demo, set HAPI mode and run the seeded
-              synthetic chart.
+              For a no-Medplum, no-model-key local walkthrough, run HAPI with
+              Docker and the explicit scripted mode. It is synthetic,
+              single-tenant, and deterministic—not a general chart agent.
             </p>
             <pre className="mt-4 overflow-x-auto rounded-md border bg-background p-4 text-sm">
-              <code>{`docker compose up -d
-npm run fhir:wait
-npm run seed
-npm run dev`}</code>
+              <code>{`npm install
+npm run demo:local`}</code>
             </pre>
+            <p className="mt-4 text-sm text-muted-foreground">
+              No <code>.env.local</code> or model credential is needed: the
+              command starts HAPI, waits, seeds, and runs the fixed Maria
+              Garcia / 72 bpm approval flow without an external model request.
+              It does not overwrite your existing local configuration. See the{" "}
+              <Link
+                href="https://github.com/cbetz/last-ehr/blob/main/docs/support.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                support matrix
+              </Link>{" "}
+              before using another FHIR server.
+            </p>
           </div>
         </section>
       </main>

@@ -9,13 +9,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: BASE_URL,
-      lastModified: new Date("2026-07-08"),
+      lastModified: new Date("2026-07-09"),
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${BASE_URL}/headless-ehr`,
-      lastModified: new Date("2026-07-08"),
+      lastModified: new Date("2026-07-09"),
       changeFrequency: "monthly",
       priority: 0.9,
     },

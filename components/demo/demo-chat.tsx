@@ -37,6 +37,11 @@ import { parseDemoModels } from "@/lib/ai/demo-models";
 // server re-checks every request against the same list, so this is display
 // state, not a control.
 const DEMO_MODELS = parseDemoModels(process.env.NEXT_PUBLIC_DEMO_MODELS);
+// This flag is deliberately public: it changes the copy and available controls
+// so a local evaluator cannot mistake the fixed walkthrough for an LLM agent.
+// The server independently requires AI_PROVIDER=scripted plus its local-HAPI
+// guard before it enables the scripted provider.
+const SCRIPTED_DEMO = process.env.NEXT_PUBLIC_SCRIPTED_DEMO === "true";
 
 // The chat API writes its error bodies for users (rate limit, expired session,
 // model failure), and the transport surfaces that body as error.message. Show
@@ -55,12 +60,22 @@ function errorText(error: Error): string {
     : "Something went wrong. Please try again.";
 }
 
+function errorCategory(error: Error): string {
+  const message = error.message ?? "";
+  if (message.startsWith("Rate limit reached")) return "rate_limited";
+  if (message.startsWith("Your demo session expired")) return "session_expired";
+  if (message.startsWith("The model call failed")) return "model_failed";
+  if (message.startsWith("A chart request failed")) return "chart_failed";
+  return "unknown";
+}
+
 export function DemoChat() {
   // Demo model picker choice (empty string = deployment default). Persisted
   // per browser; read back in an effect to avoid a hydration mismatch.
   const demoModelRef = useRef("");
   const [demoModel, setDemoModel] = useState("");
   useEffect(() => {
+    if (SCRIPTED_DEMO) return;
     const saved = window.localStorage.getItem("lastehr-demo-model") ?? "";
     if (saved && DEMO_MODELS.some((m) => m.id === saved)) {
       demoModelRef.current = saved;
@@ -91,7 +106,9 @@ export function DemoChat() {
     transport: new DefaultChatTransport({
       api: "/api/chat",
       headers: (): Record<string, string> =>
-        demoModelRef.current ? { "x-demo-model": demoModelRef.current } : {},
+        !SCRIPTED_DEMO && demoModelRef.current
+          ? { "x-demo-model": demoModelRef.current }
+          : {},
     }),
     // Resume automatically only after the user answers a write approval, so the
     // gated tool's execute runs. All tools execute server-side inside
@@ -105,8 +122,9 @@ export function DemoChat() {
   const medplum = useMedplum();
 
   useEffect(() => {
-    // Error copy is ours (never chart content), so it is safe to report.
-    if (error) track("demo_error_shown", { message: error.message ?? "" });
+    // Record only a fixed category. Backend and model error text can contain
+    // chart-adjacent diagnostics and must never be sent to analytics.
+    if (error) track("demo_error_shown", { category: errorCategory(error) });
   }, [error]);
 
   // SMART-launched sessions run against the user's own Medplum project, so
@@ -164,6 +182,19 @@ export function DemoChat() {
 
   return (
     <>
+      {SCRIPTED_DEMO && !smartSession && (
+        <DismissibleNotice
+          storageKey="lastehr-demo-scripted-dismissed"
+          className="border-b border-sky-300/40 bg-sky-50 px-4 py-2 text-center dark:border-sky-500/20 dark:bg-sky-950/40"
+        >
+          <p className="mx-auto max-w-2xl px-8 text-xs text-sky-900 dark:text-sky-100">
+            <strong>Scripted local demo.</strong> No external model is used.
+            Every message follows the same synthetic sequence: find Maria
+            Garcia, propose a 72 bpm heart-rate observation, then wait for
+            your approval. It cannot browse other records.
+          </p>
+        </DismissibleNotice>
+      )}
       {!smartSession && (
         <DismissibleNotice
           storageKey="lastehr-demo-synthetic-dismissed"
@@ -177,7 +208,7 @@ export function DemoChat() {
       )}
       <div className="pb-[200px] pt-4 md:pt-10">
         {messages.length === 0 ? (
-          <EmptyScreen submitMessage={ask} />
+          <EmptyScreen submitMessage={ask} scriptedDemo={SCRIPTED_DEMO} />
         ) : (
           <div className="relative mx-auto max-w-2xl px-4">
             {messages.map((message, mi) => {
@@ -460,7 +491,7 @@ export function DemoChat() {
                   </TooltipTrigger>
                   <TooltipContent>New Chat</TooltipContent>
                 </Tooltip>
-                {DEMO_MODELS.length > 0 && (
+                {!SCRIPTED_DEMO && DEMO_MODELS.length > 0 && (
                   <div className="absolute bottom-1.5 left-0 sm:left-4">
                     <label className="sr-only" htmlFor="demo-model">
                       Model
@@ -483,7 +514,11 @@ export function DemoChat() {
                 <Textarea
                   tabIndex={0}
                   onKeyDown={onKeyDown}
-                  placeholder="Ask about a patient…"
+                  placeholder={
+                    SCRIPTED_DEMO
+                      ? "Run the scripted approval demo…"
+                      : "Ask about a patient…"
+                  }
                   className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
                   autoFocus
                   spellCheck={false}

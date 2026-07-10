@@ -8,7 +8,8 @@ on Vercel, but the app is not Vercel-specific.
 You need:
 
 - A FHIR backend.
-- A model provider key or provider credentials.
+- A model provider key or provider credentials for a real agent; the explicit
+  local scripted HAPI walkthrough is the only zero-key exception.
 - A session/auth mode.
 
 For local HAPI quickstart:
@@ -17,8 +18,15 @@ For local HAPI quickstart:
 FHIR_BACKEND=hapi
 FHIR_BASE_URL=http://localhost:8080/fhir
 NEXT_PUBLIC_QUICKSTART=true
-OPENAI_API_KEY=...
+AI_PROVIDER=scripted
+LASTEHR_SCRIPTED_DEMO=true
+NEXT_PUBLIC_SCRIPTED_DEMO=true
 ```
+
+This mode is fixed and synthetic-only: it makes no model-provider request,
+searches only the seeded Maria Garcia record, and can write only the fixed 72
+bpm observation after approval. To run a real agent against local HAPI, remove
+the scripted flags and configure an external provider key instead.
 
 For Medplum quickstart:
 
@@ -63,14 +71,37 @@ local evaluation. Build the app image with:
 docker build -t lastehr .
 ```
 
-For a full local stack with the app, HAPI FHIR, and Postgres, copy
-`.env.example` to `.env.local`, fill in a model key, and run:
+For the fastest zero-key developer walkthrough, use the host app instead of
+the app container after `npm install`:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.app.yml up --build
+npm run demo:local
 ```
 
-Then seed from the host:
+It starts the HAPI/Postgres stack, waits, seeds, and launches Next.js with the
+fixed scripted configuration. It does not require or mutate `.env.local`; use
+`npm run demo:local:down` to remove the local stack afterward.
+
+For a full local stack with the app, HAPI FHIR, and Postgres, copy
+`.env.example` to `.env.local` and set the zero-key scripted local backend:
+
+```bash
+FHIR_BACKEND=hapi
+FHIR_BASE_URL=http://localhost:8080/fhir
+NEXT_PUBLIC_QUICKSTART=true
+AI_PROVIDER=scripted
+LASTEHR_SCRIPTED_DEMO=true
+NEXT_PUBLIC_SCRIPTED_DEMO=true
+```
+
+Then run:
+
+```bash
+npm run docker:local
+```
+
+Then seed from the host (the host process needs the same HAPI values above so
+it does not fall back to Medplum):
 
 ```bash
 npm install
@@ -80,9 +111,10 @@ npm run seed
 
 Open <http://localhost:3000/demo>.
 
-`NEXT_PUBLIC_*` values are build-time values in Next.js. The provided compose
-override passes `NEXT_PUBLIC_QUICKSTART=true` as a build arg for the local HAPI
-demo. Rebuild the image if you change public env vars.
+`NEXT_PUBLIC_*` values are build-time values in Next.js. `npm run docker:local`
+passes `.env.local` to Compose so it can forward `NEXT_PUBLIC_QUICKSTART` and
+`NEXT_PUBLIC_SCRIPTED_DEMO` as build args. Rebuild the image if you change
+public env vars.
 
 ## PHI posture
 

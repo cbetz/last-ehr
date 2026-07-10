@@ -22,3 +22,43 @@ jobs:
       - run: npm run lint
       - run: npm test
       - run: npm run build
+
+  local-hapi:
+    name: Local scripted HAPI quickstart
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FHIR_BACKEND: hapi
+      FHIR_BASE_URL: http://localhost:8080/fhir
+      AI_PROVIDER: scripted
+      LASTEHR_SCRIPTED_DEMO: "true"
+      NEXT_PUBLIC_QUICKSTART: "true"
+      NEXT_PUBLIC_SCRIPTED_DEMO: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Prepare the zero-key local demo
+        run: npm run demo:local:prepare
+      - name: Verify seeded patient search
+        run: >-
+          curl --fail --silent --show-error
+          'http://localhost:8080/fhir/Patient?name=Smith&_count=20'
+          | jq -e '([.entry[]?.resource | select(.resourceType == "Patient")] | length) >= 2'
+      - name: Verify scripted approval flow against HAPI
+        env:
+          RUN_HAPI_E2E: "1"
+        run: >-
+          npm test --
+          lib/fhir/hapi.contract.integration.test.ts
+          lib/ai/scripted-demo.hapi.integration.test.ts
+      - name: Show local stack logs on failure
+        if: failure()
+        run: docker compose logs --no-color hapi postgres
+      - name: Stop local FHIR stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans

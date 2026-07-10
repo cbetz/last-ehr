@@ -4,6 +4,22 @@ Backend adapters are the most useful contribution path. Last EHR already works
 with Medplum and local HAPI FHIR. The next valuable adapters are Aidbox,
 Oystehr, Firely Server, and other FHIR R4 backends with a clear auth story.
 
+## Start with the executable starter
+
+For a standard FHIR R4 REST backend, begin with
+[`examples/fhir-adapter-starter`](../examples/fhir-adapter-starter). It is a
+working bearer-token adapter over the shared `FhirRestBackend`, plus a
+network-free contract suite:
+
+```bash
+npm test -- examples/fhir-adapter-starter/backend.test.ts
+```
+
+Copy and rename it, then replace only the client/auth behavior. This starter is
+not a supported backend and does not add a new `FHIR_BACKEND` value. Keep an
+unverified adapter out of the runtime factory until its target server has a
+documented synthetic-data verification path.
+
 ## Contract
 
 Implement `FhirBackend` from `lib/fhir/backend.ts`:
@@ -36,12 +52,28 @@ Contract notes:
 - `deleteResource` is for seeding/admin scripts only. It must not be exposed as
   an agent tool.
 
+## Contract harnesses
+
+Use both layers of verification for a new adapter:
+
+| Harness | What it proves | When to run it |
+| --- | --- | --- |
+| [`test/fhir-rest-adapter-contract.ts`](../test/fhir-rest-adapter-contract.ts) | Structured collection search, `_id` lookup, FHIR request headers, `meta.tag` payload preservation, error handling, and delete semantics. | Normal unit test; mocked `fetch`, no account or server needed. |
+| [`test/fhir-backend-contract.ts`](../test/fhir-backend-contract.ts) | The four `FhirBackend` methods against a real server. It creates and deletes uniquely tagged synthetic resources. | Opt-in integration test against a disposable sandbox or local container only. |
+
+The repository's HAPI adapter runs both: its REST contract is unit-tested and
+its real-server contract runs in the local HAPI CI job. A target-specific
+adapter PR should add the same two layers, then verify the web agent's four
+synthetic workflows.
+
 ## Adapter checklist
 
-- Add `lib/fhir/<backend>.ts`.
-- Add construction and delegation tests mirroring `lib/fhir/medplum.test.ts`.
-- Add auth-specific tests where useful.
-- Update `createFhirBackend` if the adapter is runtime-selectable.
+- Start from `examples/fhir-adapter-starter` or `lib/fhir/hapi.ts`, then add
+  `lib/fhir/<backend>.ts`.
+- Run the REST adapter contract suite and add auth-specific unit tests.
+- Add an opt-in real-server test using `test/fhir-backend-contract.ts`.
+- Update `createFhirBackend` only once the adapter is documented and verified
+  for a concrete target.
 - Update `.env.example`.
 - Update `README.md` and `docs/quickstart.md`.
 - Add setup notes with exact versions, Docker images, cloud sandbox, or account
@@ -72,6 +104,8 @@ The issue should include:
 ## What not to do
 
 - Do not add a backend-specific branch inside `lib/ai/tools.ts`.
+- Do not add an unverified backend name to `FHIR_BACKEND` or imply support in
+  marketing copy.
 - Do not emulate access control in Last EHR.
 - Do not add real patient data to fixtures or tests.
 - Do not add high-risk write tools as part of an adapter PR.

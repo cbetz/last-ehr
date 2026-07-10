@@ -39,6 +39,8 @@ body:
           required: true
         - label: Create preserves `meta.tag`.
           required: true
+        - label: The adapter starter REST contract suite passes.
+          required: false
         - label: Synthetic seed or equivalent test data is available.
           required: true
         - label: No real PHI/PII is included.

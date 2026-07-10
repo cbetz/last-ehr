@@ -3,9 +3,13 @@
 [![CI](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml/badge.svg)](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-**Open-source AI agent layer for Medplum and FHIR.** A permissioned agent over the patient chart: it reads the chart and proposes writes, and nothing is saved until you approve it. Bring your own backend and your own model key.
+**Open-source reference implementation for approval-gated FHIR agents.** A
+permissioned agent over the patient chart: it reads the chart and proposes
+writes, and nothing is saved until you approve it. Bring your own backend and
+your own model key when you want a real agent—or start with the zero-key local
+synthetic walkthrough.
 
-> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum, or HAPI FHIR for fully local self-hosting) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
+> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum, or HAPI FHIR for local synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
@@ -19,6 +23,14 @@
 - **Writes are confirmation-gated**: the agent proposes a write, you approve it, and only then is it saved. Nothing touches the chart without your click.
 - Authentication, multi-tenancy, and access control are delegated to your **Medplum** project (`Project` = tenant, `ProjectMembership` = user, `AccessPolicy` = RBAC). Last EHR doesn't reimplement any of that, and writes are bounded by your AccessPolicy.
 
+## Support status
+
+Last EHR is **Medplum-supported** for authenticated deployments and includes a
+**local, no-auth HAPI FHIR mode** for synthetic-data evaluation. Other FHIR R4
+backends need an adapter before they are supported. See the full
+[support matrix](./docs/support.md) for the web, SMART, MCP, auth, and
+evaluation boundaries before choosing a path.
+
 ## What it isn't
 
 - Not a charting EHR, not a system of record, and not a Medplum replacement. It's a thin agent layer: a small, growing set of tools over your FHIR backend.
@@ -26,7 +38,7 @@
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with two adapters: Medplum (hosted or self-hosted, token-authenticated) and HAPI FHIR or any open FHIR R4 server (local self-host mode, see the quickstart). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with two built-in adapters: Medplum (hosted or self-hosted, token-authenticated) and local HAPI FHIR for synthetic evaluation. The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
 
 ```mermaid
 flowchart LR
@@ -69,15 +81,27 @@ At minimum set, in `.env.local`:
 
 `npm run seed` loads a small **synthetic** patient set (`scripts/fixtures/patients.ts`: four patients with conditions, medications, allergies, immunizations, and vitals/labs, two named "Smith"). It wipes and recreates those patients each run, so it is safe to re-run. Then open `/demo` and ask: *"find patients named Smith."* Use synthetic data only.
 
-**Fully local, no Medplum account:** the repo ships a docker compose stack with HAPI FHIR and Postgres, and the whole demo runs against it:
+**Local FHIR stack, no Medplum account or model key:** the repo ships a Docker
+Compose stack with HAPI FHIR and Postgres, plus an explicit scripted
+walkthrough that exercises the approval loop without calling an external model
+provider.
 
 ```bash
-docker compose up -d && npm run fhir:wait   # HAPI FHIR + Postgres; first boot takes a few minutes
-npm run seed                                 # with the env below in .env.local
-npm run dev                                  # http://localhost:3000/demo
+npm install
+npm run demo:local                            # HAPI, seed data, and http://localhost:3000/demo
 ```
 
-with `.env.local` containing `FHIR_BACKEND=hapi`, `FHIR_BASE_URL=http://localhost:8080/fhir`, `NEXT_PUBLIC_QUICKSTART=true`, and one model key. Honest scope: the local HAPI server runs with **no auth**, so this mode is for local, single-tenant use only; per-browser session isolation is client-side filtering, not a security boundary; and the MCP server still requires Medplum credentials for now. The hosted public demo stays on Medplum.
+`demo:local` forces the local HAPI + scripted configuration without creating or
+overwriting `.env.local`. This fixed, no-network walkthrough always finds the
+seeded Maria Garcia record and proposes one `Heart rate: 72 bpm` Observation.
+It does not interpret your prompt, browse charts, or call a model provider; the
+FHIR wrapper permits only that synthetic record and observation. Press Ctrl-C
+to stop Next.js; use `npm run demo:local:down` to remove the local stack.
+Honest scope: the local HAPI server runs with **no auth**, so this mode is for
+local, single-tenant use only; per-browser session isolation is client-side
+filtering, not a security boundary; and the MCP server still requires Medplum
+credentials for now. To run a real agent against HAPI, configure `.env.local`
+with a supported model key instead. The hosted public demo stays on Medplum.
 
 To run the app container too, use `npm run docker:local` after filling
 `.env.local`; it combines the HAPI/Postgres compose stack with the app image.
@@ -86,9 +110,11 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 
 ## Docs
 
-- [Quickstart](./docs/quickstart.md): hosted demo, Medplum local run, and fully local HAPI run.
+- [Quickstart](./docs/quickstart.md): hosted demo, Medplum local run, and local HAPI evaluation.
+- [Support matrix](./docs/support.md): exactly which backends and interfaces work today.
 - [Architecture](./docs/architecture.md): the chat route, tools, backend adapters, and data boundary.
-- [Backend adapters](./docs/adapters.md): the adapter contract, checklist, and contribution path.
+- [Backend adapters](./docs/adapters.md): the adapter contract, harnesses, checklist, and contribution path.
+- [Adapter starter](./examples/fhir-adapter-starter): an executable bearer-token FHIR REST baseline with a contract suite.
 - [Approval-gated writes](./docs/approval-gates.md): what the gate protects and what it does not.
 - [MCP server](./docs/mcp.md): read-only default, opt-in writes, and client registration.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
@@ -136,19 +162,29 @@ and treat every approved call as a direct chart write. Design discussion in
 
 ## Configuration
 
-Every variable is documented in [`.env.example`](./.env.example). The model is provider-agnostic with one hard rule: **every provider offered here can carry a BAA**, because deployments of this project head toward real clinical data even though the demo is synthetic-only. Set `AI_PROVIDER`, optionally `MODEL_ID`, and the matching key; any tool-capable model works.
+Every variable is documented in [`.env.example`](./.env.example). The real-agent
+model path is provider-agnostic with one hard rule: **every external provider
+offered here can carry a BAA**, because deployments of this project head toward
+real clinical data even though the demo is synthetic-only. The `scripted`
+option is a separate, explicit, zero-key local HAPI walkthrough—not a model
+provider or a PHI-ready mode.
 
 | AI_PROVIDER | Key | Example MODEL_ID | BAA path |
 |---|---|---|---|
+| `scripted` | None | Fixed local synthetic sequence | No external provider call. Requires explicit local HAPI flags; cannot act as a general agent. |
 | `openai` (default) | `OPENAI_API_KEY` | `gpt-4.1-mini` | OpenAI signs BAAs with zero-retention options for API traffic on qualifying plans. |
 | `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` | Anthropic signs BAAs with zero-retention options for API traffic on qualifying plans. |
 | `bedrock` | AWS credential env + `AWS_REGION` | `us.anthropic.claude-haiku-4-5-20251001-v1:0` | Amazon Bedrock is available under an AWS BAA for eligible services; set an explicit model id or inference profile. |
 
-Signing the BAA is the operator's step, not a default: a bare API key is not PHI-ready on any provider. Aggregators that cannot sign a BAA (OpenRouter, per their current public terms) are deliberately not offered. Analytics (PostHog) and the marketing-site waitlist (Neon) are optional and lastehr.com-specific.
+The BAA requirement applies to the external-provider rows: signing one is the
+operator's step, not a default, and a bare API key is not PHI-ready.
+Aggregators that cannot sign a BAA (OpenRouter, per their current public terms)
+are deliberately not offered. Analytics (PostHog) and the marketing-site
+waitlist (Neon) are optional and lastehr.com-specific.
 
 ## Security & data
 
-Last EHR stores no patient data of its own; everything lives in your FHIR backend. But be clear about what the approval gate is: **it is a write-safety control, not a privacy control.** Anything the agent reads from the chart is sent to your model provider as context, under your API key, with no approval step.
+Last EHR stores no patient data of its own; everything lives in your FHIR backend. But be clear about what the approval gate is: **it is a write-safety control, not a privacy control.** In external-model modes, anything the agent reads from the chart is sent to your model provider as context, under your API key, with no approval step. The scripted local demo makes no model request and is restricted to its one seeded synthetic record; it is not a path for real data.
 
 **Use synthetic data unless you have real agreements in place.** Pointing this at real PHI requires, at minimum:
 

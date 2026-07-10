@@ -5,13 +5,25 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+## 0.2.0 — 2026-07-09
+
 - Added public roadmap, governance, and adoption-focused docs.
 - Added adapter contribution guidance and a backend adapter issue template.
+- Added a reusable FHIR REST transport, adapter starter, and layered contract
+  harnesses; HAPI now proves the real-server contract in CI.
+- Pinned React and React DOM to the 19.2.6 security baseline.
 - Added Docker packaging notes for repeatable local evaluation.
-
-## 0.2 line
-
-- Added HAPI FHIR support for fully local self-host evaluation.
+- Added an explicit support matrix and a CI smoke test for the local HAPI
+  onboarding path.
+- Added an explicit zero-key scripted local HAPI walkthrough: no external model
+  request, one synthetic record, and one approval-gated fixed observation.
+- Added `npm run demo:local` for the repeatable zero-key path, plus a live
+  HAPI CI smoke test that verifies the approval-gated scripted write.
+- Clarified the local HAPI boundary: synthetic, single-tenant evaluation—not an
+  offline general agent or authenticated deployment path.
+- Removed chart-adjacent upstream error text from browser responses and
+  analytics events.
+- Added HAPI FHIR support for local synthetic evaluation.
 - Added a Docker Compose HAPI FHIR + Postgres stack.
 - Added the `FhirBackend` interface as the adapter seam.
 - Added model provider policy: BAA-capable providers only.

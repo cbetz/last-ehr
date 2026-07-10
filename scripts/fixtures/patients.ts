@@ -1,3 +1,7 @@
+import { SYNTHETIC_SYSTEM } from "../../lib/fhir/synthetic";
+
+export { SYNTHETIC_SYSTEM } from "../../lib/fhir/synthetic";
+
 // Synthetic demo patients. NOT real people or PHI: fake names, addresses, and
 // emails throughout. Consumed by `npm run seed`, which wipes and recreates
 // these patients in your Medplum project.
@@ -6,8 +10,6 @@
 // (recognizable, stable codes). Medications, immunizations, and most allergies
 // are text-only CodeableConcepts rather than asserting RxNorm/CVX codes we have
 // not verified. Text-only coding is valid FHIR, and the chart reads from `text`.
-
-export const SYNTHETIC_SYSTEM = "https://lastehr.com/synthetic";
 
 export type SyntheticCondition = { text: string; snomed?: string };
 export type SyntheticMedication = { text: string; dosage: string };

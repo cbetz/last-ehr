@@ -14,6 +14,7 @@ import { IconSpinner } from "@/components/ui/icons";
 // Quickstart mode skips the Google-OAuth sign-in gate and starts the demo from
 // a server-side Medplum client credential. For local / self-host evaluation.
 const quickstart = process.env.NEXT_PUBLIC_QUICKSTART === "true";
+const scriptedDemo = process.env.NEXT_PUBLIC_SCRIPTED_DEMO === "true";
 
 export default function DemoPage() {
   const { loading } = useMedplumContext();
@@ -36,8 +37,19 @@ export default function DemoPage() {
         className="container max-w-2xl px-4 pt-3 text-center"
       >
         <p className="px-8 text-xs text-muted-foreground">
-          A live demo of Last EHR&apos;s four FHIR tools on synthetic
-          patients. Writes stop at an approval card. Read{" "}
+          {scriptedDemo ? (
+            <>
+              A deterministic local walkthrough on synthetic data: no external
+              model is called, and it can access only the seeded Maria Garcia
+              record plus one fixed observation. Writes still stop at an
+              approval card. Read{" "}
+            </>
+          ) : (
+            <>
+              A live demo of Last EHR&apos;s four FHIR tools on synthetic patients.
+              Writes stop at an approval card. Read{" "}
+            </>
+          )}
           <Link
             href="/approval-gated-writes"
             className="underline underline-offset-4 hover:text-foreground"

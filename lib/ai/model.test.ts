@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 
-import { getChatModel } from "@/lib/ai/model";
+import { getChatModel, isScriptedDemoEnabled } from "@/lib/ai/model";
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -44,5 +44,49 @@ describe("getChatModel", () => {
   it("throws on unknown providers", () => {
     vi.stubEnv("AI_PROVIDER", "cohere");
     expect(() => getChatModel()).toThrow('Unsupported AI_PROVIDER "cohere"');
+  });
+
+  it("allows the scripted provider only for the explicit local HAPI demo", () => {
+    vi.stubEnv("AI_PROVIDER", "scripted");
+    vi.stubEnv("LASTEHR_SCRIPTED_DEMO", "true");
+    vi.stubEnv("FHIR_BACKEND", "hapi");
+    vi.stubEnv("FHIR_BASE_URL", "http://localhost:8080/fhir");
+
+    expect(isScriptedDemoEnabled()).toBe(true);
+    expect(getChatModel().modelId).toBe("local-synthetic");
+  });
+
+  it("allows the Docker Compose HAPI hostname used by the app container", () => {
+    expect(
+      isScriptedDemoEnabled({
+        ...process.env,
+        AI_PROVIDER: "scripted",
+        LASTEHR_SCRIPTED_DEMO: "true",
+        FHIR_BACKEND: "hapi",
+        FHIR_BASE_URL: "http://hapi:8080/fhir",
+      }),
+    ).toBe(true);
+  });
+
+  it("refuses the scripted provider outside an explicitly local HAPI setup", () => {
+    vi.stubEnv("AI_PROVIDER", "scripted");
+    vi.stubEnv("LASTEHR_SCRIPTED_DEMO", "true");
+    vi.stubEnv("FHIR_BACKEND", "medplum");
+    vi.stubEnv("FHIR_BASE_URL", "https://example.com/fhir");
+
+    expect(isScriptedDemoEnabled()).toBe(false);
+    expect(() => getChatModel()).toThrow("only available for the explicit local HAPI");
+  });
+
+  it("requires the local HTTP HAPI endpoint rather than only a local hostname", () => {
+    vi.stubEnv("AI_PROVIDER", "scripted");
+    vi.stubEnv("LASTEHR_SCRIPTED_DEMO", "true");
+    vi.stubEnv("FHIR_BACKEND", "hapi");
+    vi.stubEnv("FHIR_BASE_URL", "https://localhost:8080/fhir");
+
+    expect(isScriptedDemoEnabled()).toBe(false);
+
+    vi.stubEnv("FHIR_BASE_URL", "http://localhost:8080/not-fhir");
+    expect(isScriptedDemoEnabled()).toBe(false);
   });
 });

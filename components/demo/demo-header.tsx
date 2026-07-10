@@ -7,6 +7,8 @@ import { useMedplum, useMedplumProfile } from "@medplum/react-hooks";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ModeToggle";
 
+const scriptedDemo = process.env.NEXT_PUBLIC_SCRIPTED_DEMO === "true";
+
 export function DemoHeader() {
   const medplum = useMedplum();
   const profile = useMedplumProfile();
@@ -28,7 +30,7 @@ export function DemoHeader() {
           <ChevronLast className="h-5 w-5" aria-hidden="true" />
           Last EHR
           <span className="ml-1 rounded-full border px-2 py-0.5 text-xs font-medium text-muted-foreground">
-            Live Demo
+            {scriptedDemo ? "Scripted local demo" : "Live Demo"}
           </span>
         </Link>
 

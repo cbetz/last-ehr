@@ -3,7 +3,8 @@ services:
     build:
       context: .
       args:
-        NEXT_PUBLIC_QUICKSTART: "true"
+        NEXT_PUBLIC_QUICKSTART: "${NEXT_PUBLIC_QUICKSTART:-true}"
+        NEXT_PUBLIC_SCRIPTED_DEMO: "${NEXT_PUBLIC_SCRIPTED_DEMO:-}"
     ports:
       - "3000:3000"
     env_file:
@@ -11,7 +12,8 @@ services:
     environment:
       FHIR_BACKEND: hapi
       FHIR_BASE_URL: http://hapi:8080/fhir
-      NEXT_PUBLIC_QUICKSTART: "true"
+      NEXT_PUBLIC_QUICKSTART: "${NEXT_PUBLIC_QUICKSTART:-true}"
+      NEXT_PUBLIC_SCRIPTED_DEMO: "${NEXT_PUBLIC_SCRIPTED_DEMO:-}"
     depends_on:
       hapi:
         condition: service_started

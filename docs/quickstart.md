@@ -7,39 +7,77 @@ The fastest way to understand Last EHR is the hosted demo:
 It uses synthetic patients, needs no account, and every write stops at an
 approval card.
 
-## Fully local demo with HAPI FHIR
+## Zero-key local synthetic demo with HAPI FHIR
 
-Use this path when you want to evaluate without a Medplum account.
+Use this path when you want to inspect the approval loop without a Medplum
+account or model-provider key.
 
 Prerequisites:
 
 - Node 20.9 or newer
 - Docker
-- One tool-capable model key from a supported provider
 
-Create `.env.local`:
+From a fresh checkout:
 
 ```bash
-FHIR_BACKEND=hapi
-FHIR_BASE_URL=http://localhost:8080/fhir
-NEXT_PUBLIC_QUICKSTART=true
+git clone https://github.com/cbetz/last-ehr.git
+cd last-ehr
+npm install
+npm run demo:local
+```
+
+The command starts HAPI FHIR and Postgres, waits for the server, resets and
+seeds the synthetic records, then starts the app at
+<http://localhost:3000/demo>. It forces the local HAPI + scripted settings for
+its child processes, so it needs neither `.env.local` nor an external model
+key. Your normal `.env.local` is not edited or used to select the backend or
+model for this command.
+
+On the first run, Docker may need to pull images and HAPI can take a few
+minutes to initialize. Press Ctrl-C to stop Next.js; the local FHIR stack and
+its data stay available. When you want to remove them, run:
+
+```bash
+npm run demo:local:down
+```
+
+This is a deterministic walkthrough, not an offline model bundle: it makes no
+model-provider request and does not interpret the prompt. It always searches
+the seeded Maria Garcia record, proposes a single `Heart rate: 72 bpm`
+Observation, and waits for approval. The server rejects scripted mode unless
+the opt-in flag, `FHIR_BACKEND=hapi`, and a local HAPI URL are all present; the
+wrapped FHIR backend rejects reads or writes outside that synthetic record and
+fixed observation.
+
+The local HAPI server itself has no auth. Use it for local, single-tenant
+synthetic evaluation only. Re-run `npm run seed` if the scripted demo says its
+seeded patient is missing.
+
+### Use a real model instead
+
+`npm run demo:local` is intentionally fixed to the safe walkthrough. To
+exercise the full agent instead, copy `.env.example` to `.env.local`, set
+`FHIR_BACKEND=hapi`, `FHIR_BASE_URL=http://localhost:8080/fhir`,
+`NEXT_PUBLIC_QUICKSTART=true`, and a supported provider configuration, for
+example:
+
+```bash
+AI_PROVIDER=openai
 OPENAI_API_KEY=...
 ```
 
-Then run:
+Leave `LASTEHR_SCRIPTED_DEMO` and `NEXT_PUBLIC_SCRIPTED_DEMO` unset, then run
+the HAPI stack:
 
 ```bash
 docker compose up -d
 npm run fhir:wait
-npm install
 npm run seed
 npm run dev
 ```
 
-Open <http://localhost:3000/demo>.
-
-The local HAPI server has no auth. Use it for local, single-tenant synthetic
-evaluation only.
+Public `NEXT_PUBLIC_*` values are read at startup. The real agent can use all
+four tools and requires a tool-capable model credential.
 
 To run the app itself in Docker too:
 
@@ -47,7 +85,8 @@ To run the app itself in Docker too:
 npm run docker:local
 ```
 
-This uses `docker-compose.yml` plus `docker-compose.app.yml`.
+This uses `docker-compose.yml` plus `docker-compose.app.yml` and reads the
+build-time public values from `.env.local`.
 
 ## Medplum-backed demo
 
@@ -88,7 +127,9 @@ NEXT_PUBLIC_MEDPLUM_BASE_URL=https://your-medplum.example/
 
 ## Model providers
 
-Supported providers are intentionally limited to BAA-capable paths:
+`AI_PROVIDER=scripted` above is deliberately not a model provider. It is a
+fixed local synthetic walkthrough. For a real agent, supported providers are
+intentionally limited to BAA-capable paths:
 
 | Provider | Env | Notes |
 | --- | --- | --- |
@@ -101,7 +142,8 @@ PHI-ready.
 
 ## First prompts
 
-Try these in order:
+In scripted mode, any submitted message starts the same fixed sequence. For a
+real model-backed agent, try these in order:
 
 ```text
 Find patients named Smith

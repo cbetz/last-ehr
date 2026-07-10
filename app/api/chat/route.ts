@@ -8,10 +8,12 @@ import {
 } from "ai";
 import { cookies } from "next/headers";
 
-import { getChatModel } from "@/lib/ai/model";
+import { getChatModel, isScriptedDemoEnabled } from "@/lib/ai/model";
+import { toSafeChatErrorMessage } from "@/lib/ai/chat-errors";
 import { parseDemoModels, resolveDemoModel } from "@/lib/ai/demo-models";
 import { buildTools, SYSTEM_PROMPT } from "@/lib/ai/tools";
 import { createFhirBackend } from "@/lib/fhir/backend";
+import { ScriptedDemoBackend } from "@/lib/fhir/scripted-demo";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 // Node runtime so @medplum/core works; allow time for the multi-step tool loop.
@@ -66,31 +68,32 @@ export async function POST(req: Request) {
     parseDemoModels(process.env.NEXT_PUBLIC_DEMO_MODELS),
   );
 
+  const backend = createFhirBackend(accessToken);
+  const tools = buildTools(
+    isScriptedDemoEnabled()
+      ? new ScriptedDemoBackend(backend, sessionId)
+      : backend,
+    sessionId,
+  );
+
   const result = streamText({
     model: getChatModel(demoModel),
     system: SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
-    tools: buildTools(createFhirBackend(accessToken), sessionId),
+    tools,
     stopWhen: stepCountIs(5),
   });
 
   return result.toUIMessageStreamResponse({
     // Without this, mid-stream failures (model provider down, key over quota)
     // reach the client as a masked "An error occurred". Model-provider
-    // failures arrive as AI_* API errors; anything else here is a tool
-    // execute throwing (e.g. the FHIR backend rejecting a call), where the
-    // real message is short and worth showing.
+    // failures arrive as AI_* API errors. Do not echo arbitrary FHIR or
+    // upstream diagnostics to the browser: a backend error can contain a
+    // resource id or other chart-adjacent detail, and analytics must never
+    // receive it either.
     onError: (error) => {
       console.error("Chat stream error:", error);
-      const err = error instanceof Error ? error : new Error(String(error));
-      if (err.name === "AI_APICallError" || err.name === "AI_RetryError") {
-        return (
-          "The model call failed. The demo may be over capacity right now; " +
-          "please wait a minute and try again."
-        );
-      }
-      const detail = (err.message || "unknown error").slice(0, 140);
-      return `A chart request failed: ${detail}`;
+      return toSafeChatErrorMessage(error);
     },
   });
 }

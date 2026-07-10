@@ -30,7 +30,7 @@ export default function Home() {
               <h3 className="text-lg font-semibold">Run it locally</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 Use Medplum, or run HAPI FHIR and Postgres with Docker for a
-                fully local synthetic demo.
+                local synthetic demo.
               </p>
               <Link
                 href="/docs"
@@ -72,7 +72,7 @@ export default function Home() {
 
         <section id="overview" className="container py-24 sm:py-32">
           <h2 className="text-3xl font-bold md:text-4xl">
-            A thin agent layer over your FHIR backend
+            A thin, inspectable safety layer over your FHIR backend
           </h2>
           <div className="mt-4 max-w-3xl space-y-4 text-lg leading-relaxed text-muted-foreground">
             <p>
@@ -119,6 +119,11 @@ export default function Home() {
               </Link>
               .
             </p>
+            <p>
+              Start with the <Link href="/docs" className="font-medium text-foreground underline underline-offset-4">local synthetic path</Link>{" "}
+              or review the <Link href="https://github.com/cbetz/last-ehr/blob/main/docs/support.md" target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline underline-offset-4">support status</Link>{" "}
+              before pointing the reference app at another backend.
+            </p>
           </div>
         </section>
 
@@ -126,16 +131,26 @@ export default function Home() {
           <div className="mx-auto w-full max-w-[600px] space-y-6">
             <div className="space-y-2 text-center">
               <h2 className="text-3xl md:text-4xl font-bold">
-                Self-host it, or join the hosted waitlist
+                Self-host the reference implementation
               </h2>
               <p className="text-muted-foreground text-xl">
-                Last EHR is free and open source under Apache-2.0. A managed tier
-                with hosted Medplum and a signed BAA is in development. Leave your
-                email to join the waitlist.
+                Last EHR is free and open source under Apache-2.0. The code,
+                local stack, and adapter seam are the product today. A managed
+                tier with hosted Medplum and a signed BAA is a separate,
+                optional future path.
               </p>
             </div>
 
-            <SignupForm />
+            <div className="rounded-lg border bg-muted/40 p-6">
+              <h3 className="text-lg font-semibold">Hosted updates (optional)</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Join the waitlist only if you want news about the future
+                managed offering.
+              </p>
+              <div className="mt-4">
+                <SignupForm />
+              </div>
+            </div>
 
             <p className="px-2 text-center text-sm leading-normal text-muted-foreground">
               The code is open source.{" "}

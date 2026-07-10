@@ -44,7 +44,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Does Last EHR work with backends other than Medplum?",
-    a: "Not yet. The tool implementations use Medplum's client libraries. The architecture (the agent, the tools, the approval gate) is backend-agnostic by design, and Aidbox, HAPI FHIR, and Firely are the goal for future adapters. If you want to port it, the FHIR calls in lib/ai/tools.ts are the seam.",
+    a: "Two paths work today: Medplum, hosted or self-hosted, is the authenticated path; the repository also includes a local HAPI FHIR mode for single-tenant synthetic evaluation. The HAPI stack has no auth and is not a production deployment mode. Aidbox, Oystehr, Firely, and other FHIR R4 backends need an adapter before they are supported. See the support matrix and adapter guide for the exact boundary.",
   },
   {
     q: "What clinical data can the agent read and write?",
@@ -100,9 +100,10 @@ export default function ChatWithFhirDataPage() {
               </p>
               <ol className="list-decimal space-y-2 pl-6">
                 <li>
-                  The agent calls a FHIR API (Medplum, in Last EHR&apos;s
-                  case) and fetches structured resources: Patient, Condition,
-                  AllergyIntolerance, Observation, Communication,
+                  The agent calls its configured FHIR API (Medplum for an
+                  authenticated deployment, or local HAPI for the synthetic
+                  evaluation stack) and fetches structured resources: Patient,
+                  Condition, AllergyIntolerance, Observation, Communication,
                   MedicationRequest, Immunization.
                 </li>
                 <li>
@@ -322,14 +323,15 @@ export default function ChatWithFhirDataPage() {
             <div className="mt-4 space-y-4 text-lg leading-relaxed text-muted-foreground">
               <p>
                 You need a Medplum project (their free tier works for
-                evaluation), or local HAPI FHIR, plus one supported model
-                provider credential and the code:
+                evaluation) plus a supported model credential, or local HAPI
+                FHIR for the zero-key scripted synthetic walkthrough. Use a
+                provider credential with HAPI when you want the full agent:
               </p>
               <pre className="overflow-x-auto rounded-lg border bg-card p-4 text-sm text-foreground">
                 <code>{`git clone https://github.com/cbetz/last-ehr.git
 cd last-ehr
 npm install
-cp .env.example .env.local   # add your Medplum + model keys
+cp .env.example .env.local   # configure Medplum + a model key, or scripted HAPI
 npm run seed                 # load synthetic patients
 npm run dev                  # http://localhost:3000/demo`}</code>
               </pre>
@@ -340,7 +342,16 @@ npm run dev                  # http://localhost:3000/demo`}</code>
                 AccessPolicy); the layer does not reimplement them. Porting to
                 Aidbox, Oystehr, or Firely means implementing the backend
                 adapter contract; that is the intended seam, and contributions
-                are welcome. Setup details are on the{" "}
+                are welcome. Check the{" "}
+                <Link
+                  href="https://github.com/cbetz/last-ehr/blob/main/docs/support.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground underline underline-offset-4"
+                >
+                  support matrix
+                </Link>{" "}
+                before choosing a backend, then see the{" "}
                 <Link
                   href="/medplum-ai-agent"
                   className="font-medium text-foreground underline underline-offset-4"

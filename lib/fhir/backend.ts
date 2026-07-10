@@ -8,9 +8,10 @@ import type {
 import { MedplumBackend } from "./medplum";
 import { HapiBackend } from "./hapi";
 
-// The FHIR surface the agent tools require of a backend. Implementations:
-// Medplum (./medplum.ts) and HAPI or any open FHIR R4 server (./hapi.ts).
-// Aidbox and Oystehr adapters are tracked in issues #39 and #40.
+// The FHIR surface the agent tools require of a backend. Built-in
+// implementations are Medplum (./medplum.ts) and the local HAPI FHIR
+// evaluation transport (./hapi.ts). Other servers need their own verified
+// adapter/auth story; FhirRestBackend is the reusable standard-REST base.
 //
 // Contract notes for adapter authors:
 // - searchResources must hit the server's search path, never a direct read by
@@ -44,8 +45,8 @@ export interface FhirBackend {
 
 // The chat route resolves its backend here. FHIR_BACKEND selects the adapter:
 // "medplum" (default; hosted or self-hosted Medplum, token-authenticated) or
-// "hapi" (any open FHIR R4 server named by FHIR_BASE_URL; local single-tenant
-// use, see the self-host docs).
+// "hapi" (the included local, no-auth HAPI FHIR evaluation stack named by
+// FHIR_BASE_URL; see the self-host docs).
 export function createFhirBackend(accessToken: string): FhirBackend {
   const backend = process.env.FHIR_BACKEND || "medplum";
   if (backend === "hapi") {

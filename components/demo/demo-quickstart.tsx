@@ -38,7 +38,9 @@ export function DemoQuickstart() {
     return (
       <div className="flex flex-1 items-center justify-center py-24 text-muted-foreground">
         <IconSpinner />
-        <span className="ml-2">Starting demo…</span>
+        <span className="ml-2" role="status">
+          Starting demo…
+        </span>
       </div>
     );
   }
@@ -46,12 +48,13 @@ export function DemoQuickstart() {
   if (state === "error") {
     return (
       <div className="container flex flex-1 items-center justify-center py-16">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTitle>Quickstart isn’t configured</AlertTitle>
+        <Alert variant="destructive" className="max-w-md" role="alert">
+          <AlertTitle>Quickstart couldn’t start</AlertTitle>
           <AlertDescription>
-            Set <code>MEDPLUM_CLIENT_ID</code> and{" "}
-            <code>MEDPLUM_CLIENT_SECRET</code> (a Medplum ClientApplication&apos;s
-            credentials) to start the demo without signing in.
+            In local HAPI mode, confirm the FHIR server is running and the
+            HAPI values in <code>.env.local</code> are set. For a
+            Medplum-backed quickstart, set <code>MEDPLUM_CLIENT_ID</code> and{" "}
+            <code>MEDPLUM_CLIENT_SECRET</code>.
           </AlertDescription>
         </Alert>
       </div>
