@@ -1,0 +1,29 @@
+name: Publish MCP Registry metadata
+
+on:
+  workflow_dispatch:
+
+# This workflow publishes metadata only. npm packages are released separately,
+# then this workflow verifies the exact immutable npm version in server.json.
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish @lastehr/mcp metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download the official MCP Registry publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" \
+            | tar xz mcp-publisher
+          chmod +x mcp-publisher
+
+      - name: Authenticate with GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish the verified registry record
+        run: ./mcp-publisher publish packages/mcp/server.json
