@@ -55,9 +55,9 @@ MEDPLUM_ACCESS_TOKEN=...
 
 Set `MEDPLUM_BASE_URL` for self-hosted Medplum.
 
-## Discover it
+## Registry metadata
 
-The package is also listed in the [Official MCP Registry](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr), which provides client-facing installation metadata for this exact npm release.
+The package maintains an [Official MCP Registry](https://modelcontextprotocol.io/registry/about) manifest alongside its source. That metadata becomes the client-facing installation record only after the matching npm release has been verified and published.
 
 ## Tool surface
 

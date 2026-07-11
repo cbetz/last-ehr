@@ -4,7 +4,8 @@ Read-only Medplum FHIR tools for MCP clients. This package is the smallest
 installable Last EHR surface: it can search patients and show a chart, but it
 does not include write tools in the `0.1.x` line.
 
-Discover the verified server metadata in the [Official MCP Registry](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr).
+The registry metadata lives in [`server.json`](./server.json) and is published
+alongside each verified npm release.
 
 ## Install
 

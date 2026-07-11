@@ -155,7 +155,8 @@ a real project.
 
 From a checkout, `npm run mcp` builds and starts that same package. Full setup,
 client configuration, and the support boundary are in the [MCP guide](./docs/mcp.md).
-The verified [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr) is the canonical discovery record for MCP clients.
+The matching Official MCP Registry manifest is versioned with the package so
+MCP clients can discover the exact, verified release after publication.
 
 ## Configuration
 
