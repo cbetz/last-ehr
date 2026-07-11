@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { docsRegistry } from "@/lib/docs/registry";
+
 const BASE_URL = "https://www.lastehr.com";
 
 // lastModified is hardcoded per page and should be bumped when a page's
@@ -25,6 +27,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    ...docsRegistry.map((doc) => ({
+      url: `${BASE_URL}/docs/${doc.slug}`,
+      lastModified: new Date(doc.lastModified),
+      changeFrequency: "monthly" as const,
+      priority: 0.75,
+    })),
     {
       url: `${BASE_URL}/roadmap`,
       lastModified: new Date("2026-07-09"),

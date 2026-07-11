@@ -75,7 +75,7 @@ export default function Navbar() {
           </Link>
           <ModeToggle />
           <Link
-            href="/docs#local"
+            href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
             className={buttonVariants({
               size: "sm",
               className:
@@ -132,7 +132,7 @@ export default function Navbar() {
                   View source on GitHub
                 </Link>
                 <Link
-                  href="/docs#local"
+                  href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
                   onClick={() => setIsOpen(false)}
                   className={buttonVariants({ className: "mt-4 rounded-full" })}
                 >

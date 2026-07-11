@@ -69,7 +69,7 @@ export default function Home() {
                 constrained to synthetic data and one fixed FHIR write.
               </p>
               <Link
-                href="/docs#local"
+                href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
                 className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
               >
                 Read the full quickstart
@@ -209,7 +209,7 @@ export default function Home() {
                 code are the product today.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/docs#local" className={buttonVariants({ size: "lg", className: "rounded-full px-6" })}>
+                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "rounded-full px-6" })}>
                   Run it locally
                 </Link>
                 <Link

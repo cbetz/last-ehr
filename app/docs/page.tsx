@@ -16,9 +16,9 @@ import {
   Terminal,
 } from "lucide-react";
 
-import Navbar from "@/components/Navbar";
-import { SiteFooter } from "@/components/site-footer";
+import { DocsSearch } from "@/components/docs/docs-search";
 import { buttonVariants } from "@/components/ui/button";
+import { getDocsSearchIndex } from "@/lib/docs/content";
 
 export const metadata: Metadata = {
   title: "Docs: Build an Approval-Gated FHIR Agent",
@@ -41,15 +41,13 @@ export const metadata: Metadata = {
   },
 };
 
-const repositoryUrl = "https://github.com/cbetz/last-ehr/blob/main";
-
 const paths = [
   {
     number: "01",
     title: "Evaluate locally",
     description:
       "Run a synthetic HAPI stack and a deterministic, approval-gated walkthrough without a model key.",
-    href: "#local",
+    href: "/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir",
     icon: Rocket,
   },
   {
@@ -57,7 +55,7 @@ const paths = [
     title: "Integrate Medplum",
     description:
       "Connect the authenticated path, bring your own model provider, and rely on backend access policy.",
-    href: `${repositoryUrl}/docs/quickstart.md`,
+    href: "/docs/quickstart#medplum-backed-demo",
     icon: ShieldCheck,
   },
   {
@@ -65,7 +63,7 @@ const paths = [
     title: "Extend a backend",
     description:
       "Start from the executable adapter starter and prove the FHIR contract against synthetic data.",
-    href: `${repositoryUrl}/docs/adapters.md`,
+    href: "/docs/adapters",
     icon: GitBranch,
   },
 ];
@@ -78,19 +76,19 @@ const docCollections = [
       {
         title: "Quickstart",
         description: "Hosted demo, Medplum integration, and the local HAPI path.",
-        href: `${repositoryUrl}/docs/quickstart.md`,
+        href: "/docs/quickstart",
         icon: Rocket,
       },
       {
         title: "Support status",
         description: "Supported, local-evaluation-only, and unverified configurations.",
-        href: `${repositoryUrl}/docs/support.md`,
+        href: "/docs/support",
         icon: ShieldCheck,
       },
       {
         title: "Architecture",
         description: "How the route, FHIR tools, and backend boundary fit together.",
-        href: `${repositoryUrl}/docs/architecture.md`,
+        href: "/docs/architecture",
         icon: BookOpen,
       },
     ],
@@ -102,19 +100,19 @@ const docCollections = [
       {
         title: "Approval-gated writes",
         description: "What the proposal-and-review pattern protects, and what it cannot prove.",
-        href: `${repositoryUrl}/docs/approval-gates.md`,
+        href: "/docs/approval-gates",
         icon: ClipboardCheck,
       },
       {
         title: "Threat model",
         description: "Trust boundaries, prompt risks, and deployment assumptions.",
-        href: `${repositoryUrl}/docs/threat-model.md`,
+        href: "/docs/threat-model",
         icon: ShieldAlert,
       },
       {
         title: "MCP server",
         description: "Read-only by default, with the approval caveat made explicit.",
-        href: `${repositoryUrl}/docs/mcp.md`,
+        href: "/docs/mcp",
         icon: Braces,
       },
     ],
@@ -126,19 +124,19 @@ const docCollections = [
       {
         title: "Deployment",
         description: "Environment variables, Docker, rate limiting, and public demo hardening.",
-        href: `${repositoryUrl}/docs/deployment.md`,
+        href: "/docs/deployment",
         icon: ServerCog,
       },
       {
         title: "Backend adapters",
         description: "Contract harnesses, an executable bearer-token starter, and verification steps.",
-        href: `${repositoryUrl}/docs/adapters.md`,
+        href: "/docs/adapters",
         icon: GitBranch,
       },
       {
         title: "Adoption metrics",
         description: "Measure OSS usage without sending chart content to analytics.",
-        href: `${repositoryUrl}/docs/metrics.md`,
+        href: "/docs/metrics",
         icon: FileText,
       },
     ],
@@ -159,15 +157,13 @@ function DocumentLink({
   return (
     <Link
       href={href}
-      target="_blank"
-      rel="noopener noreferrer"
       className="group flex min-h-36 flex-col rounded-xl border border-border bg-background p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
     >
       <span className="flex items-start justify-between gap-4">
         <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
           <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
-        <ArrowUpRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
+        <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
       </span>
       <span className="mt-5 text-sm font-semibold text-foreground">{title}</span>
       <span className="mt-2 text-xs leading-5 text-muted-foreground">{description}</span>
@@ -175,10 +171,10 @@ function DocumentLink({
   );
 }
 
-export default function DocsPage() {
+export default async function DocsPage() {
+  const searchIndex = await getDocsSearchIndex();
+
   return (
-    <>
-      <Navbar />
       <main>
         <section className="relative isolate overflow-hidden border-b border-border/70">
           <div
@@ -200,7 +196,7 @@ export default function DocsPage() {
                 Last EHR.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link href="#local" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-6" })}>
+                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-6" })}>
                   Start locally
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
@@ -213,6 +209,12 @@ export default function DocsPage() {
                   Browse source
                   <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
+              </div>
+              <div className="mt-7">
+                <DocsSearch docs={searchIndex} />
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Press <kbd className="rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[0.68rem]">⌘ / Ctrl K</kbd> to search the guide library. Search stays in your browser.
+                </p>
               </div>
             </div>
           </div>
@@ -340,7 +342,7 @@ export default function DocsPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"
                   >
-                    Browse all docs
+                    View Markdown source
                     <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </Link>
                 </div>
@@ -381,12 +383,10 @@ export default function DocsPage() {
               </div>
             </div>
             <p className="mt-5 text-sm leading-6 text-muted-foreground">
-              Read the complete <Link href={`${repositoryUrl}/docs/support.md`} target="_blank" rel="noopener noreferrer" className="font-semibold text-foreground underline decoration-primary/60 underline-offset-4">support matrix</Link> before choosing a deployment path.
+              Read the complete <Link href="/docs/support" className="font-semibold text-foreground underline decoration-primary/60 underline-offset-4">support matrix</Link> before choosing a deployment path.
             </p>
           </div>
         </section>
       </main>
-      <SiteFooter />
-    </>
   );
 }

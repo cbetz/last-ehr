@@ -16,10 +16,10 @@ const footerGroups = [
   {
     title: "Build",
     links: [
-      { href: "/docs#local", label: "Run locally" },
+      { href: "/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir", label: "Run locally" },
       { href: "/docs", label: "Documentation" },
       {
-        href: "https://github.com/cbetz/last-ehr/blob/main/docs/adapters.md",
+        href: "/docs/adapters",
         label: "Backend adapters",
       },
     ],

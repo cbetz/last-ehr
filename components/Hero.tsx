@@ -38,7 +38,7 @@ export default function Hero() {
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
-              href="/docs#local"
+              href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
               className={buttonVariants({
                 size: "lg",
                 className:
