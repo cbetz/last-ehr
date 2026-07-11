@@ -57,7 +57,7 @@ Set `MEDPLUM_BASE_URL` for self-hosted Medplum.
 
 ## Registry metadata
 
-The package maintains an [Official MCP Registry](https://modelcontextprotocol.io/registry/about) manifest alongside its source. That metadata becomes the client-facing installation record only after the matching npm release has been verified and published.
+The package is listed in the [Official MCP Registry](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr), the client-facing installation record for the verified npm release.
 
 Maintainers publish that immutable record through the manual `Publish MCP Registry metadata` GitHub Actions workflow after the corresponding npm version is public.
 
