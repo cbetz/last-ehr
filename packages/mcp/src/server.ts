@@ -14,7 +14,7 @@ import {
   type MedplumReadClient,
 } from "./read-tools.js";
 
-export const MCP_SERVER_VERSION = "0.1.0";
+export const MCP_SERVER_VERSION = "0.1.1";
 
 type McpCallResult = {
   isError?: boolean;

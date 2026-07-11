@@ -1,6 +1,7 @@
 {
   "name": "@lastehr/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.cbetz/last-ehr",
   "description": "Read-only Medplum FHIR tools for MCP clients.",
   "license": "Apache-2.0",
   "author": "Chris Betz",
@@ -36,7 +37,8 @@
   "files": [
     "dist",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "server.json"
   ],
   "engines": {
     "node": "^22.18.0 || >=24.2.0"
