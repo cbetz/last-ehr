@@ -106,7 +106,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
                 className={buttonVariants({
                   variant: "outline",
                   size: "sm",
-                  className: "rounded-full",
+                  className: "rounded-md",
                 })}
               >
                 <Rocket className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
@@ -119,7 +119,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
                 className={buttonVariants({
                   variant: "ghost",
                   size: "sm",
-                  className: "rounded-full",
+                  className: "rounded-md",
                 })}
               >
                 <FileText className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
@@ -133,7 +133,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
           </div>
 
           <div className="mt-7 grid gap-3 lg:hidden">
-            <details className="rounded-xl border border-border bg-card p-4">
+            <details className="rounded-lg border border-border bg-card p-4">
               <summary className="cursor-pointer text-sm font-semibold text-foreground">
                 Browse documentation
               </summary>
@@ -141,7 +141,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
                 <DocsSidebar activeSlug={doc.slug} label="Mobile documentation navigation" />
               </div>
             </details>
-            <details className="rounded-xl border border-border bg-card p-4">
+            <details className="rounded-lg border border-border bg-card p-4">
               <summary className="cursor-pointer text-sm font-semibold text-foreground">
                 On this page
               </summary>
@@ -161,12 +161,12 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
         </aside>
 
         <article className="min-w-0">
-          <div className="rounded-xl border border-border bg-muted/25 px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <div className="rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm leading-6 text-muted-foreground">
             This guide describes the reference implementation as it exists today. Keep the
             stated support boundary in view as you evaluate or extend it.
           </div>
           <MarkdownContent markdown={body} doc={doc} />
-          <div className="mt-10 rounded-xl border border-primary/20 bg-primary/[0.06] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
+          <div className="mt-10 rounded-lg border border-primary/20 bg-primary/[0.06] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
             <div>
               <p className="font-semibold text-foreground">Want a concrete starting point?</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">

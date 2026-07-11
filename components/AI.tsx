@@ -44,13 +44,13 @@ export default function AISection() {
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-[1.35rem] border border-border bg-card shadow-[0_24px_65px_-42px_hsl(var(--foreground)/0.75)]">
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[0_24px_65px_-42px_hsl(var(--foreground)/0.75)]">
           <div className="flex items-center justify-between border-b border-border px-5 py-4 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-2 font-mono">
               <span className="h-2 w-2 rounded-full bg-primary" />
               fhir-tool / proposed-write
             </span>
-            <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 font-medium text-primary">
+            <span className="rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1 font-medium text-primary">
               waiting for approval
             </span>
           </div>
@@ -71,7 +71,7 @@ export default function AISection() {
             </div>
             <div className="bg-background p-5 sm:p-6">
               <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-primary">Visible review</p>
-              <div className="mt-5 rounded-xl border border-border bg-card p-4">
+              <div className="mt-5 rounded-lg border border-border bg-card p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm font-semibold">Record observation?</span>
                   <span className="rounded-md border border-border px-2 py-1 font-mono text-[0.62rem] text-muted-foreground">Observation</span>

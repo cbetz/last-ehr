@@ -157,7 +157,7 @@ function DocumentLink({
   return (
     <Link
       href={href}
-      className="group flex min-h-36 flex-col rounded-xl border border-border bg-background p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+      className="group flex min-h-36 flex-col rounded-lg border border-border bg-background p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
     >
       <span className="flex items-start justify-between gap-4">
         <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
@@ -183,7 +183,7 @@ export default async function DocsPage() {
           />
           <div className="container py-16 sm:py-24 lg:py-28">
             <div className="max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card/75 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-primary">
+              <p className="inline-flex items-center gap-2 rounded-md border border-border bg-card/75 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-primary">
                 <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                 Documentation
               </p>
@@ -196,7 +196,7 @@ export default async function DocsPage() {
                 Last EHR.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "h-12 rounded-full px-6" })}>
+                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "h-12 rounded-md px-6" })}>
                   Start locally
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
@@ -204,7 +204,7 @@ export default async function DocsPage() {
                   href="https://github.com/cbetz/last-ehr"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-full px-6" })}
+                  className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-md px-6" })}
                 >
                   Browse source
                   <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
@@ -221,7 +221,7 @@ export default async function DocsPage() {
         </section>
 
         <section id="local" className="container scroll-mt-24 py-20 sm:py-28">
-          <div className="grid gap-10 rounded-[1.5rem] border border-border bg-card p-6 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+          <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div className="max-w-md">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
                 The shortest path
@@ -245,16 +245,16 @@ export default async function DocsPage() {
               </ul>
             </div>
             <div>
-              <div className="overflow-hidden rounded-2xl border border-border bg-[#071417] text-[#e9f7f2]">
-                <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-3 font-mono text-[0.68rem] text-[#8da7a0]">
+              <div className="overflow-hidden rounded-xl border border-border bg-[#0b1020] text-[#eef3ff]">
+                <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-3 font-mono text-[0.68rem] text-[#98a8c7]">
                   <span className="inline-flex items-center gap-2">
-                    <Terminal className="h-3.5 w-3.5 text-[#9ef2d0]" aria-hidden="true" />
+                    <Terminal className="h-3.5 w-3.5 text-[#8eb6ff]" aria-hidden="true" />
                     ZERO-KEY EVALUATION
                   </span>
                   <span>localhost:3000</span>
                 </div>
                 <pre className="overflow-x-auto p-6 font-mono text-sm leading-7 sm:p-8 sm:text-[0.95rem]">
-                  <code><span className="text-[#78958c]">$</span> npm install{`\n`}<span className="text-[#78958c]">$</span> npm run demo:local</code>
+                  <code><span className="text-[#7183a7]">$</span> npm install{`\n`}<span className="text-[#7183a7]">$</span> npm run demo:local</code>
                 </pre>
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -263,7 +263,7 @@ export default async function DocsPage() {
                   ["02", "Seed", "The repository creates its synthetic records."],
                   ["03", "Review", "The scripted agent stops before the write."],
                 ].map(([number, title, description]) => (
-                  <div key={number} className="rounded-xl border border-border bg-muted/30 p-4">
+                  <div key={number} className="rounded-lg border border-border bg-muted/30 p-4">
                     <span className="font-mono text-xs text-primary">{number}</span>
                     <p className="mt-3 text-sm font-semibold">{title}</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
@@ -293,11 +293,11 @@ export default async function DocsPage() {
                     href={href}
                     target={external ? "_blank" : undefined}
                     rel={external ? "noopener noreferrer" : undefined}
-                    className="group rounded-[1.25rem] border border-border bg-background p-6 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+                    className="group rounded-lg border border-border bg-background p-6 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
                   >
                     <span className="flex items-center justify-between">
                       <span className="font-mono text-xs text-primary">{number}</span>
-                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </span>
                     </span>
@@ -366,19 +366,19 @@ export default async function DocsPage() {
                 The product boundary is part of the documentation.
               </h2>
             </div>
-            <div className="mt-10 overflow-x-auto rounded-[1.25rem] border border-border bg-background">
+            <div className="mt-10 overflow-x-auto rounded-lg border border-border bg-background">
               <div className="grid min-w-[44rem] grid-cols-[1.1fr_0.8fr_1.35fr] gap-px bg-border text-sm">
                 <div className="bg-muted/40 p-4 font-semibold">Configuration</div>
                 <div className="bg-muted/40 p-4 font-semibold">Status</div>
                 <div className="bg-muted/40 p-4 font-semibold">What that means</div>
                 <div className="bg-background p-4">Medplum, hosted or self-hosted</div>
-                <div className="bg-background p-4"><span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">Supported</span></div>
+                <div className="bg-background p-4"><span className="rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">Supported</span></div>
                 <div className="bg-background p-4 text-muted-foreground">Authenticated path with backend identity, policy, and audit controls.</div>
                 <div className="bg-background p-4">Included HAPI Docker stack</div>
-                <div className="bg-background p-4"><span className="rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Local only</span></div>
+                <div className="bg-background p-4"><span className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Local only</span></div>
                 <div className="bg-background p-4 text-muted-foreground">Synthetic, single-tenant evaluation—not a general deployment path.</div>
                 <div className="bg-background p-4">Other FHIR R4 backends</div>
-                <div className="bg-background p-4"><span className="rounded-full border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Adapter wanted</span></div>
+                <div className="bg-background p-4"><span className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Adapter wanted</span></div>
                 <div className="bg-background p-4 text-muted-foreground">Start from the contract harness and document the auth and verification story.</div>
               </div>
             </div>

@@ -42,12 +42,12 @@ export function HowItWorks() {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-px overflow-hidden rounded-[1.35rem] border border-border bg-border/80 md:grid-cols-3">
+      <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border/80 md:grid-cols-3">
         {steps.map(({ number, icon: Icon, title, description }) => (
           <article key={number} className="group bg-background p-7 sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <span className="font-mono text-xs text-primary">{number}</span>
-              <span className="grid h-9 w-9 place-items-center rounded-xl border border-border bg-card text-primary transition-transform duration-300 group-hover:-translate-y-1">
+              <span className="grid h-9 w-9 place-items-center rounded-md border border-border bg-card text-primary transition-transform duration-300 group-hover:-translate-y-1">
                 <Icon className="h-4 w-4" aria-hidden="true" />
               </span>
             </div>
@@ -57,9 +57,9 @@ export function HowItWorks() {
         ))}
       </div>
 
-      <div className="mt-7 grid gap-6 rounded-[1.35rem] border border-border bg-muted/35 p-6 sm:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+      <div className="mt-7 grid gap-6 rounded-xl border border-border bg-muted/35 p-6 sm:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
         <div>
-          <div className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <div className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Database className="h-4 w-4" aria-hidden="true" />
           </div>
           <h3 className="mt-5 text-xl font-semibold tracking-[-0.03em]">
@@ -73,17 +73,17 @@ export function HowItWorks() {
           </p>
         </div>
         <div className="grid gap-3 font-mono text-xs text-muted-foreground sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
-          <div className="rounded-xl border border-border bg-background px-4 py-3">
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
             <span className="block text-[0.62rem] uppercase tracking-[0.14em] text-primary">System of record</span>
             <span className="mt-1.5 block text-foreground">FHIR backend</span>
           </div>
           <ArrowRight className="mx-auto h-4 w-4 rotate-90 text-primary sm:rotate-0" aria-hidden="true" />
-          <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3">
+          <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3">
             <span className="block text-[0.62rem] uppercase tracking-[0.14em] text-primary">Agent layer</span>
             <span className="mt-1.5 block text-foreground">proposal</span>
           </div>
           <ArrowRight className="mx-auto h-4 w-4 rotate-90 text-primary sm:rotate-0" aria-hidden="true" />
-          <div className="rounded-xl border border-border bg-background px-4 py-3">
+          <div className="rounded-lg border border-border bg-background px-4 py-3">
             <span className="block text-[0.62rem] uppercase tracking-[0.14em] text-primary">Decision</span>
             <span className="mt-1.5 block text-foreground">review + policy</span>
           </div>

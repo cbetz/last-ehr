@@ -37,7 +37,7 @@ function NavigationLink({ href, label, onClick }: NavigationItem & { onClick?: (
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
       onClick={onClick}
-      className="rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
     >
       {label}
     </Link>
@@ -68,7 +68,7 @@ export default function Navbar() {
             href="https://github.com/cbetz/last-ehr"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <IconGitHub className="h-4 w-4" aria-hidden="true" />
             GitHub
@@ -79,7 +79,7 @@ export default function Navbar() {
             className={buttonVariants({
               size: "sm",
               className:
-                "rounded-full px-4 shadow-[0_10px_30px_-16px_hsl(var(--primary))]",
+                "rounded-md px-4 shadow-[0_10px_30px_-18px_hsl(var(--primary))]",
             })}
           >
             Run locally
@@ -126,7 +126,7 @@ export default function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setIsOpen(false)}
-                  className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="mt-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <IconGitHub className="h-4 w-4" aria-hidden="true" />
                   View source on GitHub
@@ -134,7 +134,7 @@ export default function Navbar() {
                 <Link
                   href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
                   onClick={() => setIsOpen(false)}
-                  className={buttonVariants({ className: "mt-4 rounded-full" })}
+                  className={buttonVariants({ className: "mt-4 rounded-md" })}
                 >
                   Run locally
                 </Link>

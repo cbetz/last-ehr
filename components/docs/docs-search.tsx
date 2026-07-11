@@ -58,7 +58,7 @@ export function DocsSearch({ docs }: DocsSearchProps) {
       <label htmlFor="docs-search" className="sr-only">
         Search documentation
       </label>
-      <div className="flex h-12 items-center gap-3 rounded-xl border border-border bg-background px-3 shadow-sm transition-shadow focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/10">
+      <div className="flex h-12 items-center gap-3 rounded-lg border border-border bg-background px-3 shadow-sm transition-shadow focus-within:border-primary/60 focus-within:ring-4 focus-within:ring-primary/10">
         <Search className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
         <input
           ref={inputRef}
@@ -82,14 +82,14 @@ export function DocsSearch({ docs }: DocsSearchProps) {
       </div>
 
       {hasQuery ? (
-        <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-xl">
+        <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-lg border border-border bg-popover p-1.5 shadow-xl">
           {matches.length > 0 ? (
             <ul aria-label="Documentation search results" className="space-y-1">
               {matches.map((doc) => (
                 <li key={doc.slug}>
                   <Link
                     href={getDocHref(doc)}
-                    className="group flex items-center justify-between gap-4 rounded-lg px-3 py-3 transition-colors hover:bg-muted"
+                    className="group flex items-center justify-between gap-4 rounded-md px-3 py-3 transition-colors hover:bg-muted"
                   >
                     <span>
                       <span className="block text-sm font-semibold text-foreground">

@@ -49,7 +49,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
         <summary className="cursor-pointer font-semibold text-foreground">
           Diagram source
         </summary>
-        <pre className="mt-4 overflow-x-auto rounded-lg bg-[#071417] p-4 font-mono text-xs leading-6 text-[#e9f7f2]">
+        <pre className="mt-4 overflow-x-auto rounded-lg bg-[#0b1020] p-4 font-mono text-xs leading-6 text-[#eef3ff]">
           <code>{code}</code>
         </pre>
       </details>

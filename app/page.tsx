@@ -55,7 +55,7 @@ export default function Home() {
         <AISection />
 
         <section id="local" className="container py-20 sm:py-28">
-          <div className="grid gap-10 rounded-[1.5rem] border border-border bg-card p-6 shadow-[0_28px_80px_-54px_hsl(var(--foreground)/0.9)] sm:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+          <div className="grid gap-10 rounded-xl border border-border bg-card p-6 shadow-[0_28px_80px_-54px_hsl(var(--foreground)/0.9)] sm:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
             <div className="max-w-md">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
                 Evaluate locally
@@ -77,16 +77,16 @@ export default function Home() {
               </Link>
             </div>
             <div>
-              <div className="overflow-hidden rounded-2xl border border-border bg-[#071417] text-[#e9f7f2] shadow-inner">
-                <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-3 font-mono text-[0.68rem] text-[#8da7a0]">
+              <div className="overflow-hidden rounded-xl border border-border bg-[#0b1020] text-[#eef3ff] shadow-inner">
+                <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-3 font-mono text-[0.68rem] text-[#98a8c7]">
                   <span className="inline-flex items-center gap-2">
-                    <Terminal className="h-3.5 w-3.5 text-[#9ef2d0]" aria-hidden="true" />
+                    <Terminal className="h-3.5 w-3.5 text-[#8eb6ff]" aria-hidden="true" />
                     LOCAL / SYNTHETIC
                   </span>
                   <span>macOS · Linux · Docker</span>
                 </div>
                 <pre className="overflow-x-auto p-6 font-mono text-sm leading-7 sm:p-8 sm:text-[0.95rem]">
-                  <code><span className="text-[#78958c]">$</span> npm install{`\n`}<span className="text-[#78958c]">$</span> npm run demo:local</code>
+                  <code><span className="text-[#7183a7]">$</span> npm install{`\n`}<span className="text-[#7183a7]">$</span> npm run demo:local</code>
                 </pre>
               </div>
               <ul className="mt-5 grid gap-3 sm:grid-cols-3">
@@ -123,9 +123,9 @@ export default function Home() {
               {builderPaths.map(({ icon: Icon, eyebrow, title, description, href, cta }) => {
                 const external = href.startsWith("http");
                 return (
-                  <article key={title} className="group rounded-[1.25rem] border border-border bg-background p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-7">
+                  <article key={title} className="group rounded-lg border border-border bg-background p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-7">
                     <div className="flex items-start justify-between gap-6">
-                      <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+                      <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{eyebrow}</span>
@@ -149,7 +149,7 @@ export default function Home() {
         </section>
 
         <section id="documentation" className="container py-20 sm:py-28">
-          <div className="overflow-hidden rounded-[1.5rem] border border-border bg-[linear-gradient(125deg,hsl(var(--card))_0%,hsl(var(--muted)/0.6)_100%)] p-6 sm:p-10 lg:grid lg:grid-cols-[1fr_0.92fr] lg:gap-16">
+          <div className="overflow-hidden rounded-xl border border-border bg-[linear-gradient(125deg,hsl(var(--card))_0%,hsl(var(--muted)/0.6)_100%)] p-6 sm:p-10 lg:grid lg:grid-cols-[1fr_0.92fr] lg:gap-16">
             <div className="max-w-xl">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
                 Documentation with a point of view
@@ -164,7 +164,7 @@ export default function Home() {
               </p>
               <Link
                 href="/docs"
-                className={buttonVariants({ size: "lg", className: "mt-8 h-12 rounded-full px-6" })}
+                className={buttonVariants({ size: "lg", className: "mt-8 h-12 rounded-md px-6" })}
               >
                 Open the docs hub
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
@@ -180,7 +180,7 @@ export default function Home() {
                 <Link
                   key={title}
                   href="/docs"
-                  className="group flex items-center gap-4 rounded-xl border border-border bg-background/75 p-4 transition-colors hover:border-primary/40 hover:bg-background"
+                  className="group flex items-center gap-4 rounded-lg border border-border bg-background/75 p-4 transition-colors hover:border-primary/40 hover:bg-background"
                 >
                   <span className="font-mono text-xs text-primary">{number}</span>
                   <span className="min-w-0 flex-1">
@@ -209,14 +209,14 @@ export default function Home() {
                 code are the product today.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "rounded-full px-6" })}>
+                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "rounded-md px-6" })}>
                   Run it locally
                 </Link>
                 <Link
                   href="https://github.com/cbetz/last-ehr"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-full px-6" })}
+                  className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-md px-6" })}
                 >
                   View on GitHub
                 </Link>
@@ -227,7 +227,7 @@ export default function Home() {
                 deployment plan.
               </p>
             </div>
-            <div className="rounded-[1.25rem] border border-border bg-background p-6 sm:p-7">
+            <div className="rounded-lg border border-border bg-background p-6 sm:p-7">
               <p className="text-sm font-semibold">Hosted updates, if you want them</p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 Join only for future managed-service news. Open-source updates

@@ -22,7 +22,7 @@ export default function Hero() {
       />
       <div className="container grid gap-14 py-16 sm:py-24 lg:grid-cols-[minmax(0,0.95fr)_minmax(30rem,1.05fr)] lg:items-center lg:py-28 xl:gap-20">
         <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-sm">
+          <div className="inline-flex items-center gap-2 rounded-md border border-border bg-card/70 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground shadow-sm">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
             Open-source FHIR agent layer
           </div>
@@ -42,7 +42,7 @@ export default function Hero() {
               className={buttonVariants({
                 size: "lg",
                 className:
-                  "group h-12 rounded-full px-6 text-[0.95rem] shadow-[0_16px_38px_-20px_hsl(var(--primary))]",
+                  "group h-12 rounded-md px-6 text-[0.95rem] shadow-[0_16px_38px_-20px_hsl(var(--primary))]",
               })}
             >
               Run the local demo
@@ -53,7 +53,7 @@ export default function Hero() {
               className={buttonVariants({
                 variant: "outline",
                 size: "lg",
-                className: "h-12 rounded-full px-6 text-[0.95rem]",
+                className: "h-12 rounded-md px-6 text-[0.95rem]",
               })}
             >
               See the approval gate
@@ -85,7 +85,7 @@ export default function Hero() {
             aria-hidden="true"
             className="absolute -inset-5 -z-10 rounded-[2rem] bg-primary/10 blur-3xl"
           />
-          <div className="overflow-hidden rounded-[1.4rem] border border-border/90 bg-card/90 p-2 shadow-[0_32px_90px_-38px_hsl(var(--foreground)/0.72)] backdrop-blur">
+          <div className="overflow-hidden rounded-xl border border-border/90 bg-card/90 p-2 shadow-[0_32px_90px_-38px_hsl(var(--foreground)/0.72)] backdrop-blur">
             <div className="flex items-center justify-between rounded-t-[1rem] border border-border/70 bg-background/85 px-4 py-3 text-[0.68rem] font-medium uppercase tracking-[0.13em] text-muted-foreground">
               <span className="inline-flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_4px_hsl(var(--primary)/0.14)]" />
@@ -105,7 +105,7 @@ export default function Hero() {
             </div>
           </div>
 
-          <div className="absolute -bottom-6 -left-4 hidden w-64 rounded-2xl border border-border bg-background/95 p-4 shadow-xl backdrop-blur sm:block">
+          <div className="absolute -bottom-6 -left-4 hidden w-64 rounded-lg border border-border bg-background/95 p-4 shadow-xl backdrop-blur sm:block">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-primary">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
               Write boundary
@@ -119,7 +119,7 @@ export default function Hero() {
             </div>
           </div>
 
-          <div className="absolute -right-3 top-[18%] hidden rounded-xl border border-border bg-background/95 px-3 py-2 shadow-lg backdrop-blur xl:flex xl:items-center xl:gap-2">
+          <div className="absolute -right-3 top-[18%] hidden rounded-lg border border-border bg-background/95 px-3 py-2 shadow-lg backdrop-blur xl:flex xl:items-center xl:gap-2">
             <Terminal className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
             <span className="font-mono text-[0.7rem] text-muted-foreground">needsApproval: true</span>
           </div>

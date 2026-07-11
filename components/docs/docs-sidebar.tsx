@@ -31,10 +31,10 @@ export function DocsSidebar({
                   <Link
                     href={getDocHref(doc)}
                     aria-current={active ? "page" : undefined}
-                    className={`block rounded-lg px-3 py-2 text-sm leading-5 transition-colors ${
+                    className={`-ml-px block border-l-2 px-3 py-2 text-sm leading-5 transition-colors ${
                       active
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        ? "border-primary bg-muted font-semibold text-foreground"
+                        : "border-transparent text-muted-foreground hover:border-primary/40 hover:bg-muted hover:text-foreground"
                     }`}
                   >
                     {doc.title}
