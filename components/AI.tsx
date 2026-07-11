@@ -9,8 +9,8 @@ const proofItems = [
   },
   {
     icon: LockKeyhole,
-    label: "Read-only by default",
-    detail: "The MCP server starts without write tools exposed.",
+    label: "Read-only only",
+    detail: "The public MCP package exposes two bounded chart-reading tools.",
   },
   {
     icon: Braces,

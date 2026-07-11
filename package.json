@@ -13,13 +13,18 @@
   "engines": {
     "node": "^22.18.0 || >=24.2.0"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run mcp:build && next build",
     "start": "next start",
     "lint": "next lint",
     "seed": "tsx scripts/seed.ts",
-    "mcp": "tsx mcp/server.ts",
+    "mcp": "npm run mcp:build && node packages/mcp/dist/cli.js",
+    "mcp:build": "npm run build --workspace=@lastehr/mcp",
+    "mcp:pack:check": "npm pack --workspace=@lastehr/mcp --dry-run",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",
     "demo:local": "tsx scripts/demo-local.ts",
     "demo:local:prepare": "tsx scripts/demo-local.ts --prepare",

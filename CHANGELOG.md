@@ -5,6 +5,10 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Added `@lastehr/mcp`, a standalone, Medplum-only MCP package with two
+  read-only chart tools and a guided client configuration command.
+- Removed direct-write MCP exposure; the published `0.1.x` package contains no
+  write tools or write-enable environment switch.
 - Raised the Node.js runtime baseline to 22.18 (or 24.2+) to match
   `@medplum/core` and avoid Node 20's missing global `WebSocket`.
 

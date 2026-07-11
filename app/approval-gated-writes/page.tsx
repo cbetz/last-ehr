@@ -374,11 +374,11 @@ export default function ApprovalGatedWritesPage() {
                     Surfaces without a card.
                   </strong>{" "}
                   Over MCP there is no approval card at all; the host&apos;s
-                  generic tool prompt is the only gate. The MCP server
-                  therefore starts read-only, with the write tools behind an
-                  explicit opt-in flag. Is that the right default, or should
-                  MCP writes be proposal-shaped: a draft plus a separate
-                  explicit confirm call?
+                  generic tool prompt is not an equivalent gate. The public
+                  MCP package therefore exposes only read tools. If a future
+                  MCP write surface is considered, should it be
+                  proposal-shaped: a draft plus a separate explicit confirm
+                  call?
                 </li>
               </ul>
               <p>

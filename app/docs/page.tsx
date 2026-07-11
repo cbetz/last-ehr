@@ -111,7 +111,7 @@ const docCollections = [
       },
       {
         title: "MCP server",
-        description: "Read-only by default, with the approval caveat made explicit.",
+        description: "An installable, Medplum-only package for bounded chart reads.",
         href: "/docs/mcp",
         icon: Braces,
       },

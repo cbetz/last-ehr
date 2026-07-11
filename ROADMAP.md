@@ -59,14 +59,14 @@ High-risk writes should not be added as a casual demo feature.
 
 ### 5. MCP as a serious interface
 
-The MCP server starts read-only because there is no Last EHR approval card in
-an MCP host. Planned work:
+`@lastehr/mcp` is permanently read-only in the initial `0.1.x` line because
+there is no Last EHR approval card in an MCP host. Planned work:
 
-- Backend parity beyond Medplum.
-- Optional write exposure with clearer operator warnings.
-- Tool annotations that help clients distinguish read-only and destructive
-  operations.
-- A separate package once the server surface stabilizes.
+- Better bounded read coverage for Medplum projects.
+- Tool annotations that help clients distinguish chart reads from future,
+  proposal-shaped operations.
+- A reviewable confirmation protocol before any direct-write surface is
+  considered.
 
 ## Stability
 

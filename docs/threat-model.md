@@ -26,7 +26,8 @@ do not mistake the approval card for a full security system.
 - Write tools in the web app use `needsApproval: true`.
 - Demo writes are tagged per browser session.
 - Public demo has per-IP and global rate limits.
-- MCP writes are opt-in and disabled by default.
+- The published MCP package contains only two read tools; no write tool is
+  compiled or registered in the `0.1.x` line.
 
 ## Known limitations
 
@@ -37,7 +38,8 @@ do not mistake the approval card for a full security system.
 - Local HAPI mode has no auth by default.
 - Session filtering on the shared public demo is not a security boundary for
   real data.
-- MCP clients do not render Last EHR's approval card.
+- MCP clients do not render Last EHR's approval card, so the public package
+  remains read-only.
 
 ## Contributor rules
 

@@ -62,7 +62,7 @@ const tracks = [
   {
     title: "MCP Safety",
     description:
-      "Keep MCP read-only by default, add clearer tool annotations, and package the server once the surface stabilizes.",
+      "Keep the standalone read-only package auditable and explore proposal protocols before any direct-write surface.",
     icon: <LockKeyhole className="h-5 w-5" aria-hidden="true" />,
   },
 ];

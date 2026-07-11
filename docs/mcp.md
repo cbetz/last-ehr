@@ -1,17 +1,46 @@
 # MCP Server
 
-Last EHR exposes the same chart tools over MCP:
+`@lastehr/mcp` is the smallest installable Last EHR surface: a Medplum-only,
+read-only MCP server for searching patients and opening a chart. It is
+deliberately separate from the web app, where writes are proposal-shaped and
+approval-gated.
+
+## Install and connect
 
 ```bash
-npm run mcp
+npx -y @lastehr/mcp init
 ```
 
-The server uses stdio and can be registered with Claude Desktop, Claude Code,
-or another MCP client.
+The command prints a portable MCP configuration. Add a least-privilege token,
+then place the result in your MCP client's configuration:
+
+```json
+{
+  "mcpServers": {
+    "lastehr": {
+      "command": "npx",
+      "args": ["-y", "@lastehr/mcp"],
+      "env": {
+        "MEDPLUM_ACCESS_TOKEN": "<replace-with-a-least-privilege-token>"
+      }
+    }
+  }
+}
+```
+
+For Claude Code, print the registration command instead:
+
+```bash
+npx -y @lastehr/mcp init --client claude-code
+```
+
+The process inherits `MEDPLUM_*` variables from your shell or MCP client
+configuration. Start it directly with `npx -y @lastehr/mcp` when you want to
+test a stdio connection yourself.
 
 ## Auth
 
-The MCP server currently uses Medplum credentials:
+The package uses Medplum credentials:
 
 ```bash
 MEDPLUM_CLIENT_ID=...
@@ -26,36 +55,42 @@ MEDPLUM_ACCESS_TOKEN=...
 
 Set `MEDPLUM_BASE_URL` for self-hosted Medplum.
 
-## Read-only default
+## Tool surface
 
-The MCP server starts read-only. It exposes:
+The published `0.1.x` package exposes exactly two tools, both marked with MCP's
+`readOnlyHint`:
 
 - `search_patients`
 - `show_patient_info`
 
-Set this to expose writes:
+There is no environment switch that exposes write tools. A write-capable MCP
+surface would need a proposal protocol and a separate safety review before it
+is considered for a future release.
+
+## Data and support boundary
+
+Read-only does not mean low-risk: `show_patient_info` can return PHI-rich
+chart data. Use the smallest Medplum AccessPolicy that meets the task, confirm
+that your MCP client and model provider are appropriate for the data, and do
+not treat this package as an authorization layer.
+
+`@lastehr/mcp` supports hosted or self-hosted **Medplum** authentication today.
+It does not claim generic FHIR, HAPI, SMART launch, or browser-approval parity.
+See the [support matrix](./support.md) for the complete boundary.
+
+## From a checkout
+
+The repository includes the same package for contributors:
 
 ```bash
-LASTEHR_MCP_WRITES=true
+npm run mcp
 ```
 
-Then it also exposes:
-
-- `add_note`
-- `record_observation`
-
-There is no Last EHR approval card over MCP. The MCP client's own tool prompt
-is the only gate, so every approved write saves directly to the chart.
-
-## Claude Code example
-
-```bash
-claude mcp add lastehr -- npm --prefix /path/to/last-ehr run mcp
-```
+This builds `@lastehr/mcp` and starts the two read-only tools using your local
+Medplum environment variables.
 
 ## Roadmap
 
-- Backend parity with the web app.
-- Clearer write-risk annotations.
-- A separate package once the tool surface stabilizes.
-- Optional approval/proposal protocols if MCP clients standardize them.
+- Better read-tool coverage where it can stay bounded and auditable.
+- Proposal-shaped writes only if MCP clients support a reviewable confirmation
+  protocol.

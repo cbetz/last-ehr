@@ -104,12 +104,12 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     file: "docs/mcp.md",
     title: "MCP Server",
     description:
-      "Expose the FHIR tools to MCP clients with a read-only default.",
+      "Install two bounded, read-only Medplum chart tools for MCP clients.",
     group: "Build & integrate",
     order: 20,
     audience: "Agent and MCP builders",
-    lastModified: "2026-07-09",
-    keywords: ["MCP", "Claude", "read only", "tools", "agent"],
+    lastModified: "2026-07-11",
+    keywords: ["MCP", "Claude", "Medplum", "read only", "tools"],
   },
   {
     slug: "deployment",

@@ -1,0 +1,65 @@
+{
+  "name": "@lastehr/mcp",
+  "version": "0.1.0",
+  "description": "Read-only Medplum FHIR tools for MCP clients.",
+  "license": "Apache-2.0",
+  "author": "Chris Betz",
+  "homepage": "https://www.lastehr.com/docs/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cbetz/last-ehr.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/cbetz/last-ehr/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "fhir",
+    "medplum",
+    "healthcare",
+    "ehr"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "lastehr-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": "^22.18.0 || >=24.2.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "dependencies": {
+    "@medplum/core": "5.1.13",
+    "@medplum/fhirtypes": "5.1.13",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "dotenv": "^17.4.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.9",
+    "vitest": "^4.1.9"
+  }
+}

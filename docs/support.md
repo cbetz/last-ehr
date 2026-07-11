@@ -6,7 +6,7 @@ safe path and contributors know where an adapter is needed.
 
 | Configuration | Web app | SMART launch | MCP | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Medplum, hosted or self-hosted | Yes | Yes | Yes | Supported | The authenticated path. Medplum owns identity, tenancy, AccessPolicy, and audit logs. |
+| Medplum, hosted or self-hosted | Yes | Yes | Read-only | Supported | The authenticated path. `@lastehr/mcp` exposes two chart-reading tools; Medplum owns identity, tenancy, AccessPolicy, and audit logs. |
 | HAPI FHIR from this repository's Docker Compose stack | Yes | No | No | Local evaluation only | The included HAPI server has no auth. Use synthetic data on one machine; do not expose it or treat browser-session filtering as access control. It includes an optional zero-key scripted walkthrough, restricted to one seeded record and one fixed observation. |
 | Another no-auth, standard FHIR R4 server | Evaluation only | No | No | Unverified | It may work through the HAPI REST transport, but is not supported until both contract harnesses and the four synthetic workflows pass. |
 | FHIR R4 server with authentication or product-specific behavior | Not yet verified | Not yet verified | Not yet verified | Adapter wanted | Start from the adapter starter, then implement and verify the auth story and `FhirBackend` contract before calling it supported. |

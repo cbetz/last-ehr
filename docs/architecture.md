@@ -24,7 +24,8 @@ flowchart LR
 - `lib/fhir/medplum.ts`: Medplum adapter.
 - `lib/fhir/hapi.ts`: plain FHIR R4 REST adapter for local HAPI mode.
 - `components/demo/demo-chat.tsx`: browser chat and approval-card rendering.
-- `mcp/server.ts`: stdio MCP bridge over the same tool definitions.
+- `packages/mcp/src`: standalone, Medplum-only MCP package with two
+  chart-reading tools.
 
 ## Tool surface
 

@@ -116,7 +116,7 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 - [Backend adapters](./docs/adapters.md): the adapter contract, harnesses, checklist, and contribution path.
 - [Adapter starter](./examples/fhir-adapter-starter): an executable bearer-token FHIR REST baseline with a contract suite.
 - [Approval-gated writes](./docs/approval-gates.md): what the gate protects and what it does not.
-- [MCP server](./docs/mcp.md): read-only default, opt-in writes, and client registration.
+- [MCP server](./docs/mcp.md): installable, read-only Medplum chart tools for MCP clients.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
 - [Threat model](./docs/threat-model.md): trust boundaries and known limitations.
 - [Roadmap](./ROADMAP.md): what is current, next, and deliberately out of scope.
@@ -136,29 +136,25 @@ Medplum sign-in (SMART App Launch with PKCE, public client, no secret). The
 token is bounded by the granted SMART scopes and your AccessPolicy, and writes
 still stop at the approval card.
 
-## Use the tools over MCP
+## Use chart reads over MCP
 
-The same four FHIR tools run as an MCP server (stdio), so Claude Desktop,
-Claude Code, or any MCP client can work a chart against your Medplum project:
-
-```bash
-npm run mcp
-```
-
-Auth mirrors the seed script: `MEDPLUM_CLIENT_ID` + `MEDPLUM_CLIENT_SECRET`
-(or `MEDPLUM_ACCESS_TOKEN`), plus `MEDPLUM_BASE_URL` if self-hosted, from
-`.env.local` or your MCP client's server config. Register with Claude Code,
-for example:
+[`@lastehr/mcp`](./packages/mcp) is a small, standalone MCP server for
+Medplum. It gives Claude Code, Cursor, and other MCP clients two bounded chart
+read tools—`search_patients` and `show_patient_info`—with no write tools in
+the `0.1.x` line.
 
 ```bash
-claude mcp add lastehr -- npm --prefix /path/to/last-ehr run mcp
+npx -y @lastehr/mcp init --client claude-code
 ```
 
-**The server starts read-only.** There is no approval card over MCP; your MCP
-client's own tool prompt is the only gate. Start it with
-`LASTEHR_MCP_WRITES=true` to also expose `add_note` and `record_observation`,
-and treat every approved call as a direct chart write. Design discussion in
-[#45](https://github.com/cbetz/last-ehr/issues/45).
+Authenticate with a least-privilege `MEDPLUM_ACCESS_TOKEN`, or
+`MEDPLUM_CLIENT_ID` plus `MEDPLUM_CLIENT_SECRET`; set `MEDPLUM_BASE_URL` for a
+self-hosted Medplum instance. Read access can still return PHI, so review the
+MCP client's model-provider and data-handling boundary before connecting it to
+a real project.
+
+From a checkout, `npm run mcp` builds and starts that same package. Full setup,
+client configuration, and the support boundary are in the [MCP guide](./docs/mcp.md).
 
 ## Configuration
 
