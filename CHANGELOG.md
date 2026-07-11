@@ -5,9 +5,15 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+## 0.2.1 — 2026-07-11
+
 - Added `@lastehr/mcp`, a standalone, Medplum-only MCP package with two
   read-only chart tools and a guided client configuration command.
 - Added Official MCP Registry metadata for the published npm package.
+- Added a GitHub OIDC workflow to publish immutable MCP Registry records
+  without storing a registry secret.
+- Added a concise MCP activation path and synthetic-data walkthrough to the
+  README.
 - Removed direct-write MCP exposure; the published `0.1.x` package contains no
   write tools or write-enable environment switch.
 - Raised the Node.js runtime baseline to 22.18 (or 24.2+) to match

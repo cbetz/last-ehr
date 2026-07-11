@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml/badge.svg)](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![npm: @lastehr/mcp](https://img.shields.io/npm/v/%40lastehr%2Fmcp?label=%40lastehr%2Fmcp)](https://www.npmjs.com/package/@lastehr/mcp)
+[![Official MCP Registry](https://img.shields.io/badge/Official%20MCP%20Registry-active-2563eb)](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr)
 
 **Open-source reference implementation for approval-gated FHIR agents.** A
 permissioned agent over the patient chart: it reads the chart and proposes
@@ -16,6 +18,27 @@ synthetic walkthrough.
 **[Try the live demo](https://www.lastehr.com/demo)**: no sign-up, synthetic data, and every write goes through the approval gate.
 
 ![Last EHR demo: the agent finds a patient, then records an observation to the chart after the user approves the write](public/demo.gif)
+
+## Start here
+
+| Goal | Start here |
+| --- | --- |
+| See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo) — no sign-up. |
+| Give an MCP client bounded Medplum chart reads | `npx -y @lastehr/mcp init --client claude-code` |
+| Inspect the complete flow locally with no account or model key | `npm run demo:local` |
+
+### 30-second synthetic-data walkthrough
+
+1. Open the [live demo](https://www.lastehr.com/demo).
+2. Ask: `Find patients named Smith`.
+3. Ask: `Record a heart rate of 72 bpm for Maria Garcia`.
+4. Inspect the proposed write, then approve it. The data is synthetic and the
+   approval card shows exactly what will be saved.
+
+For MCP, `@lastehr/mcp` is deliberately a separate **read-only** surface:
+`search_patients` and `show_patient_info` only. Configure a least-privilege
+Medplum token before connecting it to a real project; full setup is in the
+[MCP guide](./docs/mcp.md) and the [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr).
 
 ## What it does
 
