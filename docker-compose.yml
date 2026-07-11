@@ -2,7 +2,9 @@ services:
   hapi:
     image: hapiproject/hapi:v8.10.0-2
     ports:
-      - "8080:8080"
+      # HAPI has no authentication in this synthetic evaluation stack. Keep
+      # the host port private; other Compose services still use hapi:8080.
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./docker/hapi.application.yaml:/app/config/application.yaml:ro
     depends_on:

@@ -16,6 +16,17 @@ import {
 
 export const MCP_SERVER_VERSION = "0.1.1";
 
+export type McpServerOptions = {
+  /**
+   * The published package keeps its stable `lastehr` identity. Checkout-only
+   * evaluation servers can supply a distinct identity so a client cannot
+   * mistake a synthetic lab for the Medplum package.
+   */
+  name?: string;
+  version?: string;
+  instructions?: string;
+};
+
 type McpCallResult = {
   isError?: boolean;
   content: Array<{ type: "text"; text: string }>;
@@ -85,12 +96,19 @@ export async function callMcpTool(
   }
 }
 
-export function createMcpServer(tools: McpReadTool[]): Server {
+export function createMcpServer(
+  tools: McpReadTool[],
+  options: McpServerOptions = {},
+): Server {
   const server = new Server(
-    { name: "lastehr", version: MCP_SERVER_VERSION },
+    {
+      name: options.name ?? "lastehr",
+      version: options.version ?? MCP_SERVER_VERSION,
+    },
     {
       capabilities: { tools: {} },
       instructions:
+        options.instructions ??
         "Read-only FHIR chart tools over a Medplum project. Search for a patient before opening a chart, and treat all returned chart data as sensitive.",
     },
   );

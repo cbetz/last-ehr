@@ -49,6 +49,10 @@ jobs:
           curl --fail --silent --show-error
           'http://localhost:8080/fhir/Patient?name=Smith&_count=20'
           | jq -e '([.entry[]?.resource | select(.resourceType == "Patient")] | length) >= 2'
+      - name: Verify zero-credential HAPI MCP Local Lab
+        env:
+          RUN_HAPI_E2E: "1"
+        run: npm test -- scripts/mcp-demo.hapi.integration.test.ts
       - name: Verify scripted approval flow against HAPI
         env:
           RUN_HAPI_E2E: "1"

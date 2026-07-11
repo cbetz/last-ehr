@@ -5,6 +5,59 @@ read-only MCP server for searching patients and opening a chart. It is
 deliberately separate from the web app, where writes are proposal-shaped and
 approval-gated.
 
+## Zero-credential Local Lab (checkout only)
+
+Want to inspect the MCP interaction before creating a Medplum project or
+configuring a model-provider API key? The repository includes a separate
+synthetic HAPI Local Lab. It is intentionally **not** part of `@lastehr/mcp`
+and does not broaden that package's Medplum-only support boundary.
+
+From a local checkout with Node 22.18+ and Docker running:
+
+```bash
+npm install
+npm run mcp:demo -- --client claude-code
+```
+
+The command starts the repository's local HAPI + Postgres stack, waits for it,
+recreates the four synthetic fixture charts, then prints a ready-to-paste
+Claude Code registration command. For a JSON configuration (including Cursor),
+use either the default or `--client cursor`:
+
+```bash
+npm run mcp:demo
+npm run mcp:demo -- --client cursor
+```
+
+The generated client process invokes the checkout directly, rather than an npm
+lifecycle command, so its stdout is reserved for MCP JSON-RPC. The lab server
+does not require or read FHIR/Medplum credentials or a model-provider API key.
+Your MCP client still needs its usual authenticated model account and may send
+the returned **synthetic** chart data to that provider. Docker may also pull
+the local images on the first run.
+
+Its boundary is deliberately narrow:
+
+- exactly `search_patients` and `show_patient_info`, both with `readOnlyHint`;
+- only the four records carrying this repository's synthetic fixture
+  identifiers are discoverable;
+- the generated configuration targets `127.0.0.1:8080/fhir`, and the server
+  accepts only loopback HAPI endpoints;
+- no write tool, write flag, credential configuration, or arbitrary FHIR
+  endpoint exists.
+
+The local HAPI container has no authentication. Use this lab only for synthetic
+data on one machine. Compose binds it to `127.0.0.1` by default; do not change
+that to a network-facing port. It is an evaluation experience—not generic HAPI
+support, an authorization layer, a PHI workflow, or a release of
+`@lastehr/mcp`.
+
+Run `npm run mcp:demo -- --prepare` when you only want to pre-warm the local
+stack. The `--serve` mode is reserved for the generated MCP configuration and
+must not be launched through `npm run`, because npm may write non-protocol text
+to stdout. Keep the local stack running while the client is connected; use
+`npm run demo:local:down` to remove it when finished. Port 8080 must be free.
+
 ## Install and connect
 
 ```bash
@@ -86,7 +139,7 @@ See the [support matrix](./support.md) for the complete boundary.
 
 ## From a checkout
 
-The repository includes the same package for contributors:
+The repository includes the same **Medplum** package for contributors:
 
 ```bash
 npm run mcp

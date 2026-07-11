@@ -25,6 +25,7 @@ synthetic walkthrough.
 | --- | --- |
 | See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo) — no sign-up. |
 | Give an MCP client bounded Medplum chart reads | `npx -y @lastehr/mcp init --client claude-code` |
+| Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
 | Inspect the complete flow locally with no account or model key | `npm run demo:local` |
 
 ### 30-second synthetic-data walkthrough
@@ -39,6 +40,15 @@ For MCP, `@lastehr/mcp` is deliberately a separate **read-only** surface:
 `search_patients` and `show_patient_info` only. Configure a least-privilege
 Medplum token before connecting it to a real project; full setup is in the
 [MCP guide](./docs/mcp.md) and the [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr).
+
+Want to inspect those two MCP tools before configuring Medplum? From a
+checkout, `npm run mcp:demo` starts the included local HAPI stack, resets the
+four synthetic fixture charts, and prints a Claude Code/Cursor configuration.
+That checkout-only **MCP Local Lab** needs no FHIR/Medplum credentials or
+model-provider API key of its own and is restricted to fixture patients. Your
+MCP client still uses its normal account and may send those synthetic results
+to its model provider. It is not the published package, generic HAPI support,
+or a path for PHI.
 
 ## What it does
 
@@ -122,9 +132,12 @@ FHIR wrapper permits only that synthetic record and observation. Press Ctrl-C
 to stop Next.js; use `npm run demo:local:down` to remove the local stack.
 Honest scope: the local HAPI server runs with **no auth**, so this mode is for
 local, single-tenant use only; per-browser session isolation is client-side
-filtering, not a security boundary; and the MCP server still requires Medplum
-credentials for now. To run a real agent against HAPI, configure `.env.local`
-with a supported model key instead. The hosted public demo stays on Medplum.
+filtering, not a security boundary. The published `@lastehr/mcp` package still
+requires Medplum credentials; the separate checkout-only `npm run mcp:demo`
+Local Lab instead exposes two synthetic, read-only charts without credentials.
+Neither local route is a real-data or production path. To run a real agent
+against HAPI, configure `.env.local` with a supported model key instead. The
+hosted public demo stays on Medplum.
 
 To run the app container too, use `npm run docker:local` after filling
 `.env.local`; it combines the HAPI/Postgres compose stack with the app image.
@@ -139,7 +152,7 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 - [Backend adapters](./docs/adapters.md): the adapter contract, harnesses, checklist, and contribution path.
 - [Adapter starter](./examples/fhir-adapter-starter): an executable bearer-token FHIR REST baseline with a contract suite.
 - [Approval-gated writes](./docs/approval-gates.md): what the gate protects and what it does not.
-- [MCP server](./docs/mcp.md): installable, read-only Medplum chart tools for MCP clients.
+- [MCP server](./docs/mcp.md): published, read-only Medplum chart tools plus the checkout-only synthetic Local Lab.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
 - [Threat model](./docs/threat-model.md): trust boundaries and known limitations.
 - [Roadmap](./ROADMAP.md): what is current, next, and deliberately out of scope.
@@ -179,6 +192,22 @@ a real project.
 From a checkout, `npm run mcp` builds and starts that same package. Full setup,
 client configuration, and the support boundary are in the [MCP guide](./docs/mcp.md).
 The [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr) is the canonical discovery record for the exact, verified release.
+
+To evaluate the MCP surface before configuring Medplum, use the separate local
+lab from a repository checkout:
+
+```bash
+npm install
+npm run mcp:demo -- --client claude-code
+```
+
+It starts local HAPI, reloads the repository's synthetic fixture records, and
+prints a client registration command. The generated MCP process has exactly
+the same two read-only tool names but can only resolve those fixture patients.
+It is not included in `@lastehr/mcp`, does not make HAPI a supported package
+backend, and must never be pointed at real data. The Local Lab server needs no
+FHIR credential or provider API key, but the MCP client itself still needs its
+normal model account and may transmit the synthetic tool output to that model.
 
 ## Configuration
 

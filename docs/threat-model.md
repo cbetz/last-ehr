@@ -36,6 +36,9 @@ do not mistake the approval card for a full security system.
 - The approval card is a human review boundary, not a clinical correctness
   proof.
 - Local HAPI mode has no auth by default.
+- The checkout-only MCP Local Lab is therefore hard-wired to loopback HAPI and
+  fixture identifiers; Compose binds the HAPI port to loopback by default. It
+  is synthetic-only; it is not an authenticated or PHI-ready MCP deployment.
 - Session filtering on the shared public demo is not a security boundary for
   real data.
 - MCP clients do not render Last EHR's approval card, so the public package

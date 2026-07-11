@@ -53,6 +53,25 @@ The local HAPI server itself has no auth. Use it for local, single-tenant
 synthetic evaluation only. Re-run `npm run seed` if the scripted demo says its
 seeded patient is missing.
 
+### Inspect the read-only MCP tools
+
+The checkout also includes a separate MCP Local Lab for evaluating the two
+chart-reading tools without FHIR/Medplum credentials or a provider API key:
+
+```bash
+npm run mcp:demo -- --client claude-code
+```
+
+It prepares the same local HAPI stack and prints a client registration command.
+The MCP process is hard-wired to the local Docker endpoint and exposes only the
+four repository fixture patients through `search_patients` and
+`show_patient_info`. This is a synthetic evaluation path, not generic HAPI
+support or a substitute for the published Medplum-only `@lastehr/mcp` package.
+Claude Code or Cursor still uses its usual model account and may transmit those
+synthetic tool results to its provider. Port 8080 must be free; leave the local
+stack running while connected and use `npm run demo:local:down` when finished.
+See the [MCP guide](./mcp.md) for Cursor/JSON configuration and the full boundary.
+
 ### Use a real model instead
 
 `npm run demo:local` is intentionally fixed to the safe walkthrough. To

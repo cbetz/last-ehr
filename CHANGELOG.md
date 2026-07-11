@@ -5,6 +5,15 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Added `npm run mcp:demo`, a checkout-only synthetic HAPI MCP Local Lab that
+  prepares fixture data and prints a no-FHIR-credential Claude Code/Cursor
+  configuration for the two bounded read tools.
+- Added a fixture-restricted local read facade and a real stdio HAPI smoke test
+  so the lab cannot discover arbitrary records on a reused local HAPI volume.
+- Bound the unauthenticated local HAPI Docker port to loopback by default.
+- Kept `@lastehr/mcp` Medplum-only; the Local Lab is not published package or
+  generic HAPI support.
+
 ## 0.2.1 — 2026-07-11
 
 - Added `@lastehr/mcp`, a standalone, Medplum-only MCP package with two
