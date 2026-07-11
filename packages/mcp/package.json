@@ -42,8 +42,7 @@
     "node": "^22.18.0 || >=24.2.0"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
