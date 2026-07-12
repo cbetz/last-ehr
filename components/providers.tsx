@@ -17,6 +17,15 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_KEY) {
   posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
     api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    // Policy constraint (see /privacy): explicit events via lib/analytics.ts
+    // only, nothing persisted on-device, no profiles, no recording.
+    autocapture: false,
+    capture_pageview: false,
+    capture_pageleave: false,
+    disable_session_recording: true,
+    disable_surveys: true,
+    persistence: "memory",
+    person_profiles: "never",
   });
 }
 

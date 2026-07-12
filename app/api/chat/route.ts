@@ -9,7 +9,10 @@ import {
 import { cookies } from "next/headers";
 
 import { getChatModel, isScriptedDemoEnabled } from "@/lib/ai/model";
-import { toSafeChatErrorMessage } from "@/lib/ai/chat-errors";
+import {
+  toSafeChatErrorLog,
+  toSafeChatErrorMessage,
+} from "@/lib/ai/chat-errors";
 import { parseDemoModels, resolveDemoModel } from "@/lib/ai/demo-models";
 import { buildTools, SYSTEM_PROMPT } from "@/lib/ai/tools";
 import { createFhirBackend } from "@/lib/fhir/backend";
@@ -92,7 +95,10 @@ export async function POST(req: Request) {
     // resource id or other chart-adjacent detail, and analytics must never
     // receive it either.
     onError: (error) => {
-      console.error("Chat stream error:", error);
+      // Log a compact summary, never the raw error object: provider errors
+      // embed the full request body (messages + chart context) in
+      // requestBodyValues, which must not reach hosted logs.
+      console.error("Chat stream error:", toSafeChatErrorLog(error));
       return toSafeChatErrorMessage(error);
     },
   });
