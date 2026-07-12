@@ -1,14 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowRight,
   Check,
   CircleDotDashed,
   ShieldCheck,
-  Terminal,
 } from "lucide-react";
-
-import demoImage from "@/public/demo.png";
 
 import { buttonVariants } from "./ui/button";
 import { IconGitHub } from "./ui/icons";
@@ -39,7 +35,7 @@ export default function Hero() {
             <CircleDotDashed className="h-3.5 w-3.5" aria-hidden="true" />
             Open-source clinical agent infrastructure
           </p>
-          <h1 className="mt-6 max-w-3xl text-[clamp(3.1rem,7vw,5.6rem)] font-semibold leading-[0.94] tracking-[-0.07em] text-balance">
+          <h1 className="mt-6 max-w-3xl text-[clamp(3rem,5.4vw,5rem)] font-semibold leading-[0.96] tracking-[-0.07em] text-balance">
             FHIR agents need a <span className="text-primary">safety case.</span>
           </h1>
           <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">
@@ -132,21 +128,18 @@ export default function Hero() {
                 ))}
               </ol>
             </div>
-            <div className="relative overflow-hidden bg-[#11152b] p-2">
-              <Image
-                src={demoImage}
-                alt="Last EHR displays a proposed heart-rate observation with a visible approval action before the FHIR write can save."
-                priority
-                placeholder="blur"
-                sizes="(max-width: 1024px) 100vw, 55vw"
-                className="h-auto w-full border border-white/10"
-              />
-              <div className="pointer-events-none absolute inset-x-2 bottom-2 flex items-center justify-between border border-white/10 bg-[#11152b]/95 px-3 py-2 font-mono text-[0.64rem] uppercase tracking-[0.1em] text-[#b8c4e3]">
-                <span className="inline-flex items-center gap-2">
-                  <Terminal className="h-3 w-3 text-[#86a6ff]" aria-hidden="true" />
-                  Real review surface
-                </span>
-                <span>synthetic data only</span>
+            <div className="grid divide-y divide-border border-t border-border bg-muted/20 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              <div className="px-4 py-4 sm:px-5">
+                <span className="block font-mono text-[0.62rem] uppercase tracking-[0.13em] text-muted-foreground">Resource</span>
+                <span className="mt-1.5 block text-sm font-semibold">FHIR Observation</span>
+              </div>
+              <div className="px-4 py-4 sm:px-5">
+                <span className="block font-mono text-[0.62rem] uppercase tracking-[0.13em] text-muted-foreground">Persistence</span>
+                <span className="mt-1.5 block text-sm font-semibold text-primary">Blocked pending review</span>
+              </div>
+              <div className="px-4 py-4 sm:px-5">
+                <span className="block font-mono text-[0.62rem] uppercase tracking-[0.13em] text-muted-foreground">Authority</span>
+                <span className="mt-1.5 block text-sm font-semibold">FHIR backend policy</span>
               </div>
             </div>
           </div>

@@ -15,7 +15,7 @@ const tools = [
 export default function AISection() {
   return (
     <section id="mcp" className="border-b marketing-rule bg-muted/30">
-      <div className="container grid gap-12 py-20 sm:py-28 lg:grid-cols-[0.84fr_1.16fr] lg:gap-16">
+      <div className="container grid gap-12 py-20 sm:py-28 lg:grid-cols-[0.84fr_1.16fr] lg:items-start lg:gap-16">
         <div className="max-w-xl">
           <p className="section-kicker">MCP, deliberately constrained</p>
           <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
