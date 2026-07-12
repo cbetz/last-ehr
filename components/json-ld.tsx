@@ -15,7 +15,7 @@ export function JsonLd() {
         url: BASE_URL,
         logo: `${BASE_URL}/icon`,
         description:
-          "Last EHR is open-source infrastructure for approval-gated FHIR agents and bounded clinical context.",
+          "Last EHR adds human-approved AI writeback to FHIR apps: open-source infrastructure for approval-gated agents and bounded clinical context, where a person approves every write.",
         sameAs: ["https://github.com/cbetz/last-ehr", "https://x.com/lastehr"],
       },
       {
@@ -37,7 +37,7 @@ export function JsonLd() {
         license: "https://www.apache.org/licenses/LICENSE-2.0",
         isAccessibleForFree: true,
         description:
-          "Open-source FHIR agent infrastructure with bounded chart reads, structured write proposals, human approval gates, a read-only MCP Local Lab, and a synthetic workflow evaluator. Stores no patient data of its own.",
+          "Adds human-approved AI writeback to FHIR apps: bounded chart reads, structured write proposals, and a human approval gate on every write. Supports Medplum, with a read-only MCP Local Lab and a synthetic workflow evaluator against local HAPI. Stores no patient data of its own.",
       },
     ],
   };

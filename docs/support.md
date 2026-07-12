@@ -38,7 +38,7 @@ through the four synthetic-data tools:
 For Medplum, that includes authentication and backend-enforced access control.
 For local HAPI, it means a single-tenant synthetic demonstration only. The
 scripted zero-key option intentionally covers only its fixed search and
-approval-gated observation—not the full general-agent surface.
+approval-gated observation, not the full general-agent surface.
 
 ## Adding a backend
 

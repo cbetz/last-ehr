@@ -1,7 +1,8 @@
 # Backend Adapters
 
-Backend adapters are the most useful contribution path. Last EHR already works
-with Medplum and local HAPI FHIR. The next valuable adapters are Aidbox,
+Backend adapters are the most useful contribution path. Medplum is supported
+today; the local HAPI FHIR stack is for synthetic evaluation only. The next
+valuable adapters are Aidbox,
 Oystehr, Firely Server, and other FHIR R4 backends with a clear auth story.
 
 ## Start with the executable starter

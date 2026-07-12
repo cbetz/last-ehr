@@ -20,7 +20,7 @@ export default function AISection() {
           <div className="max-w-xl">
             <p className="section-kicker">MCP, deliberately constrained</p>
             <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
-              MCP should inspect—not quietly write.
+              MCP should inspect, not quietly write.
             </h2>
           </div>
           <div className="max-w-2xl lg:justify-self-end">

@@ -36,12 +36,13 @@ export default function Hero() {
             Open-source clinical agent infrastructure
           </p>
           <h1 className="mt-6 max-w-3xl text-[clamp(3rem,5.4vw,5rem)] font-semibold leading-[0.96] tracking-[-0.07em] text-balance">
-            FHIR agents need a <span className="text-primary">safety case.</span>
+            Add human-approved <span className="text-primary">AI writeback</span> to your FHIR app.
           </h1>
           <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">
-            Last EHR is a reference implementation for agents that read chart
-            context, make structured proposals, and stop before a person and
-            the FHIR backend authorize a clinical write.
+            Last EHR is the open-source reference implementation for that
+            boundary: the agent reads chart context, makes structured
+            proposals, and stops until a person and the FHIR backend authorize
+            the write.
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
