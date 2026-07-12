@@ -48,7 +48,7 @@ Its boundary is deliberately narrow:
 
 The local HAPI container has no authentication. Use this lab only for synthetic
 data on one machine. Compose binds it to `127.0.0.1` by default; do not change
-that to a network-facing port. It is an evaluation experience—not generic HAPI
+that to a network-facing port. It is an evaluation experience, not generic HAPI
 support, an authorization layer, a PHI workflow, or a release of
 `@lastehr/mcp`.
 

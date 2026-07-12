@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | Last EHR",
   },
   description:
-    "Open-source FHIR agent infrastructure for bounded chart context, structured proposals, explicit approval gates, a read-only MCP Local Lab, and synthetic workflow evaluation.",
+    "Add human-approved AI writeback to a FHIR app. Last EHR is the open-source reference implementation: the agent reads chart context and proposes structured writes, and a person approves every write before it is saved.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     siteName: "Last EHR",
     title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "FHIR agents with bounded context, structured proposals, and an explicit human decision before every write. Open source and synthetic-data-first.",
+      "Add human-approved AI writeback to a FHIR app. The agent reads bounded chart context and proposes structured writes, and a person approves every write before it is saved. Open source and synthetic-data-first.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "FHIR agents with bounded context, structured proposals, and an explicit human decision before every write.",
+      "Add human-approved AI writeback to a FHIR app. The agent proposes structured writes and a person approves every write before it is saved.",
     site: "@lastehr",
     creator: "@lastehr",
   },

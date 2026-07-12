@@ -56,7 +56,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Can I use the tools from Claude Desktop or another MCP client?",
-    a: "Yes. @lastehr/mcp is an installable stdio server for Medplum. It exposes exactly two chart-reading tools—search_patients and show_patient_info—with no write tools or write-enable flag in the 0.1.x line. Read access can still return PHI, so use a least-privilege Medplum identity and review the MCP host's data handling.",
+    a: "Yes. @lastehr/mcp is an installable stdio server for Medplum. It exposes exactly two chart-reading tools, search_patients and show_patient_info, with no write tools or write-enable flag in the 0.1.x line. Read access can still return PHI, so use a least-privilege Medplum identity and review the MCP host's data handling.",
   },
 ];
 

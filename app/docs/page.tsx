@@ -342,7 +342,7 @@ export default async function DocsPage() {
             </h2>
             <p className="mt-5 text-lg leading-8 text-muted-foreground">
               Each guide states the scope, the verification path, and the
-              caveats needed to make an informed call—not just the happy path.
+              caveats needed to make an informed call, not just the happy path.
             </p>
           </div>
 
@@ -394,7 +394,7 @@ export default async function DocsPage() {
                 <div className="bg-background p-4 text-muted-foreground">Authenticated path with backend identity, policy, and audit controls.</div>
                 <div className="bg-background p-4">Included HAPI Docker stack</div>
                 <div className="bg-background p-4"><span className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Local only</span></div>
-                <div className="bg-background p-4 text-muted-foreground">Synthetic, single-tenant evaluation—not a general deployment path.</div>
+                <div className="bg-background p-4 text-muted-foreground">Synthetic, single-tenant evaluation, not a general deployment path.</div>
                 <div className="bg-background p-4">Other FHIR R4 backends</div>
                 <div className="bg-background p-4"><span className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-muted-foreground">Adapter wanted</span></div>
                 <div className="bg-background p-4 text-muted-foreground">Start from the contract harness and document the auth and verification story.</div>

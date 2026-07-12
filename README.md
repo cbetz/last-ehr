@@ -5,11 +5,11 @@
 [![npm: @lastehr/mcp](https://img.shields.io/npm/v/%40lastehr%2Fmcp?label=%40lastehr%2Fmcp)](https://www.npmjs.com/package/@lastehr/mcp)
 [![Official MCP Registry](https://img.shields.io/badge/Official%20MCP%20Registry-active-2563eb)](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr)
 
-**Open-source reference implementation for approval-gated FHIR agents.** A
-permissioned agent over the patient chart: it reads the chart and proposes
-writes, and nothing is saved until you approve it. Bring your own backend and
-your own model key when you want a real agent—or start with the zero-key local
-synthetic walkthrough.
+**Add human-approved AI writeback to a FHIR app.** Last EHR is the
+open-source reference implementation for that boundary: the agent reads the
+chart and proposes writes, and nothing is saved until you approve. Bring your
+own Medplum project and your own model key when you want a real agent, or
+start with the zero-key local synthetic walkthrough.
 
 > **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum, or HAPI FHIR for local synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
@@ -23,7 +23,7 @@ synthetic walkthrough.
 
 | Goal | Start here |
 | --- | --- |
-| See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo) — no sign-up. |
+| See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo): no sign-up. |
 | Give an MCP client bounded Medplum chart reads | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
 | Prove the synthetic web-agent workflow locally | `npm run eval` |
@@ -183,7 +183,7 @@ still stop at the approval card.
 
 [`@lastehr/mcp`](./packages/mcp) is a small, standalone MCP server for
 Medplum. It gives Claude Code, Cursor, and other MCP clients two bounded chart
-read tools—`search_patients` and `show_patient_info`—with no write tools in
+read tools, `search_patients` and `show_patient_info`, with no write tools in
 the `0.1.x` line.
 
 ```bash
@@ -222,7 +222,7 @@ Every variable is documented in [`.env.example`](./.env.example). The real-agent
 model path is provider-agnostic with one hard rule: **every external provider
 offered here can carry a BAA**, because deployments of this project head toward
 real clinical data even though the demo is synthetic-only. The `scripted`
-option is a separate, explicit, zero-key local HAPI walkthrough—not a model
+option is a separate, explicit, zero-key local HAPI walkthrough, not a model
 provider or a PHI-ready mode.
 
 | AI_PROVIDER | Key | Example MODEL_ID | BAA path |

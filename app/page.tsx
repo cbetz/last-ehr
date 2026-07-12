@@ -125,7 +125,7 @@ export default function Home() {
                 Last EHR keeps the extension point small: a FHIR backend
                 contract, an executable adapter starter, and real HAPI
                 integration coverage. The Safety Eval runs on those same
-                disposable synthetic workflows and writes a scrubbed report—not
+                disposable synthetic workflows and writes a scrubbed report, not
                 a broad marketing badge.
               </p>
               <Link
@@ -179,7 +179,7 @@ export default function Home() {
               </div>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
                 Each guide names the path, the support boundary, and what still
-                needs proof. The docs are a product surface—not a dump of API
+                needs proof. The docs are a product surface, not a dump of API
                 notes after the fact.
               </p>
             </div>
