@@ -4,65 +4,67 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: hsl(222 30% 98%);
-  --foreground: hsl(224 34% 12%);
+  /* Warm clinical paper + ink. Signal blue denotes an action or verified
+     state; it is intentionally not a decorative wash across the whole site. */
+  --background: hsl(42 23% 96%);
+  --foreground: hsl(228 21% 10%);
 
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(224 34% 12%);
+  --card: hsl(42 25% 99%);
+  --card-foreground: hsl(228 21% 10%);
 
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(224 34% 12%);
+  --popover: hsl(42 25% 99%);
+  --popover-foreground: hsl(228 21% 10%);
 
-  --primary: hsl(221 78% 48%);
+  --primary: hsl(229 78% 47%);
   --primary-foreground: hsl(0 0% 100%);
 
-  --secondary: hsl(220 25% 94%);
-  --secondary-foreground: hsl(224 34% 12%);
+  --secondary: hsl(42 16% 91%);
+  --secondary-foreground: hsl(228 21% 10%);
 
-  --muted: hsl(220 23% 95%);
-  --muted-foreground: hsl(220 12% 41%);
+  --muted: hsl(42 14% 91%);
+  --muted-foreground: hsl(228 10% 39%);
 
-  --accent: hsl(221 26% 92%);
-  --accent-foreground: hsl(224 34% 12%);
+  --accent: hsl(229 35% 93%);
+  --accent-foreground: hsl(228 21% 10%);
 
   --destructive: hsl(0 70% 50%);
   --destructive-foreground: hsl(0 0% 100%);
 
-  --border: hsl(220 16% 86%);
-  --input: hsl(220 16% 86%);
-  --ring: hsl(221 78% 48%);
+  --border: hsl(228 13% 78%);
+  --input: hsl(228 13% 78%);
+  --ring: hsl(229 78% 47%);
 
-  --radius: 0.5rem;
+  --radius: 0.22rem;
 }
 
 .dark {
-  --background: hsl(224 37% 8%);
-  --foreground: hsl(220 30% 96%);
+  --background: hsl(228 16% 7%);
+  --foreground: hsl(42 18% 94%);
 
-  --card: hsl(224 28% 11%);
-  --card-foreground: hsl(220 30% 96%);
+  --card: hsl(228 14% 10%);
+  --card-foreground: hsl(42 18% 94%);
 
-  --popover: hsl(224 28% 11%);
-  --popover-foreground: hsl(220 30% 96%);
+  --popover: hsl(228 14% 10%);
+  --popover-foreground: hsl(42 18% 94%);
 
-  --primary: hsl(217 90% 69%);
-  --primary-foreground: hsl(224 40% 10%);
+  --primary: hsl(228 92% 68%);
+  --primary-foreground: hsl(228 22% 10%);
 
-  --secondary: hsl(223 22% 16%);
-  --secondary-foreground: hsl(220 30% 96%);
+  --secondary: hsl(228 11% 16%);
+  --secondary-foreground: hsl(42 18% 94%);
 
-  --muted: hsl(223 21% 15%);
-  --muted-foreground: hsl(220 13% 69%);
+  --muted: hsl(228 11% 15%);
+  --muted-foreground: hsl(42 10% 67%);
 
-  --accent: hsl(223 22% 18%);
-  --accent-foreground: hsl(220 30% 96%);
+  --accent: hsl(228 20% 18%);
+  --accent-foreground: hsl(42 18% 94%);
 
   --destructive: hsl(0 68% 58%);
   --destructive-foreground: hsl(0 0% 100%);
 
-  --border: hsl(223 18% 24%);
-  --input: hsl(223 18% 24%);
-  --ring: hsl(217 90% 69%);
+  --border: hsl(228 10% 26%);
+  --input: hsl(228 10% 26%);
+  --ring: hsl(228 92% 68%);
 }
 
 @theme inline {
@@ -117,7 +119,7 @@
 
 @utility container {
   margin-inline: auto;
-  max-width: 78rem;
+  max-width: 74rem;
   padding-inline: 1.25rem;
 }
 
@@ -139,10 +141,28 @@
   body {
     @apply bg-background text-foreground;
     text-rendering: optimizeLegibility;
+    font-feature-settings: "liga" 1, "kern" 1;
   }
 
   ::selection {
     background: hsl(var(--primary) / 0.24);
     color: hsl(var(--foreground));
+  }
+}
+
+@layer utilities {
+  .marketing-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.34) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.34) 1px, transparent 1px);
+    background-size: 2.5rem 2.5rem;
+  }
+
+  .marketing-rule {
+    @apply border-border/80;
+  }
+
+  .section-kicker {
+    @apply font-mono text-[0.68rem] font-medium uppercase tracking-[0.14em] text-primary;
   }
 }

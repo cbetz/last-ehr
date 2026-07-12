@@ -26,6 +26,8 @@
     "mcp:build": "npm run build --workspace=@lastehr/mcp",
     "mcp:pack:check": "npm pack --workspace=@lastehr/mcp --dry-run",
     "mcp:demo": "tsx scripts/mcp-demo.ts",
+    "eval": "tsx scripts/eval.ts",
+    "eval:hapi": "tsx scripts/eval.ts --no-prepare",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",
     "demo:local": "tsx scripts/demo-local.ts",
     "demo:local:prepare": "tsx scripts/demo-local.ts --prepare",

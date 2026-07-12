@@ -31,6 +31,18 @@ work today; the next useful adapters are:
 
 Every adapter needs tests, a setup note, and an honest auth/tenant caveat.
 
+### 2.1 Synthetic workflow evidence
+
+The first [FHIR Agent Safety Eval](./docs/evals.md) is shipped for the local
+HAPI reference path. It creates and deletes disposable charts, verifies the
+web-agent proposal/approval and denial mechanics, and emits a scrubbed report.
+It is not a clinical, authorization, or compliance certification.
+
+Next, adapter contributors should run the same evaluator from their own
+synthetic sandbox tests. A future verified-integration directory will list only
+reviewed evidence: backend/version, auth mode, Last EHR revision, report/CI
+link, and retest date.
+
 ### 3. Safer approval workflows
 
 Approval-gated writes are the wedge. Near-term work:

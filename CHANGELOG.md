@@ -5,6 +5,17 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Added the FHIR Agent Safety Eval: a disposable synthetic workflow runner for
+  web-agent search/chart reads, proposal gating, approved and denied writes,
+  chart association, cleanup, and a scrubbed JSON report. The reusable helper
+  fails closed without explicit synthetic-target confirmation.
+- Added CI coverage and an uploaded report artifact for the loopback HAPI
+  reference evaluation.
+- Rebuilt the marketing and docs discovery surfaces around evidence: the
+  approval contract, MCP Local Lab, adapter contract, and Safety Eval.
+- Bound the public presentation to an ink/paper clinical-infrastructure visual
+  system with fewer decorative cards and clearer runnable paths.
+
 - Added `npm run mcp:demo`, a checkout-only synthetic HAPI MCP Local Lab that
   prepares fixture data and prints a no-FHIR-credential Claude Code/Cursor
   configuration for the two bounded read tools.

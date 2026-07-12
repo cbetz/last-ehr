@@ -23,13 +23,13 @@ import { getDocsSearchIndex } from "@/lib/docs/content";
 export const metadata: Metadata = {
   title: "Docs: Build an Approval-Gated FHIR Agent",
   description:
-    "Evaluate Last EHR locally, inspect the approval boundary, understand supported configurations, and build FHIR backend adapters.",
+    "Evaluate Last EHR locally, inspect the approval boundary, connect bounded MCP reads, run the synthetic workflow eval, and build FHIR backend adapters.",
   alternates: { canonical: "/docs" },
   openGraph: {
     type: "website",
     title: "Last EHR Docs",
     description:
-      "A practical path to evaluate, understand, and extend approval-gated FHIR agents.",
+      "A practical path to evaluate, inspect, verify, and extend approval-gated FHIR agents.",
     url: "https://www.lastehr.com/docs",
     images: ["https://www.lastehr.com/opengraph-image"],
   },
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Last EHR Docs",
     description:
-      "Evaluate, inspect, and extend approval-gated FHIR agents.",
+      "Evaluate, inspect, verify, and extend approval-gated FHIR agents.",
   },
 };
 
@@ -52,6 +52,22 @@ const paths = [
   },
   {
     number: "02",
+    title: "Inspect MCP locally",
+    description:
+      "Prepare fixture-restricted HAPI data and connect two read-only tools without FHIR credentials.",
+    href: "/docs/mcp#zero-credential-local-lab-checkout-only",
+    icon: Braces,
+  },
+  {
+    number: "03",
+    title: "Run the Safety Eval",
+    description:
+      "Generate a scrubbed synthetic report for proposal, approval, denial, association, and cleanup mechanics.",
+    href: "/docs/evals",
+    icon: ClipboardCheck,
+  },
+  {
+    number: "04",
     title: "Integrate Medplum",
     description:
       "Connect the authenticated path, bring your own model provider, and rely on backend access policy.",
@@ -59,7 +75,7 @@ const paths = [
     icon: ShieldCheck,
   },
   {
-    number: "03",
+    number: "05",
     title: "Extend a backend",
     description:
       "Start from the executable adapter starter and prove the FHIR contract against synthetic data.",
@@ -111,9 +127,15 @@ const docCollections = [
       },
       {
         title: "MCP server",
-        description: "An installable, Medplum-only package for bounded chart reads.",
+        description: "A Medplum-only package plus a fixture-restricted checkout Local Lab.",
         href: "/docs/mcp",
         icon: Braces,
+      },
+      {
+        title: "FHIR Agent Safety Eval",
+        description: "A scrubbed synthetic workflow report for the web agent's approval mechanics.",
+        href: "/docs/evals",
+        icon: ClipboardCheck,
       },
     ],
   },
@@ -157,10 +179,10 @@ function DocumentLink({
   return (
     <Link
       href={href}
-      className="group flex min-h-36 flex-col rounded-lg border border-border bg-background p-5 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg"
+      className="group flex min-h-36 flex-col border border-border bg-background p-5 transition-colors hover:border-primary/50 hover:bg-muted/30"
     >
       <span className="flex items-start justify-between gap-4">
-        <span className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-primary">
+        <span className="grid h-9 w-9 place-items-center border border-primary/25 bg-primary/10 text-primary">
           <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
         <ArrowRight className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
@@ -176,18 +198,14 @@ export default async function DocsPage() {
 
   return (
       <main>
-        <section className="relative isolate overflow-hidden border-b border-border/70">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_74%_12%,hsl(var(--primary)/0.15),transparent_25rem)]"
-          />
+        <section className="border-b marketing-rule">
           <div className="container py-16 sm:py-24 lg:py-28">
             <div className="max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-md border border-border bg-card/75 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-primary">
+              <p className="section-kicker inline-flex items-center gap-2">
                 <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                 Documentation
               </p>
-              <h1 className="mt-7 text-5xl font-semibold tracking-[-0.065em] text-balance sm:text-6xl sm:leading-[0.98]">
+              <h1 className="mt-6 text-[clamp(3rem,7vw,5.2rem)] font-semibold tracking-[-0.07em] text-balance sm:leading-[0.95]">
                 Get to a responsible first integration faster.
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">
@@ -196,7 +214,7 @@ export default async function DocsPage() {
                 Last EHR.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "h-12 rounded-md px-6" })}>
+                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "h-12 rounded-sm px-5" })}>
                   Start locally
                   <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
@@ -204,7 +222,7 @@ export default async function DocsPage() {
                   href="https://github.com/cbetz/last-ehr"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-md px-6" })}
+                  className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-sm px-5" })}
                 >
                   Browse source
                   <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
@@ -221,7 +239,7 @@ export default async function DocsPage() {
         </section>
 
         <section id="local" className="container scroll-mt-24 py-20 sm:py-28">
-          <div className="grid gap-10 rounded-xl border border-border bg-card p-6 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+          <div className="grid gap-10 border border-border bg-card p-6 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
             <div className="max-w-md">
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
                 The shortest path
@@ -245,7 +263,7 @@ export default async function DocsPage() {
               </ul>
             </div>
             <div>
-              <div className="overflow-hidden rounded-xl border border-border bg-[#0b1020] text-[#eef3ff]">
+              <div className="overflow-hidden border border-border bg-[#11152b] text-[#eef3ff]">
                 <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-3 font-mono text-[0.68rem] text-[#98a8c7]">
                   <span className="inline-flex items-center gap-2">
                     <Terminal className="h-3.5 w-3.5 text-[#8eb6ff]" aria-hidden="true" />
@@ -263,7 +281,7 @@ export default async function DocsPage() {
                   ["02", "Seed", "The repository creates its synthetic records."],
                   ["03", "Review", "The scripted agent stops before the write."],
                 ].map(([number, title, description]) => (
-                  <div key={number} className="rounded-lg border border-border bg-muted/30 p-4">
+                  <div key={number} className="border border-border bg-muted/30 p-4">
                     <span className="font-mono text-xs text-primary">{number}</span>
                     <p className="mt-3 text-sm font-semibold">{title}</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
@@ -284,7 +302,7 @@ export default async function DocsPage() {
                 Start where your architecture actually is.
               </h2>
             </div>
-            <div className="mt-10 grid gap-5 lg:grid-cols-3">
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-5">
               {paths.map(({ number, title, description, href, icon: Icon }) => {
                 const external = href.startsWith("http");
                 return (
@@ -293,11 +311,11 @@ export default async function DocsPage() {
                     href={href}
                     target={external ? "_blank" : undefined}
                     rel={external ? "noopener noreferrer" : undefined}
-                    className="group rounded-lg border border-border bg-background p-6 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+                    className="group border border-border bg-background p-6 transition-colors hover:border-primary/50 hover:bg-muted/30"
                   >
                     <span className="flex items-center justify-between">
                       <span className="font-mono text-xs text-primary">{number}</span>
-                      <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
+                      <span className="grid h-10 w-10 place-items-center border border-primary/25 bg-primary/10 text-primary">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </span>
                     </span>
@@ -346,7 +364,7 @@ export default async function DocsPage() {
                     <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
                   </Link>
                 </div>
-                <div className="mt-5 grid gap-4 md:grid-cols-3">
+                <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {docs.map((doc) => (
                     <DocumentLink key={doc.title} {...doc} />
                   ))}
@@ -366,7 +384,7 @@ export default async function DocsPage() {
                 The product boundary is part of the documentation.
               </h2>
             </div>
-            <div className="mt-10 overflow-x-auto rounded-lg border border-border bg-background">
+            <div className="mt-10 overflow-x-auto border border-border bg-background">
               <div className="grid min-w-[44rem] grid-cols-[1.1fr_0.8fr_1.35fr] gap-px bg-border text-sm">
                 <div className="bg-muted/40 p-4 font-semibold">Configuration</div>
                 <div className="bg-muted/40 p-4 font-semibold">Status</div>

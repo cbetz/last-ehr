@@ -53,6 +53,16 @@ jobs:
         env:
           RUN_HAPI_E2E: "1"
         run: npm test -- scripts/mcp-demo.hapi.integration.test.ts
+      - name: Run FHIR Agent Safety Eval
+        run: >-
+          npm run eval -- --no-prepare
+          --report artifacts/fhir-agent-safety-eval.json
+      - name: Upload FHIR Agent Safety Eval report
+        uses: actions/upload-artifact@v4
+        with:
+          name: fhir-agent-safety-eval
+          path: artifacts/fhir-agent-safety-eval.json
+          if-no-files-found: error
       - name: Verify scripted approval flow against HAPI
         env:
           RUN_HAPI_E2E: "1"

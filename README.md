@@ -26,6 +26,7 @@ synthetic walkthrough.
 | See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo) — no sign-up. |
 | Give an MCP client bounded Medplum chart reads | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
+| Prove the synthetic web-agent workflow locally | `npm run eval` |
 | Inspect the complete flow locally with no account or model key | `npm run demo:local` |
 
 ### 30-second synthetic-data walkthrough
@@ -49,6 +50,11 @@ model-provider API key of its own and is restricted to fixture patients. Your
 MCP client still uses its normal account and may send those synthetic results
 to its model provider. It is not the published package, generic HAPI support,
 or a path for PHI.
+
+For a deterministic safety-mechanics check, `npm run eval` creates a separate
+synthetic target, proves the proposal/approval and denial paths, verifies chart
+association, cleans up, and writes a scrubbed report. It is not a clinical,
+authorization, or compliance certification; see the [evaluation guide](./docs/evals.md).
 
 ## What it does
 
@@ -153,6 +159,7 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 - [Adapter starter](./examples/fhir-adapter-starter): an executable bearer-token FHIR REST baseline with a contract suite.
 - [Approval-gated writes](./docs/approval-gates.md): what the gate protects and what it does not.
 - [MCP server](./docs/mcp.md): published, read-only Medplum chart tools plus the checkout-only synthetic Local Lab.
+- [FHIR Agent Safety Eval](./docs/evals.md): a disposable synthetic workflow report for proposal, approval, denial, association, and cleanup mechanics.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
 - [Threat model](./docs/threat-model.md): trust boundaries and known limitations.
 - [Roadmap](./ROADMAP.md): what is current, next, and deliberately out of scope.

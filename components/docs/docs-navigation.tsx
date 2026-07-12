@@ -23,7 +23,7 @@ export function DocsNavigation({ doc }: DocsNavigationProps) {
       {previous ? (
         <Link
           href={getDocHref(previous)}
-          className="group rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/40"
+          className="group border border-border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-muted/40"
         >
           <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
@@ -39,7 +39,7 @@ export function DocsNavigation({ doc }: DocsNavigationProps) {
       {next ? (
         <Link
           href={getDocHref(next)}
-          className="group rounded-lg border border-border bg-card p-4 text-right transition-colors hover:border-primary/40 hover:bg-muted/40"
+          className="group border border-border bg-card p-4 text-right transition-colors hover:border-primary/40 hover:bg-muted/40"
         >
           <span className="flex items-center justify-end gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Next

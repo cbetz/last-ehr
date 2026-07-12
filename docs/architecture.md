@@ -29,6 +29,9 @@ flowchart LR
 - `scripts/mcp-demo.ts`: checkout-only synthetic HAPI MCP Local Lab. It shares
   the two read schemas, but its separate read facade resolves only the seeded
   fixture identifiers and never accepts credentials or a remote endpoint.
+- `lib/eval/fhir-agent-safety.ts`: disposable synthetic workflow evaluator for
+  the web agent's search, proposal, approval, denial, chart-association, and
+  cleanup mechanics. It is not a clinical or authorization certification.
 
 ## Tool surface
 

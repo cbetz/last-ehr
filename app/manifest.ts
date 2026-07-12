@@ -8,8 +8,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "An open-source reference implementation for approval-gated FHIR agents. The agent reads the chart and proposes writes; nothing is saved until you approve it.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0b1020",
-    theme_color: "#0b1020",
+    background_color: "#101219",
+    theme_color: "#101219",
     icons: [
       {
         src: "/icon",

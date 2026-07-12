@@ -60,6 +60,7 @@ Use both layers of verification for a new adapter:
 | --- | --- | --- |
 | [`test/fhir-rest-adapter-contract.ts`](../test/fhir-rest-adapter-contract.ts) | Structured collection search, `_id` lookup, FHIR request headers, `meta.tag` payload preservation, error handling, and delete semantics. | Normal unit test; mocked `fetch`, no account or server needed. |
 | [`test/fhir-backend-contract.ts`](../test/fhir-backend-contract.ts) | The four `FhirBackend` methods against a real server. It creates and deletes uniquely tagged synthetic resources. | Opt-in integration test against a disposable sandbox or local container only. |
+| [FHIR Agent Safety Eval](./evals.md) | Search/chart mechanics, proposal gating, approved and denied deterministic writes, chart association, and cleanup through the real web-agent tools. | Opt-in synthetic target only; call `runFhirAgentSafetyEval` with `confirmSyntheticTarget: true` from the adapter's own sandbox test. |
 
 The repository's HAPI adapter runs both: its REST contract is unit-tested and
 its real-server contract runs in the local HAPI CI job. A target-specific
@@ -72,6 +73,8 @@ synthetic workflows.
   `lib/fhir/<backend>.ts`.
 - Run the REST adapter contract suite and add auth-specific unit tests.
 - Add an opt-in real-server test using `test/fhir-backend-contract.ts`.
+- Run the [FHIR Agent Safety Eval](./evals.md) against the same disposable
+  target and retain its scrubbed report or CI link with the PR.
 - Update `createFhirBackend` only once the adapter is documented and verified
   for a concrete target.
 - Update `.env.example`.

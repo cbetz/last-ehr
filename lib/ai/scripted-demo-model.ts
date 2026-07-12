@@ -20,6 +20,17 @@ const usage = {
 
 type StreamOptions = Parameters<MockLanguageModelV3["doStream"]>[0];
 
+export type ScriptedDemoScenario = {
+  /** The synthetic patient name the deterministic model searches for. */
+  searchName?: string;
+  /** The proposal emitted after the model receives a matching patient id. */
+  observation?: {
+    label: string;
+    value: number;
+    unit: string;
+  };
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -106,7 +117,16 @@ function textResponse(text: string) {
  * -> report the outcome. It is not an LLM and intentionally does not interpret
  * arbitrary chart data or user prompts.
  */
-export function createScriptedDemoModel() {
+export function createScriptedDemoModel(
+  scenario: ScriptedDemoScenario = {},
+) {
+  const searchName = scenario.searchName ?? "Maria Garcia";
+  const observation = scenario.observation ?? {
+    label: "Heart rate",
+    value: 72,
+    unit: "bpm",
+  };
+
   return new MockLanguageModelV3({
     provider: SCRIPTED_PROVIDER,
     modelId: SCRIPTED_MODEL_ID,
@@ -138,9 +158,7 @@ export function createScriptedDemoModel() {
           stream: simulateReadableStream({
             chunks: toolCall("record_observation", {
               patientId,
-              label: "Heart rate",
-              value: 72,
-              unit: "bpm",
+              ...observation,
             }),
           }),
         };
@@ -148,7 +166,7 @@ export function createScriptedDemoModel() {
 
       return {
         stream: simulateReadableStream({
-          chunks: toolCall("search_patients", { name: "Maria Garcia" }),
+          chunks: toolCall("search_patients", { name: searchName }),
         }),
       };
     },

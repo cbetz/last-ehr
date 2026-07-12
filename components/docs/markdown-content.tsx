@@ -168,7 +168,7 @@ export function MarkdownContent({ markdown, doc }: MarkdownContentProps) {
 
       return (
         <code
-          className="rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[0.84em] font-medium text-foreground"
+          className="border border-primary/20 bg-primary/10 px-1.5 py-0.5 font-mono text-[0.84em] font-medium text-foreground"
           {...elementProps}
         >
           {children}
@@ -178,7 +178,7 @@ export function MarkdownContent({ markdown, doc }: MarkdownContentProps) {
     table: ({ children, ...props }) => {
       const elementProps = withoutMarkdownNode(props);
       return (
-        <div className="my-6 overflow-x-auto rounded-xl border border-border">
+        <div className="my-6 overflow-x-auto border border-border">
           <table className="min-w-full border-collapse text-left text-sm" {...elementProps}>
             {children}
           </table>

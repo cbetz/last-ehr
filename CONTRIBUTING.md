@@ -61,6 +61,9 @@ An adapter PR needs:
 2. **Tests**: run the network-free REST contract suite from
    `test/fhir-rest-adapter-contract.ts`, add auth-specific coverage, and add
    an opt-in real-server synthetic test with `test/fhir-backend-contract.ts`.
+   Run the [FHIR Agent Safety Eval](./docs/evals.md) from that test target and
+   retain its scrubbed report or CI link. The eval proves deterministic
+   workflow mechanics, not RBAC, clinical correctness, or compliance.
 3. **How you verified it**: the backend you ran (Docker image, cloud
    sandbox), and confirmation that the four tools work against it end to
    end. Synthetic data only.

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | Last EHR",
   },
   description:
-    "An open-source reference implementation for FHIR agents that propose structured writes and wait for explicit human approval. Medplum-supported, with a zero-key local HAPI evaluation path.",
+    "Open-source FHIR agent infrastructure for bounded chart context, structured proposals, explicit approval gates, a read-only MCP Local Lab, and synthetic workflow evaluation.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
@@ -24,6 +24,9 @@ export const metadata: Metadata = {
     "headless EMR",
     "healthcare AI agents",
     "open source EHR tools",
+    "MCP FHIR",
+    "FHIR agent safety eval",
+    "approval gated AI",
   ],
   alternates: {
     canonical: "/",
@@ -33,7 +36,7 @@ export const metadata: Metadata = {
     siteName: "Last EHR",
     title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "AI agents over the patient chart, with an explicit human decision before every write. Open source, self-hosted, FHIR-native.",
+      "FHIR agents with bounded context, structured proposals, and an explicit human decision before every write. Open source and synthetic-data-first.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
@@ -41,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "AI agents over the patient chart, with an explicit human decision before every write. Open source, self-hosted, FHIR-native.",
+      "FHIR agents with bounded context, structured proposals, and an explicit human decision before every write.",
     site: "@lastehr",
     creator: "@lastehr",
   },
@@ -60,8 +63,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f8fc" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1020" },
+    { media: "(prefers-color-scheme: light)", color: "#f7f5ef" },
+    { media: "(prefers-color-scheme: dark)", color: "#101219" },
   ],
   colorScheme: "light dark",
 };

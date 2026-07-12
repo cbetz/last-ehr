@@ -75,11 +75,28 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
   ]);
   const headings = extractHeadings(markdown);
   const body = getMarkdownBody(markdown);
-  const quickstartHref = "/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir";
+  const localAction =
+    doc.slug === "evals"
+      ? {
+          href: "/docs/evals#run-the-reference-evaluation",
+          label: "Run Safety Eval",
+          detail: "Run the disposable synthetic workflow report before connecting a real backend.",
+        }
+      : doc.slug === "mcp"
+        ? {
+            href: "/docs/mcp#zero-credential-local-lab-checkout-only",
+            label: "Open Local Lab",
+            detail: "Inspect the fixture-restricted local MCP surface before connecting a real project.",
+          }
+        : {
+            href: "/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir",
+            label: "Run locally",
+            detail: "Run the limited synthetic HAPI walkthrough before connecting a real backend.",
+          };
 
   return (
     <main>
-      <section className="border-b border-border/70 bg-[radial-gradient(circle_at_82%_0%,hsl(var(--primary)/0.12),transparent_24rem)]">
+      <section className="border-b marketing-rule">
         <div className="container py-10 sm:py-14">
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <Link href="/docs" className="transition-colors hover:text-foreground">
@@ -90,7 +107,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
           </div>
           <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
             <div className="max-w-3xl">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-primary">
+              <p className="section-kicker">
                 {doc.audience}
               </p>
               <h1 className="mt-4 text-4xl font-semibold tracking-[-0.055em] text-balance sm:text-5xl sm:leading-[0.98]">
@@ -102,15 +119,15 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <Link
-                href={quickstartHref}
+                href={localAction.href}
                 className={buttonVariants({
                   variant: "outline",
                   size: "sm",
-                  className: "rounded-md",
+                  className: "rounded-sm",
                 })}
               >
                 <Rocket className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-                Run locally
+                {localAction.label}
               </Link>
               <Link
                 href={getSourceHref(doc)}
@@ -119,7 +136,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
                 className={buttonVariants({
                   variant: "ghost",
                   size: "sm",
-                  className: "rounded-md",
+                  className: "rounded-sm",
                 })}
               >
                 <FileText className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
@@ -133,7 +150,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
           </div>
 
           <div className="mt-7 grid gap-3 lg:hidden">
-            <details className="rounded-lg border border-border bg-card p-4">
+            <details className="border border-border bg-card p-4">
               <summary className="cursor-pointer text-sm font-semibold text-foreground">
                 Browse documentation
               </summary>
@@ -141,7 +158,7 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
                 <DocsSidebar activeSlug={doc.slug} label="Mobile documentation navigation" />
               </div>
             </details>
-            <details className="rounded-lg border border-border bg-card p-4">
+            <details className="border border-border bg-card p-4">
               <summary className="cursor-pointer text-sm font-semibold text-foreground">
                 On this page
               </summary>
@@ -161,23 +178,23 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
         </aside>
 
         <article className="min-w-0">
-          <div className="rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <div className="border-y marketing-rule bg-muted/25 px-4 py-3 text-sm leading-6 text-muted-foreground">
             This guide describes the reference implementation as it exists today. Keep the
             stated support boundary in view as you evaluate or extend it.
           </div>
           <MarkdownContent markdown={body} doc={doc} />
-          <div className="mt-10 rounded-lg border border-primary/20 bg-primary/[0.06] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
+          <div className="mt-10 border-y border-primary/20 bg-primary/[0.06] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
             <div>
               <p className="font-semibold text-foreground">Want a concrete starting point?</p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Run the limited synthetic HAPI walkthrough before connecting a real backend.
+                {localAction.detail}
               </p>
             </div>
             <Link
-              href={quickstartHref}
+              href={localAction.href}
               className="mt-4 inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary sm:mt-0"
             >
-              Open quickstart
+              {localAction.label}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </div>

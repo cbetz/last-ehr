@@ -112,6 +112,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["MCP", "Claude", "Medplum", "read only", "tools"],
   },
   {
+    slug: "evals",
+    file: "docs/evals.md",
+    title: "FHIR Agent Safety Eval",
+    description:
+      "Run a disposable synthetic workflow evaluation for the web agent's proposal, approval, denial, and cleanup mechanics.",
+    group: "Build & integrate",
+    order: 30,
+    audience: "Adapter contributors and technical evaluators",
+    lastModified: "2026-07-11",
+    keywords: ["eval", "safety", "approval", "synthetic", "HAPI", "adapter"],
+  },
+  {
     slug: "deployment",
     file: "docs/deployment.md",
     title: "Deployment",

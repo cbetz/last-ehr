@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { ArrowRight, Check, GitBranch, Layers3, ShieldCheck, Terminal } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  ClipboardCheck,
+  FileCheck2,
+  MonitorPlay,
+  Terminal,
+} from "lucide-react";
 
 import AISection from "@/components/AI";
 import Hero from "@/components/Hero";
@@ -9,40 +17,51 @@ import { SignupForm } from "@/components/SignupForm";
 import { SiteFooter } from "@/components/site-footer";
 import { buttonVariants } from "@/components/ui/button";
 
-const localDemoFacts = [
-  "Starts HAPI FHIR and Postgres with Docker",
-  "Seeds a synthetic chart—no Medplum account needed",
-  "Runs one fixed, approval-gated observation flow",
+const entryPoints = [
+  {
+    number: "01",
+    title: "See the decision point",
+    description:
+      "Use the live synthetic demo to watch a clinical write become a visible proposal before it is saved.",
+    command: "Open /demo",
+    href: "/demo",
+    icon: MonitorPlay,
+    cta: "Open the demo",
+  },
+  {
+    number: "02",
+    title: "Inspect MCP locally",
+    description:
+      "Start loopback HAPI, reset four fixture charts, and connect Claude Code or Cursor to two read-only tools.",
+    command: "npm run mcp:demo",
+    href: "/docs/mcp#zero-credential-local-lab-checkout-only",
+    icon: Terminal,
+    cta: "Run the Local Lab",
+  },
+  {
+    number: "03",
+    title: "Run the Safety Eval",
+    description:
+      "Create a scrubbed report for proposal, approval, denial, chart association, and cleanup on a disposable target.",
+    command: "npm run eval",
+    href: "/docs/evals",
+    icon: ClipboardCheck,
+    cta: "Read the evaluator",
+  },
 ];
 
-const builderPaths = [
-  {
-    icon: ShieldCheck,
-    eyebrow: "Safety model",
-    title: "Make intent reviewable",
-    description:
-      "See the exact resource proposal before a chart write can execute, and keep backend policy as the final authority.",
-    href: "/approval-gated-writes",
-    cta: "Read the model",
-  },
-  {
-    icon: Layers3,
-    eyebrow: "Integration",
-    title: "Fit the FHIR layer you own",
-    description:
-      "Medplum is the authenticated path. HAPI is included for local evaluation. Other backends begin with a small contract.",
-    href: "https://github.com/cbetz/last-ehr/blob/main/docs/adapters.md",
-    cta: "Build an adapter",
-  },
-  {
-    icon: GitBranch,
-    eyebrow: "Open source",
-    title: "Trace every boundary",
-    description:
-      "The prompt, tool definitions, adapter seam, local demo, and safety documentation live in the repository—not behind a platform.",
-    href: "https://github.com/cbetz/last-ehr",
-    cta: "Browse the repository",
-  },
+const evidenceRows = [
+  ["Web agent", "Two write tools are proposal-shaped and approval-gated."],
+  ["MCP Local Lab", "A real stdio handshake reads only fixture-restricted HAPI charts."],
+  ["Adapter seam", "A reusable FHIR REST baseline and contract harness make the next backend testable."],
+  ["Safety Eval", "A disposable synthetic workflow report proves approval, denial, chart association, and cleanup mechanics."],
+];
+
+const docRoutes = [
+  ["01", "Evaluate", "Synthetic web demo and MCP Local Lab", "/docs/quickstart"],
+  ["02", "Understand", "Approval gates, threat model, support boundary", "/docs/approval-gates"],
+  ["03", "Integrate", "Medplum, MCP, and backend adapter paths", "/docs/mcp"],
+  ["04", "Contribute", "Executable starter, contracts, and open roadmap", "/docs/adapters"],
 ];
 
 export default function Home() {
@@ -54,184 +73,172 @@ export default function Home() {
         <HowItWorks />
         <AISection />
 
-        <section id="local" className="container py-20 sm:py-28">
-          <div className="grid gap-10 rounded-xl border border-border bg-card p-6 shadow-[0_28px_80px_-54px_hsl(var(--foreground)/0.9)] sm:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-            <div className="max-w-md">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
-                Evaluate locally
-              </p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-                A first run without an account, API key, or fragile setup.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Use the deterministic local path to inspect the approval loop
-                before connecting a model or a real backend. It is deliberately
-                constrained to synthetic data and one fixed FHIR write.
-              </p>
-              <Link
-                href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
-                className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
-              >
-                Read the full quickstart
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
-            <div>
-              <div className="overflow-hidden rounded-xl border border-border bg-[#0b1020] text-[#eef3ff] shadow-inner">
-                <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-3 font-mono text-[0.68rem] text-[#98a8c7]">
-                  <span className="inline-flex items-center gap-2">
-                    <Terminal className="h-3.5 w-3.5 text-[#8eb6ff]" aria-hidden="true" />
-                    LOCAL / SYNTHETIC
-                  </span>
-                  <span>macOS · Linux · Docker</span>
-                </div>
-                <pre className="overflow-x-auto p-6 font-mono text-sm leading-7 sm:p-8 sm:text-[0.95rem]">
-                  <code><span className="text-[#7183a7]">$</span> npm install{`\n`}<span className="text-[#7183a7]">$</span> npm run demo:local</code>
-                </pre>
-              </div>
-              <ul className="mt-5 grid gap-3 sm:grid-cols-3">
-                {localDemoFacts.map((fact) => (
-                  <li key={fact} className="flex gap-2 text-sm leading-5 text-muted-foreground">
-                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
-                    {fact}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section id="builders" className="border-y border-border/70 bg-muted/20">
+        <section id="start" className="border-b marketing-rule">
           <div className="container py-20 sm:py-28">
-            <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
-              <div className="max-w-2xl">
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
-                  For teams and contributors
-                </p>
-                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-                  A reference implementation with an opinionated point of view.
+            <div className="grid gap-8 border-b border-border pb-9 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+              <div>
+                <p className="section-kicker">Three useful first moves</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
+                  Start with evidence, not a sales call.
                 </h2>
               </div>
-              <p className="max-w-md text-base leading-7 text-muted-foreground">
-                It is intentionally not another EHR, policy engine, or hosted
-                black box. It is the smallest useful place to study and extend
-                approval-gated FHIR agent behavior.
+              <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+                The project is built for people who need to inspect the safety
+                boundary before they bring an agent anywhere near a real chart.
+                Pick the path that matches the question you have today.
               </p>
             </div>
 
-            <div className="mt-12 grid gap-5 lg:grid-cols-3">
-              {builderPaths.map(({ icon: Icon, eyebrow, title, description, href, cta }) => {
-                const external = href.startsWith("http");
-                return (
-                  <article key={title} className="group rounded-lg border border-border bg-background p-6 transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-7">
-                    <div className="flex items-start justify-between gap-6">
-                      <span className="grid h-10 w-10 place-items-center rounded-md bg-primary/10 text-primary">
-                        <Icon className="h-5 w-5" aria-hidden="true" />
-                      </span>
-                      <span className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{eyebrow}</span>
-                    </div>
-                    <h3 className="mt-9 text-xl font-semibold tracking-[-0.03em]">{title}</h3>
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
-                    <Link
-                      href={href}
-                      target={external ? "_blank" : undefined}
-                      rel={external ? "noopener noreferrer" : undefined}
-                      className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors group-hover:text-primary"
-                    >
-                      {cta}
-                      <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                    </Link>
-                  </article>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        <section id="documentation" className="container py-20 sm:py-28">
-          <div className="overflow-hidden rounded-xl border border-border bg-[linear-gradient(125deg,hsl(var(--card))_0%,hsl(var(--muted)/0.6)_100%)] p-6 sm:p-10 lg:grid lg:grid-cols-[1fr_0.92fr] lg:gap-16">
-            <div className="max-w-xl">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
-                Documentation with a point of view
-              </p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-                The context to make a responsible technical decision.
-              </h2>
-              <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Start with a local evaluation, see the support boundary, trace
-                the write path, and only then decide how to bring Last EHR into
-                your architecture.
-              </p>
-              <Link
-                href="/docs"
-                className={buttonVariants({ size: "lg", className: "mt-8 h-12 rounded-md px-6" })}
-              >
-                Open the docs hub
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-              </Link>
-            </div>
-            <div className="mt-10 grid gap-3 lg:mt-0">
-              {[
-                ["01", "Quickstart", "Run the deterministic local demo in one command."],
-                ["02", "Support status", "Know exactly what is supported, local-only, or unverified."],
-                ["03", "Approval gates", "Understand what the human review boundary does—and does not—protect."],
-                ["04", "Backend adapters", "Use an executable starter and contract tests for the next FHIR backend."],
-              ].map(([number, title, description]) => (
-                <Link
-                  key={title}
-                  href="/docs"
-                  className="group flex items-center gap-4 rounded-lg border border-border bg-background/75 p-4 transition-colors hover:border-primary/40 hover:bg-background"
-                >
-                  <span className="font-mono text-xs text-primary">{number}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{title}</span>
-                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">{description}</span>
-                  </span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
-                </Link>
+            <div className="grid divide-y divide-border border-b border-border lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+              {entryPoints.map(({ number, title, description, command, href, icon: Icon, cta }) => (
+                <article key={number} className="flex min-h-80 flex-col py-7 lg:px-7 lg:py-9 first:lg:pl-0 last:lg:pr-0">
+                  <div className="flex items-start justify-between gap-4">
+                    <span className="font-mono text-sm text-primary">{number}</span>
+                    <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                  </div>
+                  <h3 className="mt-12 text-xl font-semibold tracking-[-0.03em]">{title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
+                  <code className="mt-6 w-fit border border-border bg-muted/35 px-2.5 py-1.5 font-mono text-[0.68rem] text-foreground">
+                    {command}
+                  </code>
+                  <Link
+                    href={href}
+                    className="mt-auto pt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+                  >
+                    {cta}
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="signup" className="border-t border-border/70 bg-muted/20">
-          <div className="container grid gap-10 py-20 sm:py-24 lg:grid-cols-[1fr_0.75fr] lg:items-start">
+        <section id="integrations" className="border-b marketing-rule bg-muted/20">
+          <div className="container grid gap-12 py-20 sm:py-28 lg:grid-cols-[0.87fr_1.13fr] lg:gap-16">
             <div className="max-w-xl">
-              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
-                Built in the open
+              <p className="section-kicker">An integration should be able to explain itself</p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
+                Make compatibility a testable claim.
+              </h2>
+              <p className="mt-6 text-lg leading-8 text-muted-foreground">
+                Last EHR keeps the extension point small: a FHIR backend
+                contract, an executable adapter starter, and real HAPI
+                integration coverage. The Safety Eval runs on those same
+                disposable synthetic workflows and writes a scrubbed report—not
+                a broad marketing badge.
               </p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-                Start with something you can inspect.
+              <Link
+                href="/docs/adapters"
+                className={buttonVariants({ variant: "outline", size: "lg", className: "mt-8 h-12 rounded-sm px-5" })}
+              >
+                Read the adapter contract
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+
+            <div className="border border-border bg-background">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <FileCheck2 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                  Proof surface
+                </span>
+                <span>synthetic / CI-backed</span>
+              </div>
+              <dl className="divide-y divide-border">
+                {evidenceRows.map(([label, detail], index) => (
+                  <div key={label} className="grid gap-3 px-4 py-5 sm:grid-cols-[8.5rem_1fr_auto] sm:items-start sm:px-5">
+                    <dt className="font-mono text-xs text-primary">{String(index + 1).padStart(2, "0")}</dt>
+                    <dd>
+                      <span className="block text-sm font-semibold">{label}</span>
+                      <span className="mt-1 block text-sm leading-6 text-muted-foreground">{detail}</span>
+                    </dd>
+                    <span className="inline-flex w-fit items-center gap-1.5 border border-primary/25 px-2 py-1 font-mono text-[0.61rem] uppercase tracking-[0.1em] text-primary">
+                      <Check className="h-3 w-3" aria-hidden="true" />
+                      verified
+                    </span>
+                  </div>
+                ))}
+              </dl>
+              <div className="border-t border-border bg-muted/35 px-5 py-4 text-xs leading-5 text-muted-foreground">
+                The evaluator proves deterministic workflow mechanics, not
+                clinical correctness, HIPAA compliance, or backend RBAC.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="documentation" className="border-b marketing-rule">
+          <div className="container py-20 sm:py-28">
+            <div className="grid gap-8 border-b border-border pb-9 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+              <div>
+                <p className="section-kicker">Documentation as an operating manual</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
+                  Make a responsible technical decision faster.
+                </h2>
+              </div>
+              <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
+                Each guide names the path, the support boundary, and what still
+                needs proof. The docs are a product surface—not a dump of API
+                notes after the fact.
+              </p>
+            </div>
+
+            <div className="divide-y divide-border border-b border-border">
+              {docRoutes.map(([number, title, description, href]) => (
+                <Link
+                  key={number}
+                  href={href}
+                  className="group grid gap-3 py-5 transition-colors hover:text-primary sm:grid-cols-[4rem_13rem_1fr_auto] sm:items-center sm:gap-5 sm:py-6"
+                >
+                  <span className="font-mono text-sm text-primary">{number}</span>
+                  <span className="text-lg font-semibold tracking-[-0.025em] text-foreground">{title}</span>
+                  <span className="text-sm leading-6 text-muted-foreground">{description}</span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+            <Link
+              href="/docs"
+              className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+            >
+              Open the docs hub
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </section>
+
+        <section id="signup" className="border-b marketing-rule bg-muted/20">
+          <div className="container grid gap-10 py-16 sm:py-20 lg:grid-cols-[1fr_0.82fr] lg:items-start">
+            <div className="max-w-xl">
+              <p className="section-kicker">Built in the open</p>
+              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-4xl">
+                Inspect the source before you trust the promise.
               </h2>
               <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Last EHR is Apache-2.0 and self-hostable. The future managed
-                service is optional; the local stack, safety model, and source
-                code are the product today.
+                Last EHR is Apache-2.0. The code, safety notes, local paths,
+                and support boundaries are public. A future managed offering is
+                optional; the inspectable core is the point.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "rounded-md px-6" })}>
-                  Run it locally
-                </Link>
-                <Link
-                  href="https://github.com/cbetz/last-ehr"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={buttonVariants({ variant: "outline", size: "lg", className: "rounded-md px-6" })}
-                >
+                <Link href="https://github.com/cbetz/last-ehr" target="_blank" rel="noopener noreferrer" className={buttonVariants({ size: "lg", className: "h-12 rounded-sm px-5" })}>
                   View on GitHub
+                  <ArrowUpRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+                <Link href="/roadmap" className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-sm px-5" })}>
+                  Read the roadmap
                 </Link>
               </div>
               <p className="mt-7 text-sm leading-6 text-muted-foreground">
-                Not a medical device or a substitute for clinical judgment,
-                backend authorization, privacy review, or a HIPAA-ready
-                deployment plan.
+                Not a medical device, a substitute for clinical judgment, an
+                authorization layer, or a HIPAA-ready deployment by default.
               </p>
             </div>
-            <div className="rounded-lg border border-border bg-background p-6 sm:p-7">
-              <p className="text-sm font-semibold">Hosted updates, if you want them</p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <div className="border border-border bg-background p-5 sm:p-6">
+              <p className="font-mono text-[0.68rem] uppercase tracking-[0.13em] text-primary">Hosted updates</p>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 Join only for future managed-service news. Open-source updates
-                ship in the repository.
+                ship in the repository first.
               </p>
               <div className="mt-5">
                 <SignupForm />

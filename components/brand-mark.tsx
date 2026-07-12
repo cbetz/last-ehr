@@ -15,7 +15,7 @@ export function BrandMark({ className, compact = false }: BrandMarkProps) {
     >
       <span
         aria-hidden="true"
-        className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground shadow-sm"
+        className="grid h-8 w-8 place-items-center rounded-sm bg-primary text-primary-foreground"
       >
         <svg
           viewBox="0 0 32 32"

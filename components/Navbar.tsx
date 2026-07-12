@@ -22,10 +22,11 @@ type NavigationItem = {
 };
 
 const navigation: NavigationItem[] = [
-  { href: "/#workflow", label: "Workflow" },
-  { href: "/approval-gated-writes", label: "Safety" },
+  { href: "/#start", label: "Start" },
+  { href: "/#safety", label: "Safety" },
+  { href: "/#mcp", label: "MCP" },
   { href: "/docs", label: "Docs" },
-  { href: "/roadmap", label: "Roadmap" },
+  { href: "/docs/adapters", label: "Integrations" },
 ];
 
 function NavigationLink({ href, label, onClick }: NavigationItem & { onClick?: () => void }) {
@@ -37,7 +38,7 @@ function NavigationLink({ href, label, onClick }: NavigationItem & { onClick?: (
       target={external ? "_blank" : undefined}
       rel={external ? "noopener noreferrer" : undefined}
       onClick={onClick}
-      className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
     >
       {label}
     </Link>
@@ -50,39 +51,39 @@ export default function Navbar() {
   return (
     <nav
       aria-label="Primary navigation"
-      className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-xl"
+      className="sticky top-0 z-40 border-b marketing-rule bg-background/95 backdrop-blur-xl"
     >
-      <div className="container flex h-[4.75rem] items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="container flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" aria-label="Last EHR home" className="shrink-0">
           <BrandMark />
         </Link>
 
-        <div className="hidden items-center gap-1 lg:flex">
+        <div className="hidden items-center gap-4 lg:flex">
           {navigation.map((item) => (
             <NavigationLink key={item.label} {...item} />
           ))}
         </div>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-1 lg:flex">
           <Link
             href="https://github.com/cbetz/last-ehr"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="inline-flex h-9 items-center gap-2 px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <IconGitHub className="h-4 w-4" aria-hidden="true" />
             GitHub
           </Link>
           <ModeToggle />
           <Link
-            href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
+            href="/docs/mcp#zero-credential-local-lab-checkout-only"
             className={buttonVariants({
               size: "sm",
               className:
-                "rounded-md px-4 shadow-[0_10px_30px_-18px_hsl(var(--primary))]",
+                "ml-2 rounded-sm px-4",
             })}
           >
-            Run locally
+            Run Local Lab
           </Link>
         </div>
 
@@ -126,17 +127,17 @@ export default function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setIsOpen(false)}
-                  className="mt-3 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="mt-3 inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 >
                   <IconGitHub className="h-4 w-4" aria-hidden="true" />
                   View source on GitHub
                 </Link>
                 <Link
-                  href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir"
+                  href="/docs/mcp#zero-credential-local-lab-checkout-only"
                   onClick={() => setIsOpen(false)}
-                  className={buttonVariants({ className: "mt-4 rounded-md" })}
+                  className={buttonVariants({ className: "mt-4 rounded-sm" })}
                 >
-                  Run locally
+                  Run Local Lab
                 </Link>
               </div>
             </SheetContent>

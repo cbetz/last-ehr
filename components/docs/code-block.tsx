@@ -34,7 +34,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
   }
 
   return (
-    <div className="not-prose my-6 overflow-hidden rounded-lg border border-[#263552] bg-[#0b1020] text-[#eef3ff] shadow-[0_18px_50px_-35px_rgba(11,16,32,0.9)]">
+    <div className="not-prose my-6 overflow-hidden border border-[#30384a] bg-[#101219] text-[#eef3ff]">
       <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-4 py-2.5">
         <span className="font-mono text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[#98a8c7]">
           {language}
@@ -42,7 +42,7 @@ export function CodeBlock({ code, language }: CodeBlockProps) {
         <button
           type="button"
           onClick={copyCode}
-          className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-[#c8d3e9] transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8eb6ff]"
+          className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-[#c8d3e9] transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#8eb6ff]"
           aria-label={copied ? "Code copied" : "Copy code"}
         >
           {copied ? (

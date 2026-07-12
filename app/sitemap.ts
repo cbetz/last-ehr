@@ -11,7 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: BASE_URL,
-      lastModified: new Date("2026-07-09"),
+      lastModified: new Date("2026-07-11"),
       changeFrequency: "weekly",
       priority: 1,
     },
@@ -23,7 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
     {
       url: `${BASE_URL}/docs`,
-      lastModified: new Date("2026-07-09"),
+      lastModified: new Date("2026-07-11"),
       changeFrequency: "weekly",
       priority: 0.9,
     },
@@ -35,7 +35,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     {
       url: `${BASE_URL}/roadmap`,
-      lastModified: new Date("2026-07-09"),
+      lastModified: new Date("2026-07-11"),
       changeFrequency: "monthly",
       priority: 0.8,
     },

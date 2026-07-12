@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ClipboardCheck,
+  FileCheck2,
   GitBranch,
   LineChart,
   LockKeyhole,
@@ -62,8 +63,14 @@ const tracks = [
   {
     title: "MCP Safety",
     description:
-      "Keep the standalone read-only package auditable and explore proposal protocols before any direct-write surface.",
+      "Keep the standalone read-only package auditable; the shipped Local Lab evaluates the bounded surface on fixture data.",
     icon: <LockKeyhole className="h-5 w-5" aria-hidden="true" />,
+  },
+  {
+    title: "Safety Evidence",
+    description:
+      "Grow the shipped synthetic workflow eval into reviewed, retestable evidence for verified backend integrations.",
+    icon: <FileCheck2 className="h-5 w-5" aria-hidden="true" />,
   },
 ];
 
@@ -101,7 +108,7 @@ export default function RoadmapPage() {
         </section>
 
         <section className="container pb-24">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {tracks.map(({ title, description, icon }) => (
               <Card key={title} className="bg-transparent">
                 <CardHeader className="space-y-3">

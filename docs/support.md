@@ -45,7 +45,9 @@ approval-gated observation—not the full general-agent surface.
 The extension point is deliberately small. Follow the [adapter guide](./adapters.md)
 to implement the `FhirBackend` contract, add contract-style tests, document the
 authentication and tenancy model, and verify all four workflows with synthetic
-data. Open a [backend adapter issue](https://github.com/cbetz/last-ehr/issues/new?template=backend_adapter.yml)
+data. Add a scrubbed [FHIR Agent Safety Eval](./evals.md) result before calling
+an adapter verified; it proves deterministic tool/approval mechanics, not the
+backend's authorization model. Open a [backend adapter issue](https://github.com/cbetz/last-ehr/issues/new?template=backend_adapter.yml)
 before a large implementation so the verification target is clear.
 
 Do not add backend-specific branches to the agent tools or emulate backend

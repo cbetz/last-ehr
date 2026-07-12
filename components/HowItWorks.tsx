@@ -5,98 +5,89 @@ const steps = [
   {
     number: "01",
     icon: Eye,
-    title: "Read the clinical context",
+    title: "Read a bounded chart surface",
     description:
-      "The agent uses a deliberately small FHIR tool surface to search, retrieve, and render chart context.",
+      "Search and chart reads are explicit tools over FHIR. The backend remains the system of record and access-control boundary.",
   },
   {
     number: "02",
     icon: Stethoscope,
-    title: "Propose a structured change",
+    title: "Represent intent as a proposal",
     description:
-      "A note or observation is expressed as an explicit FHIR resource proposal—not an invisible side effect.",
+      "A note or observation is shown as a concrete FHIR-shaped change, not hidden as an agent side effect.",
   },
   {
     number: "03",
     icon: ShieldCheck,
-    title: "Pause for human review",
+    title: "Require a human decision",
     description:
-      "The write tool stops. The person reviewing sees what will be saved and can approve or cancel it.",
+      "The write tool pauses. A reviewer can inspect, approve, or cancel before anything reaches the chart.",
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section id="workflow" className="container py-20 sm:py-28">
-      <div className="max-w-2xl">
-        <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-primary">
-          The write path
-        </p>
-        <h2 className="mt-4 text-3xl font-semibold tracking-[-0.045em] sm:text-4xl">
-          A safety boundary you can inspect.
-        </h2>
-        <p className="mt-5 text-lg leading-8 text-muted-foreground">
-          Last EHR does not make a backend safer by pretending to replace its
-          controls. It makes the agent&apos;s intent visible, then leaves the
-          authorization decision with the person and the system of record.
-        </p>
-      </div>
+    <section id="safety" className="border-b marketing-rule">
+      <div className="container grid gap-12 py-20 sm:py-28 lg:grid-cols-[0.78fr_1.22fr] lg:gap-16">
+        <div className="max-w-lg">
+          <p className="section-kicker">The safety contract</p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
+            A clinical write is a workflow, not an API side effect.
+          </h2>
+          <p className="mt-6 text-lg leading-8 text-muted-foreground">
+            Last EHR does not claim to replace backend policy or clinical
+            judgment. It gives the agent a small, inspectable surface and
+            makes the point of human review impossible to miss.
+          </p>
+          <Link
+            href="/docs/approval-gates"
+            className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+          >
+            Read the approval model
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
 
-      <div className="mt-12 grid gap-px overflow-hidden rounded-xl border border-border bg-border/80 md:grid-cols-3">
-        {steps.map(({ number, icon: Icon, title, description }) => (
-          <article key={number} className="group bg-background p-7 sm:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <span className="font-mono text-xs text-primary">{number}</span>
-              <span className="grid h-9 w-9 place-items-center rounded-md border border-border bg-card text-primary transition-transform duration-300 group-hover:-translate-y-1">
+        <div className="border-y marketing-rule">
+          {steps.map(({ number, icon: Icon, title, description }) => (
+            <article
+              key={number}
+              className="grid grid-cols-[3rem_1fr_auto] gap-4 border-b border-border py-5 last:border-b-0 sm:grid-cols-[4rem_1fr_auto] sm:gap-6 sm:py-7"
+            >
+              <span className="font-mono text-sm text-primary">{number}</span>
+              <div>
+                <h3 className="text-lg font-semibold tracking-[-0.025em] sm:text-xl">{title}</h3>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
+              </div>
+              <span className="mt-0.5 grid h-8 w-8 place-items-center border border-border text-primary sm:h-9 sm:w-9">
                 <Icon className="h-4 w-4" aria-hidden="true" />
               </span>
+            </article>
+          ))}
+          <div className="grid gap-px border-t border-border bg-border sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-stretch">
+            <div className="bg-background px-4 py-4">
+              <span className="block font-mono text-[0.63rem] uppercase tracking-[0.13em] text-muted-foreground">System of record</span>
+              <span className="mt-1.5 block text-sm font-semibold">FHIR backend</span>
             </div>
-            <h3 className="mt-10 text-lg font-semibold tracking-[-0.025em]">{title}</h3>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
-          </article>
-        ))}
-      </div>
-
-      <div className="mt-7 grid gap-6 rounded-xl border border-border bg-muted/35 p-6 sm:p-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
-        <div>
-          <div className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Database className="h-4 w-4" aria-hidden="true" />
+            <ArrowRight className="m-auto hidden h-4 w-4 text-primary sm:block" aria-hidden="true" />
+            <div className="bg-background px-4 py-4">
+              <span className="block font-mono text-[0.63rem] uppercase tracking-[0.13em] text-muted-foreground">Agent layer</span>
+              <span className="mt-1.5 block text-sm font-semibold">Inspectable proposal</span>
+            </div>
+            <ArrowRight className="m-auto hidden h-4 w-4 text-primary sm:block" aria-hidden="true" />
+            <div className="bg-background px-4 py-4">
+              <span className="block font-mono text-[0.63rem] uppercase tracking-[0.13em] text-muted-foreground">Decision</span>
+              <span className="mt-1.5 block text-sm font-semibold">Review + policy</span>
+            </div>
           </div>
-          <h3 className="mt-5 text-xl font-semibold tracking-[-0.03em]">
-            The backend remains the security boundary.
-          </h3>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            In the authenticated Medplum path, every call runs under the
-            signed-in user&apos;s access policy. The local HAPI path is a
-            deliberately restricted synthetic evaluation environment—not a
-            deployment shortcut.
-          </p>
-        </div>
-        <div className="grid gap-3 font-mono text-xs text-muted-foreground sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
-          <div className="rounded-lg border border-border bg-background px-4 py-3">
-            <span className="block text-[0.62rem] uppercase tracking-[0.14em] text-primary">System of record</span>
-            <span className="mt-1.5 block text-foreground">FHIR backend</span>
-          </div>
-          <ArrowRight className="mx-auto h-4 w-4 rotate-90 text-primary sm:rotate-0" aria-hidden="true" />
-          <div className="rounded-lg border border-primary/30 bg-primary/10 px-4 py-3">
-            <span className="block text-[0.62rem] uppercase tracking-[0.14em] text-primary">Agent layer</span>
-            <span className="mt-1.5 block text-foreground">proposal</span>
-          </div>
-          <ArrowRight className="mx-auto h-4 w-4 rotate-90 text-primary sm:rotate-0" aria-hidden="true" />
-          <div className="rounded-lg border border-border bg-background px-4 py-3">
-            <span className="block text-[0.62rem] uppercase tracking-[0.14em] text-primary">Decision</span>
-            <span className="mt-1.5 block text-foreground">review + policy</span>
+          <div className="flex items-start gap-3 border-t border-border bg-muted/35 px-4 py-4 text-sm leading-6 text-muted-foreground">
+            <Database className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            The backend still decides what the signed-in identity can read or
+            write. The local HAPI routes are synthetic evaluation tools, not
+            an authorization model.
           </div>
         </div>
       </div>
-
-      <Link
-        href="/approval-gated-writes"
-        className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
-      >
-        Read the approval model
-        <ArrowRight className="h-4 w-4" aria-hidden="true" />
-      </Link>
     </section>
   );
 }
