@@ -28,6 +28,10 @@ import {
 } from "@/components/ui/tooltip";
 import { IconArrowElbow, IconPlus } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import {
+  ConversionCard,
+  conversionCardDismissed,
+} from "@/components/demo/conversion-card";
 import { DismissibleNotice } from "@/components/demo/dismissible-notice";
 import { EmptyScreen } from "@/components/empty-screen";
 import { track } from "@/lib/analytics";
@@ -133,6 +137,14 @@ export function DemoChat() {
   useEffect(() => {
     setSmartSession(document.cookie.includes("smart_session=1"));
   }, []);
+
+  // The conversion card appears once, right after the visitor's first
+  // approve or reject decision, and stays until dismissed. SMART sessions
+  // are clinician context, so no marketing card there.
+  const [showConversion, setShowConversion] = useState(false);
+  const maybeShowConversion = () => {
+    if (!smartSession && !conversionCardDismissed()) setShowConversion(true);
+  };
 
   // Re-arm the server session cookie before every send and approval response.
   // Sign-in sessions renew from the client-side Medplum token (posted to a
@@ -324,6 +336,7 @@ export function DemoChat() {
                                     id: part.approval.id,
                                     approved: true,
                                   });
+                                  maybeShowConversion();
                                 }}
                                 onCancel={async () => {
                                   track("demo_write_approval", {
@@ -335,6 +348,7 @@ export function DemoChat() {
                                     id: part.approval.id,
                                     approved: false,
                                   });
+                                  maybeShowConversion();
                                 }}
                               />
                             </BotCard>
@@ -401,6 +415,7 @@ export function DemoChat() {
                                     id: part.approval.id,
                                     approved: true,
                                   });
+                                  maybeShowConversion();
                                 }}
                                 onCancel={async () => {
                                   track("demo_write_approval", {
@@ -412,6 +427,7 @@ export function DemoChat() {
                                     id: part.approval.id,
                                     approved: false,
                                   });
+                                  maybeShowConversion();
                                 }}
                               />
                             </BotCard>
@@ -443,6 +459,11 @@ export function DemoChat() {
               );
             })}
 
+            {showConversion && !smartSession && (
+              <div className="pb-4">
+                <ConversionCard onDismiss={() => setShowConversion(false)} />
+              </div>
+            )}
             {status === "submitted" && (
               <div className="pb-4">
                 <BotCard>
@@ -483,6 +504,11 @@ export function DemoChat() {
                         e.preventDefault();
                         setMessages([]);
                         setInput("");
+                        // The card's copy claims a write just happened, which
+                        // is no longer true in a fresh conversation. Dismissal
+                        // semantics are unchanged: only the localStorage flag
+                        // suppresses it permanently.
+                        setShowConversion(false);
                       }}
                     >
                       <IconPlus />
