@@ -1,0 +1,62 @@
+name: Publish app image to GHCR
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+# No stored secrets: GHCR login uses the workflow's ambient GITHUB_TOKEN,
+# matching the repo convention (see publish-mcp-registry.yml).
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Build and push ghcr.io/cbetz/last-ehr
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # type=sha is a fallback so a manual dispatch from a branch still
+      # produces a pushable tag. A maintainer-only manual dispatch also
+      # publishes latest so the image can be bootstrapped before the next
+      # release.
+      - name: Compute image tags and labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/cbetz/last-ehr
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' }}
+            type=sha
+      # The published image is the zero-key local synthetic lab: the
+      # quickstart/scripted UI is baked on at build time, while every
+      # dangerous path stays server-side gated (the scripted provider
+      # requires AI_PROVIDER=scripted, LASTEHR_SCRIPTED_DEMO=true,
+      # FHIR_BACKEND=hapi, and a local HAPI FHIR URL at runtime). PostHog,
+      # Medplum, and model build args are deliberately not passed: analytics
+      # and auth stay unset in the public image.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_QUICKSTART=true
+            NEXT_PUBLIC_SCRIPTED_DEMO=true

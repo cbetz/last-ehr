@@ -147,6 +147,10 @@ hosted public demo stays on Medplum.
 
 To run the app container too, use `npm run docker:local` after filling
 `.env.local`; it combines the HAPI/Postgres compose stack with the app image.
+Release tags and manual publish runs push a prebuilt scripted-demo image to
+`ghcr.io/cbetz/last-ehr`; if the pull fails, no public image has been
+published yet. See
+[Pull and run from GHCR](./docs/deployment.md#pull-and-run-from-ghcr).
 
 For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 
