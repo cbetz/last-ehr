@@ -16,3 +16,20 @@ export function toSafeChatErrorMessage(error: unknown): string {
   }
   return "A chart request failed. Check your backend access and try again.";
 }
+
+/**
+ * Compact, log-safe summary of a chat error: name, message, and status code.
+ * Provider errors carry the full request body (messages + chart context) in
+ * requestBodyValues; never log the raw object.
+ */
+export function toSafeChatErrorLog(error: unknown): string {
+  const summary =
+    error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  const statusCode =
+    typeof error === "object" && error !== null && "statusCode" in error
+      ? (error as { statusCode: unknown }).statusCode
+      : undefined;
+  return typeof statusCode === "number"
+    ? `${summary} (status ${statusCode})`
+    : summary;
+}

@@ -97,6 +97,12 @@ export function SiteFooter() {
       <div className="container flex flex-col gap-3 border-t marketing-rule py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>© {year} Last EHR. Apache-2.0.</p>
         <p>A personal open-source project. Not affiliated with Medplum or Vercel.</p>
+        <Link
+          href="/privacy"
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Privacy
+        </Link>
       </div>
     </footer>
   );
