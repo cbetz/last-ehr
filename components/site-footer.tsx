@@ -36,6 +36,14 @@ const footerGroups = [
         href: "https://github.com/cbetz/last-ehr/blob/main/CONTRIBUTING.md",
         label: "Contributing",
       },
+      {
+        href: "https://github.com/cbetz/last-ehr/labels/good%20first%20issue",
+        label: "Good first issues",
+      },
+      {
+        href: "https://github.com/cbetz/last-ehr/discussions",
+        label: "Discussions",
+      },
       { href: "/roadmap", label: "Roadmap" },
     ],
   },

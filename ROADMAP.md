@@ -104,6 +104,10 @@ change until the first 1.0 line is declared.
 
 ## How to help
 
-Start with `docs/adapters.md`, `docs/approval-gates.md`, or `docs/mcp.md`.
-Small PRs are preferred. If a change touches real clinical risk, open an issue
-or draft PR before implementing the whole feature.
+Start with `docs/adapters.md`, `docs/approval-gates.md`, or `docs/mcp.md`, or
+pick something from the
+[good first issue](https://github.com/cbetz/last-ehr/labels/good%20first%20issue)
+label. Small PRs are preferred. If a change touches real clinical risk, open an
+issue, start a thread in
+[Discussions](https://github.com/cbetz/last-ehr/discussions), or draft a PR
+before implementing the whole feature.

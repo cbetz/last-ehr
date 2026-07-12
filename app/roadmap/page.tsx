@@ -124,6 +124,32 @@ export default function RoadmapPage() {
             ))}
           </div>
         </section>
+
+        <section className="container max-w-4xl pb-24">
+          <h2 className="text-2xl font-bold">How to help</h2>
+          <p className="mt-4 max-w-2xl text-muted-foreground">
+            Small PRs are preferred. Adapters, docs, and demo polish are all in
+            reach for a first contribution.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-4">
+            <Link
+              href="https://github.com/cbetz/last-ehr/labels/good%20first%20issue"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants()}
+            >
+              Good first issues
+            </Link>
+            <Link
+              href="https://github.com/cbetz/last-ehr/discussions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Join the discussion
+            </Link>
+          </div>
+        </section>
       </main>
       <SiteFooter />
     </>
