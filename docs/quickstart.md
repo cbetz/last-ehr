@@ -107,6 +107,13 @@ npm run docker:local
 This uses `docker-compose.yml` plus `docker-compose.app.yml` and reads the
 build-time public values from `.env.local`.
 
+Separately, if you only want the scripted zero-key lab without a local build:
+release tags and manual publish runs push a prebuilt image whose scripted
+configuration is baked in at build time, so it always runs the scripted
+walkthrough and cannot run the real-model setup described in this section; see
+[Pull and run from GHCR](./deployment.md#pull-and-run-from-ghcr), which also
+covers what to do if no public image has been published yet.
+
 ## Medplum-backed demo
 
 Use this path when you want real Medplum auth, AccessPolicy, and SMART launch

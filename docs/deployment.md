@@ -64,6 +64,38 @@ local development but not reliable across serverless instances.
 
 ## Docker
 
+### Pull and run from GHCR
+
+Images are published to `ghcr.io/cbetz/last-ehr` from release tags (`v*`) and
+from maintainer-run manual publish workflows. If the pull fails with `denied`
+or `manifest unknown`, no public image has been published yet; fall back to
+[Build locally](#build-locally) below. To run the published image with the
+local HAPI stack without building anything:
+
+```bash
+npm install
+docker compose -f docker-compose.yml -f docker-compose.ghcr.yml up -d
+FHIR_BACKEND=hapi FHIR_BASE_URL=http://localhost:8080/fhir npm run fhir:wait
+FHIR_BACKEND=hapi FHIR_BASE_URL=http://localhost:8080/fhir npm run seed
+```
+
+The env prefix pins the host-side wait and seed to the local HAPI stack;
+without it the scripts default to Medplum and, with a real `.env.local`, would
+silently seed your real Medplum project.
+
+Then open <http://localhost:3000/demo>. The app is ready once HAPI is seeded.
+
+Maintainer note: the first publish lands private on GHCR, so it must be
+flipped to public in the GHCR package settings before anonymous pulls work.
+
+The published image bakes `NEXT_PUBLIC_QUICKSTART` and
+`NEXT_PUBLIC_SCRIPTED_DEMO` on and everything else off: no PostHog analytics,
+no Medplum Google client, no demo model picker. Any deployment that needs
+different `NEXT_PUBLIC_*` values must build its own image; see the build-time
+note at the end of this section.
+
+### Build locally
+
 The repository includes a Dockerfile for app packaging and compose files for
 local evaluation. Build the app image with:
 

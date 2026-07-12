@@ -1,0 +1,13 @@
+services:
+  app:
+    image: ghcr.io/cbetz/last-ehr:latest
+    ports:
+      - "3000:3000"
+    environment:
+      FHIR_BACKEND: hapi
+      FHIR_BASE_URL: http://hapi:8080/fhir
+      AI_PROVIDER: scripted
+      LASTEHR_SCRIPTED_DEMO: "true"
+    depends_on:
+      hapi:
+        condition: service_started
