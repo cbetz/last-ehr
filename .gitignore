@@ -11,6 +11,8 @@ packages/*/node_modules
 /coverage
 /.lastehr/
 /artifacts/
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
