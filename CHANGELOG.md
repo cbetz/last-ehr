@@ -3,8 +3,32 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.2.2 — 2026-07-12
 
+- Published a multi-arch app image to GHCR (`ghcr.io/cbetz/last-ehr`) from
+  release tags and manual publish runs, with `docker-compose.ghcr.yml` for a
+  pull-and-run zero-key synthetic stack. The image bakes the quickstart and
+  scripted-demo UI on and analytics, Medplum auth, and model keys off.
+- Added a browser end-to-end suite for the approval flow (Playwright, scripted
+  model only): proposal card renders, a rejected write leaves HAPI untouched,
+  an approved write persists exactly one session-tagged Observation, asserted
+  over FHIR REST. Runs in CI against the seeded local HAPI stack.
+- Locked PostHog to explicit product events only: no autocapture, no automatic
+  pageviews, no session recording or surveys, memory persistence with no
+  cookies and nothing stored on-device.
+- Added a `/privacy` page describing the hosted site's actual data practices,
+  linked from the footer and sitemap.
+- Narrowed server-side chat error logging to error type, message, and status;
+  raw provider errors are never logged because they can carry the full request
+  body, including chart context.
+- Added a post-demo conversion card after the first approve or reject decision
+  in the demo, with once-only display, dismissal, and SMART-session
+  suppression.
+- Led the homepage, README, and share images with the writeback value
+  proposition, and tightened backend claims: bring your own Medplum project;
+  the local HAPI stack stays synthetic evaluation only.
+- Surfaced community entry points: good first issues and GitHub Discussions in
+  the footer, the roadmap page, and `ROADMAP.md`.
 - Added the FHIR Agent Safety Eval: a disposable synthetic workflow runner for
   web-agent search/chart reads, proposal gating, approved and denied writes,
   chart association, cleanup, and a scrubbed JSON report. The reusable helper
@@ -15,7 +39,6 @@ self-hosters can tell what moved between pulls.
   approval contract, MCP Local Lab, adapter contract, and Safety Eval.
 - Bound the public presentation to an ink/paper clinical-infrastructure visual
   system with fewer decorative cards and clearer runnable paths.
-
 - Added `npm run mcp:demo`, a checkout-only synthetic HAPI MCP Local Lab that
   prepares fixture data and prints a no-FHIR-credential Claude Code/Cursor
   configuration for the two bounded read tools.
