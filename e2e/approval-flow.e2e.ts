@@ -41,6 +41,27 @@ async function fetchSessionObservations(
   return bundle.entry ?? [];
 }
 
+// The same session-tag query for AuditEvents: the opt-in rejected-proposal
+// audit trail (LASTEHR_AUDIT_REJECTED_PROPOSALS, enabled in the e2e web
+// server env) writes one tagged AuditEvent per denial.
+async function fetchSessionAuditEvents(
+  page: Page,
+): Promise<{ resource: { [key: string]: unknown } }[]> {
+  const cookies = await page.context().cookies();
+  const sessionId = cookies.find(
+    (cookie) => cookie.name === "demo_session_id",
+  )?.value;
+  expect(sessionId, "quickstart should set demo_session_id").toBeTruthy();
+
+  const tag = `${SESSION_TAG_SYSTEM}|session-${sessionId}`;
+  const response = await page.request.get(
+    `${HAPI_BASE_URL}/AuditEvent?_tag=${encodeURIComponent(tag)}&_count=10`,
+  );
+  expect(response.ok()).toBe(true);
+  const bundle = await response.json();
+  return bundle.entry ?? [];
+}
+
 test("proposal card shows the pending write, field by field", async ({
   page,
 }) => {
@@ -70,6 +91,17 @@ test("rejecting the proposal writes nothing to HAPI", async ({ page }) => {
   ).toBeVisible();
 
   expect(await fetchSessionObservations(page)).toHaveLength(0);
+
+  // The denial itself is recorded: exactly one AuditEvent, marked as a
+  // create blocked before execution, with no proposed chart content.
+  const audits = await fetchSessionAuditEvents(page);
+  expect(audits).toHaveLength(1);
+  expect(audits[0].resource).toMatchObject({
+    resourceType: "AuditEvent",
+    action: "C",
+    outcome: "4",
+  });
+  expect(JSON.stringify(audits[0].resource)).toContain("record_observation");
 });
 
 test("approving the proposal persists the Observation in HAPI", async ({
@@ -90,4 +122,8 @@ test("approving the proposal persists the Observation in HAPI", async ({
     code: { text: "Heart rate" },
     valueQuantity: { value: 72, unit: "bpm" },
   });
+
+  // Approvals leave their evidence as the created resource; the audit trail
+  // records denials only.
+  expect(await fetchSessionAuditEvents(page)).toHaveLength(0);
 });

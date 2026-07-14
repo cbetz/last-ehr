@@ -34,13 +34,30 @@ When the model calls one of those tools:
 - Approval fatigue.
 - Backend access control. The backend remains the security boundary.
 
+## Rejected-proposal audit events (opt-in)
+
+An approved write leaves its own evidence: the created resource. A denial
+leaves nothing on the chart by design. Deployments that need to show "the
+agent proposed a write and a person said no" can set:
+
+```bash
+LASTEHR_AUDIT_REJECTED_PROPOSALS=true
+```
+
+Each denial then writes one FHIR `AuditEvent` to the configured backend: an
+attempted RESTful create with outcome `4` (blocked before execution), the
+tool name, the patient reference, and the approval id. The proposed content
+itself is deliberately not copied into the event, so the audit trail never
+becomes a second, unreviewed home for rejected text. On the shared demo the
+events carry the same session tag as other writes. Audit failures are logged
+and never block the chat turn.
+
 ## Product backlog
 
 The approval experience should become more inspectable without becoming noisy:
 
 - FHIR preview in the card.
 - Editable draft proposals with explicit re-review before save.
-- Rejected-proposal audit events as an opt-in deployment feature.
 - Approval policies by resource type, environment, user role, or SMART scope.
 - Batch review for low-risk resources, if it can avoid approval fatigue.
 

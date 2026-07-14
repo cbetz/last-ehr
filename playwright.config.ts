@@ -11,6 +11,8 @@ const scriptedDemoEnv = {
   LASTEHR_SCRIPTED_DEMO: "true",
   NEXT_PUBLIC_QUICKSTART: "true",
   NEXT_PUBLIC_SCRIPTED_DEMO: "true",
+  // Exercise the opt-in rejected-proposal audit trail in the reject test.
+  LASTEHR_AUDIT_REJECTED_PROPOSALS: "true",
   // Each test re-arms the quickstart session before every send and approval,
   // so the default 10/min in-memory limit trips from one localhost IP.
   RATE_LIMIT_PER_IP_MAX: "100",

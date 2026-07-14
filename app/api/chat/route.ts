@@ -15,6 +15,7 @@ import {
 } from "@/lib/ai/chat-errors";
 import { parseDemoModels, resolveDemoModel } from "@/lib/ai/demo-models";
 import { buildTools, SYSTEM_PROMPT } from "@/lib/ai/tools";
+import { findDeniedProposals, recordRejectedProposal } from "@/lib/fhir/audit";
 import { createFhirBackend } from "@/lib/fhir/backend";
 import { ScriptedDemoBackend } from "@/lib/fhir/scripted-demo";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
@@ -78,6 +79,23 @@ export async function POST(req: Request) {
       : backend,
     sessionId,
   );
+
+  // Opt-in rejected-proposal audit trail. Uses the raw backend, not the
+  // scripted wrapper: AuditEvents are system writes, not agent tool writes,
+  // so they are outside the scripted demo's narrowed write surface. Audit
+  // failures are logged and never block the chat turn.
+  if (process.env.LASTEHR_AUDIT_REJECTED_PROPOSALS === "true") {
+    for (const denial of findDeniedProposals(messages)) {
+      try {
+        await recordRejectedProposal(backend, denial, sessionId);
+      } catch (error) {
+        console.error(
+          "Rejected-proposal audit failed:",
+          toSafeChatErrorLog(error),
+        );
+      }
+    }
+  }
 
   const result = streamText({
     model: getChatModel(demoModel),
