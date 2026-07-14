@@ -133,6 +133,7 @@ function IconSpinner({ className, ...props }: React.ComponentProps<'svg'>) {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 256 256"
       fill="currentColor"
+      aria-hidden="true"
       className={cn('h-4 w-4 animate-spin', className)}
       {...props}
     >

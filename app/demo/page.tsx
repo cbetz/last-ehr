@@ -77,7 +77,9 @@ export default function DemoPage() {
       ) : loading ? (
         <div className="flex flex-1 items-center justify-center py-24 text-muted-foreground">
           <IconSpinner />
-          <span className="ml-2">Loading…</span>
+          <span className="ml-2" role="status">
+            Loading…
+          </span>
         </div>
       ) : profile ? (
         <main className="flex-1">
