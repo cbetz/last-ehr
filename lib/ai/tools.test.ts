@@ -190,75 +190,85 @@ describe("agent FHIR tools", () => {
     );
   });
 
-  it("show_patient_info hides other sessions' writes but keeps seed data and its own", async () => {
-    searchResources
-      .mockResolvedValueOnce([{ resourceType: "Patient", id: "p9" }]) // Patient
-      .mockResolvedValueOnce([]) // Condition
-      .mockResolvedValueOnce([]) // AllergyIntolerance
-      .mockResolvedValueOnce([
-        {
-          id: "seed",
-          code: { text: "Body temperature" },
-          valueQuantity: { value: 37, unit: "C" },
-          effectiveDateTime: "2026-01-01T00:00:00Z",
-        },
-        {
-          id: "mine",
-          code: { text: "Heart rate" },
-          valueQuantity: { value: 72, unit: "bpm" },
-          effectiveDateTime: "2026-06-01T00:00:00Z",
-          meta: {
-            tag: [{ system: "http://lastehr.demo", code: "session-A" }],
-          },
-        },
-        {
-          id: "other",
-          code: { text: "Junk" },
-          valueQuantity: { value: 999, unit: "x" },
-          effectiveDateTime: "2026-06-02T00:00:00Z",
-          meta: {
-            tag: [{ system: "http://lastehr.demo", code: "session-B" }],
-          },
-        },
-      ]) // Observation
-      .mockResolvedValueOnce([
-        {
-          id: "note-seed",
-          payload: [{ contentString: "seed note" }],
-          sent: "2026-01-01T00:00:00Z",
-        },
-        {
-          id: "note-other",
-          payload: [{ contentString: "other note" }],
-          sent: "2026-06-02T00:00:00Z",
-          meta: {
-            tag: [{ system: "http://lastehr.demo", code: "session-B" }],
-          },
-        },
-      ]) // Communication
-      .mockResolvedValueOnce([
-        {
-          id: "med-seed",
-          medicationCodeableConcept: { text: "Lisinopril 10 mg tablet" },
-          dosageInstruction: [{ text: "once daily" }],
-          status: "active",
-        },
-        {
-          id: "med-other",
-          medicationCodeableConcept: { text: "Junk med" },
-          status: "active",
-          meta: {
-            tag: [{ system: "http://lastehr.demo", code: "session-B" }],
-          },
-        },
-      ]) // MedicationRequest
-      .mockResolvedValueOnce([
-        {
-          id: "imm-seed",
-          vaccineCode: { text: "Influenza, seasonal" },
-          occurrenceDateTime: "2025-10-15T00:00:00Z",
-        },
-      ]); // Immunization
+  it("show_patient_info scopes Observation/Communication queries to visible rows and keeps seed data and its own", async () => {
+    // The written-to chart lists (Observation, Communication) must carry the
+    // visibility rule in the query itself: an untagged (seed) search plus an
+    // own-session-tag search. Filtering only after the fetch would let other
+    // sessions' rows consume the _count window.
+    searchResources.mockImplementation(
+      async (type: string, params: Record<string, string> = {}) => {
+        if (type === "Patient") return [{ resourceType: "Patient", id: "p9" }];
+        if (type === "Observation") {
+          if (params["_tag:not"] === "http://lastehr.demo|") {
+            return [
+              {
+                id: "seed",
+                code: { text: "Body temperature" },
+                valueQuantity: { value: 37, unit: "C" },
+                effectiveDateTime: "2026-01-01T00:00:00Z",
+              },
+            ];
+          }
+          if (params._tag === "http://lastehr.demo|session-A") {
+            return [
+              {
+                id: "mine",
+                code: { text: "Heart rate" },
+                valueQuantity: { value: 72, unit: "bpm" },
+                effectiveDateTime: "2026-06-01T00:00:00Z",
+                meta: {
+                  tag: [{ system: "http://lastehr.demo", code: "session-A" }],
+                },
+              },
+            ];
+          }
+          throw new Error("Observation query is missing the visibility params");
+        }
+        if (type === "Communication") {
+          if (params["_tag:not"] === "http://lastehr.demo|") {
+            return [
+              {
+                id: "note-seed",
+                payload: [{ contentString: "seed note" }],
+                sent: "2026-01-01T00:00:00Z",
+              },
+            ];
+          }
+          if (params._tag === "http://lastehr.demo|session-A") return [];
+          throw new Error(
+            "Communication query is missing the visibility params",
+          );
+        }
+        if (type === "MedicationRequest") {
+          return [
+            {
+              id: "med-seed",
+              medicationCodeableConcept: { text: "Lisinopril 10 mg tablet" },
+              dosageInstruction: [{ text: "once daily" }],
+              status: "active",
+            },
+            {
+              id: "med-other",
+              medicationCodeableConcept: { text: "Junk med" },
+              status: "active",
+              meta: {
+                tag: [{ system: "http://lastehr.demo", code: "session-B" }],
+              },
+            },
+          ];
+        }
+        if (type === "Immunization") {
+          return [
+            {
+              id: "imm-seed",
+              vaccineCode: { text: "Influenza, seasonal" },
+              occurrenceDateTime: "2025-10-15T00:00:00Z",
+            },
+          ];
+        }
+        return [];
+      },
+    );
 
     const tools = buildTools(backend, "A");
     const out = await (
@@ -273,9 +283,52 @@ describe("agent FHIR tools", () => {
       }>
     )({ id: "p9" }, {});
 
-    expect(out.observations.map((o) => o.id)).toEqual(["seed", "mine"]);
+    // Merged across the two scoped queries and re-sorted newest-first.
+    expect(out.observations.map((o) => o.id)).toEqual(["mine", "seed"]);
     expect(out.notes.map((n) => n.id)).toEqual(["note-seed"]);
     expect(out.medications.map((m) => m.id)).toEqual(["med-seed"]);
     expect(out.immunizations.map((i) => i.id)).toEqual(["imm-seed"]);
+  });
+
+  it("show_patient_info still hides other sessions' rows when a backend ignores the :not modifier", async () => {
+    // A server that silently drops _tag:not answers the seed query with every
+    // row. The post-fetch isVisible filter must still hide other sessions'
+    // writes, degrading to the old behavior rather than leaking them.
+    searchResources.mockImplementation(
+      async (type: string, params: Record<string, string> = {}) => {
+        if (type === "Patient") return [{ resourceType: "Patient", id: "p9" }];
+        if (type === "Observation") {
+          if (params._tag === "http://lastehr.demo|session-A") return [];
+          return [
+            {
+              id: "seed",
+              code: { text: "Body temperature" },
+              valueQuantity: { value: 37, unit: "C" },
+              effectiveDateTime: "2026-01-01T00:00:00Z",
+            },
+            {
+              id: "other",
+              code: { text: "Junk" },
+              valueQuantity: { value: 999, unit: "x" },
+              effectiveDateTime: "2026-06-02T00:00:00Z",
+              meta: {
+                tag: [{ system: "http://lastehr.demo", code: "session-B" }],
+              },
+            },
+          ];
+        }
+        return [];
+      },
+    );
+
+    const tools = buildTools(backend, "A");
+    const out = await (
+      tools.show_patient_info.execute as unknown as (
+        input: unknown,
+        opts: unknown,
+      ) => Promise<{ observations: { id: string }[] }>
+    )({ id: "p9" }, {});
+
+    expect(out.observations.map((o) => o.id)).toEqual(["seed"]);
   });
 });

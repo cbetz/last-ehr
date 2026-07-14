@@ -1,5 +1,6 @@
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
+import type { ExtractResource, ResourceType } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "@/lib/fhir/backend";
 
@@ -45,6 +46,44 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
       res.meta?.tag?.filter((t) => t.system === DEMO_TAG_SYSTEM) ?? [];
     if (demoTags.length === 0) return true;
     return demoTags.some((t) => t.code === `session-${sessionId}`);
+  };
+
+  // For the chart lists the demo writes to, the visibility rule must live in
+  // the QUERY, not only in a JS filter after the fetch: filtering after the
+  // server applied _count lets other sessions' rows spend the window, so on a
+  // busy shared demo a visitor's own writes (and even seed data) can vanish
+  // from the newest-N result. Two searches cover the visible set exactly:
+  // rows with no demo tag (seed data) and rows tagged by this session. The
+  // isVisible filter stays on the merged result as a fallback for backends
+  // that silently ignore the :not modifier.
+  const searchVisible = async <K extends ResourceType>(
+    resourceType: K,
+    params: Record<string, string>,
+    dateOf: (res: ExtractResource<K>) => string,
+  ): Promise<ExtractResource<K>[]> => {
+    if (!sessionId) return backend.searchResources(resourceType, params);
+    const [untagged, own] = await Promise.all([
+      backend.searchResources(resourceType, {
+        ...params,
+        "_tag:not": `${DEMO_TAG_SYSTEM}|`,
+      }),
+      backend.searchResources(resourceType, {
+        ...params,
+        _tag: `${DEMO_TAG_SYSTEM}|session-${sessionId}`,
+      }),
+    ]);
+    // The two result sets are disjoint by construction; the id-dedupe only
+    // guards against a backend answering both queries with overlapping rows.
+    const seen = new Set<string>();
+    return [...untagged, ...own]
+      .filter((res) => {
+        if (!res.id) return true;
+        if (seen.has(res.id)) return false;
+        seen.add(res.id);
+        return true;
+      })
+      .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
+      .slice(0, Number(params._count) || undefined);
   };
 
   return {
@@ -95,16 +134,16 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
             patient: id,
             _count: "50",
           }),
-          backend.searchResources("Observation", {
-            patient: id,
-            _sort: "-date",
-            _count: "100",
-          }),
-          backend.searchResources("Communication", {
-            subject: `Patient/${id}`,
-            _sort: "-sent",
-            _count: "100",
-          }),
+          searchVisible(
+            "Observation",
+            { patient: id, _sort: "-date", _count: "100" },
+            (o) => o.effectiveDateTime ?? "",
+          ),
+          searchVisible(
+            "Communication",
+            { subject: `Patient/${id}`, _sort: "-sent", _count: "100" },
+            (n) => n.sent ?? "",
+          ),
           backend.searchResources("MedicationRequest", {
             patient: id,
             _count: "50",
