@@ -1,3 +1,5 @@
+import { ChevronLast } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 
 type BrandMarkProps = {
@@ -5,34 +7,23 @@ type BrandMarkProps = {
   compact?: boolean;
 };
 
+// The ">|" chevron doubles as the product mark: the agent takes the chart the
+// last step, to a human decision. Same icon the demo header uses.
 export function BrandMark({ className, compact = false }: BrandMarkProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2.5 text-[0.95rem] font-semibold tracking-[-0.045em] text-foreground",
+        "inline-flex items-center gap-2 text-[0.95rem] font-semibold tracking-[-0.045em] text-foreground",
         className,
       )}
     >
-      <span
+      <ChevronLast
         aria-hidden="true"
-        className="grid h-8 w-8 place-items-center rounded-sm bg-primary text-primary-foreground"
-      >
-        <svg
-          viewBox="0 0 32 32"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.25"
-          className="h-[1.2rem] w-[1.2rem]"
-        >
-          <path d="M3.5 16h5l2.7-6 4.1 12 3.7-8 2.2 2H28.5" />
-          <circle cx="8.5" cy="16" r="1" fill="currentColor" stroke="none" />
-          <circle cx="28.5" cy="16" r="1" fill="currentColor" stroke="none" />
-        </svg>
-      </span>
+        strokeWidth={2.5}
+        className="h-5 w-5 text-primary"
+      />
       {!compact && (
-        <span>
+        <span className="whitespace-nowrap">
           Last<span className="text-primary">EHR</span>
         </span>
       )}
