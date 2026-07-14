@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { DemoProviders } from "@/components/demo/demo-providers";
+
 export const metadata: Metadata = {
   title: "Live Demo",
   description:
@@ -17,5 +19,5 @@ export const metadata: Metadata = {
 export default function DemoLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return children;
+  return <DemoProviders>{children}</DemoProviders>;
 }
