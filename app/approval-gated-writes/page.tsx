@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
 import Navbar from "@/components/Navbar";
@@ -7,7 +9,7 @@ import { Faq, type FaqItem } from "@/components/faq";
 import { IconGitHub } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "AI Approval-Gated Writes for FHIR Charts",
   description:
     "How approval-gated writes work in Last EHR: the agent proposes, you approve, then it saves to FHIR. An honest look at the pattern and its limits.",
@@ -18,16 +20,10 @@ export const metadata: Metadata = {
     "LLM write to EHR safely",
     "AI charting human approval",
   ],
-  alternates: { canonical: "/approval-gated-writes" },
-  openGraph: {
-    type: "article",
-    title: "AI Approval-Gated Writes for FHIR Charts",
-    description:
-      "The agent proposes, you approve, then it saves to FHIR. How the pattern works and what it does not protect against.",
-    url: "https://www.lastehr.com/approval-gated-writes",
-    images: ["https://www.lastehr.com/opengraph-image"],
-  },
-};
+  path: "/approval-gated-writes",
+  cardDescription:
+    "The agent proposes, you approve, then it saves to FHIR. How the pattern works and what it does not protect against.",
+});
 
 const faqs: FaqItem[] = [
   {

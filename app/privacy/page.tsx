@@ -1,23 +1,17 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
 import Navbar from "@/components/Navbar";
 import { SiteFooter } from "@/components/site-footer";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Privacy",
   description:
     "What lastehr.com collects and why: explicit-event analytics, the waitlist form, functional cookies, rate limiting, and AI processing in the demo.",
-  alternates: { canonical: "/privacy" },
-  openGraph: {
-    type: "article",
-    title: "Privacy",
-    description:
-      "What lastehr.com collects and why: explicit-event analytics, the waitlist form, functional cookies, rate limiting, and AI processing in the demo.",
-    url: "https://www.lastehr.com/privacy",
-    images: ["https://www.lastehr.com/opengraph-image"],
-  },
-};
+  path: "/privacy",
+});
 
 export default function PrivacyPage() {
   return (

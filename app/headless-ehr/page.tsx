@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { BotIcon, CableIcon, DatabaseIcon, ShieldCheckIcon } from "lucide-react";
 
@@ -9,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconGitHub } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Headless EHR for Modern Clinical Teams",
   description:
     "Learn what a headless EHR is and how it compares to a traditional EHR. Last EHR is an open-source AI agent layer that runs on your FHIR backend (Medplum, or HAPI locally) and adds approval-gated AI to the chart.",
@@ -22,16 +24,11 @@ export const metadata: Metadata = {
     "build on an EHR",
     "AI EHR",
   ],
-  alternates: { canonical: "/headless-ehr" },
-  openGraph: {
-    type: "article",
-    title: "Headless EHR for Modern Clinical Teams | Last EHR",
-    description:
-      "What a headless EHR is, how it compares to a traditional EHR, and how Last EHR adds approval-gated AI agents on top of your FHIR backend.",
-    url: "https://www.lastehr.com/headless-ehr",
-    images: ["https://www.lastehr.com/opengraph-image"],
-  },
-};
+  path: "/headless-ehr",
+  cardTitle: "Headless EHR for Modern Clinical Teams | Last EHR",
+  cardDescription:
+    "What a headless EHR is, how it compares to a traditional EHR, and how Last EHR adds approval-gated AI agents on top of your FHIR backend.",
+});
 
 const benefits = [
   {
