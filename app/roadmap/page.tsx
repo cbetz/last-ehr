@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import {
   ClipboardCheck,
@@ -14,26 +16,16 @@ import { SiteFooter } from "@/components/site-footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Roadmap: Approval-Gated FHIR Agents",
   description:
     "Where Last EHR is headed: local adoption, backend adapters, approval workflows, MCP, and safer FHIR agent tools.",
-  alternates: { canonical: "/roadmap" },
-  openGraph: {
-    type: "website",
-    title: "Last EHR Roadmap",
-    description:
-      "The public roadmap for the open-source approval-gated FHIR agent layer.",
-    url: "https://www.lastehr.com/roadmap",
-    images: ["https://www.lastehr.com/opengraph-image"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Last EHR Roadmap",
-    description:
-      "Local adoption, backend adapters, approval workflows, MCP, and safer FHIR agent tools.",
-  },
-};
+  path: "/roadmap",
+  type: "website",
+  cardTitle: "Last EHR Roadmap",
+  cardDescription:
+    "The public roadmap for the open-source approval-gated FHIR agent layer.",
+});
 
 const tracks = [
   {

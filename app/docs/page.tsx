@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -20,26 +22,16 @@ import { DocsSearch } from "@/components/docs/docs-search";
 import { buttonVariants } from "@/components/ui/button";
 import { getDocsSearchIndex } from "@/lib/docs/content";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Docs: Build an Approval-Gated FHIR Agent",
   description:
     "Evaluate Last EHR locally, inspect the approval boundary, connect bounded MCP reads, run the synthetic workflow eval, and build FHIR backend adapters.",
-  alternates: { canonical: "/docs" },
-  openGraph: {
-    type: "website",
-    title: "Last EHR Docs",
-    description:
-      "A practical path to evaluate, inspect, verify, and extend approval-gated FHIR agents.",
-    url: "https://www.lastehr.com/docs",
-    images: ["https://www.lastehr.com/opengraph-image"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Last EHR Docs",
-    description:
-      "Evaluate, inspect, verify, and extend approval-gated FHIR agents.",
-  },
-};
+  path: "/docs",
+  type: "website",
+  cardTitle: "Last EHR Docs",
+  cardDescription:
+    "A practical path to evaluate, inspect, verify, and extend approval-gated FHIR agents.",
+});
 
 const paths = [
   {

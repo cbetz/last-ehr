@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, ArrowUpRight, ChevronRight, FileText, Rocket } from "lucide-react";
@@ -39,26 +41,13 @@ export async function generateMetadata({ params }: DocsPageProps): Promise<Metad
     return {};
   }
 
-  const url = `/docs/${doc.slug}`;
-
-  return {
+  return pageMetadata({
     title: doc.title,
     description: doc.description,
     keywords: [...doc.keywords],
-    alternates: { canonical: url },
-    openGraph: {
-      type: "article",
-      title: `${doc.title} | Last EHR Docs`,
-      description: doc.description,
-      url,
-      images: ["/opengraph-image"],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${doc.title} | Last EHR Docs`,
-      description: doc.description,
-    },
-  };
+    path: `/docs/${doc.slug}`,
+    cardTitle: `${doc.title} | Last EHR Docs`,
+  });
 }
 
 export default async function DocsArticlePage({ params }: DocsPageProps) {

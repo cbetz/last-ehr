@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
 import Navbar from "@/components/Navbar";
@@ -7,7 +9,7 @@ import { Faq, type FaqItem } from "@/components/faq";
 import { IconGitHub } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Medplum AI Agent: Add AI Chat to Your Patient Chart",
   description:
     "Add an open-source, approval-gated AI agent to Medplum. Search patients, read charts, and write notes and observations with human approval.",
@@ -18,16 +20,10 @@ export const metadata: Metadata = {
     "Medplum LLM integration",
     "FHIR AI agent",
   ],
-  alternates: { canonical: "/medplum-ai-agent" },
-  openGraph: {
-    type: "article",
-    title: "Medplum AI Agent: Add AI Chat to Your Patient Chart",
-    description:
-      "Add an open-source, approval-gated AI agent to Medplum. Reads the chart, proposes writes, and saves nothing without your approval.",
-    url: "https://www.lastehr.com/medplum-ai-agent",
-    images: ["https://www.lastehr.com/opengraph-image"],
-  },
-};
+  path: "/medplum-ai-agent",
+  cardDescription:
+    "Add an open-source, approval-gated AI agent to Medplum. Reads the chart, proposes writes, and saves nothing without your approval.",
+});
 
 const faqs: FaqItem[] = [
   {

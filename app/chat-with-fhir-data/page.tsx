@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
 import Navbar from "@/components/Navbar";
@@ -7,7 +9,7 @@ import { Faq, type FaqItem } from "@/components/faq";
 import { IconGitHub } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Chat with FHIR Data: How an LLM Reads a Patient Chart",
   description:
     "How an LLM reads FHIR patient data: chart context assembly, the read and write paths, approval gates, and where the data actually goes.",
@@ -18,16 +20,10 @@ export const metadata: Metadata = {
     "FHIR AI assistant",
     "FHIR LLM agent",
   ],
-  alternates: { canonical: "/chat-with-fhir-data" },
-  openGraph: {
-    type: "article",
-    title: "Chat with FHIR Data: How an LLM Reads a Patient Chart",
-    description:
-      "Chart context assembly, the read and write paths, approval gates, and where FHIR data actually goes when you chat with it.",
-    url: "https://www.lastehr.com/chat-with-fhir-data",
-    images: ["https://www.lastehr.com/opengraph-image"],
-  },
-};
+  path: "/chat-with-fhir-data",
+  cardDescription:
+    "Chart context assembly, the read and write paths, approval gates, and where FHIR data actually goes when you chat with it.",
+});
 
 const faqs: FaqItem[] = [
   {
