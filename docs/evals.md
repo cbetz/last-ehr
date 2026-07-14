@@ -76,15 +76,27 @@ raw backend diagnostics.
 
 ## Using it for another backend
 
-The root `npm run eval` command is intentionally bound to the repository's
-loopback HAPI stack. It is a reproducible reference run, not a generic
-credential runner.
+`npm run eval` defaults to the repository's loopback HAPI stack, and that
+remains the reproducible reference run. Registered adapters can point the same
+evaluator at their own disposable synthetic sandbox:
 
-Adapter authors should first pass both [adapter contract harnesses](./adapters.md),
-then invoke the reusable `runFhirAgentSafetyEval` helper from an opt-in test
-that constructs their adapter against a disposable synthetic sandbox. The
-helper requires an explicit `confirmSyntheticTarget: true` before it can create
-or delete resources. Do not run it against production.
+```bash
+npm run eval -- --backend firely --base-url https://server.fire.ly --confirm-synthetic
+npm run eval -- --backend aidbox --base-url http://localhost:8888/fhir --confirm-synthetic
+```
+
+Adapter targets never prepare the local Docker stack and fail closed without
+`--confirm-synthetic`, because the evaluator creates and deletes resources on
+the target. Credentials come from the environment (`FIRELY_ACCESS_TOKEN`, or
+`AIDBOX_CLIENT_ID` + `AIDBOX_CLIENT_SECRET`); see the per-backend setup in the
+[adapter guide](./adapters.md).
+
+Authors of a new, not-yet-registered adapter should first pass both
+[adapter contract harnesses](./adapters.md), then invoke the reusable
+`runFhirAgentSafetyEval` helper from an opt-in test that constructs their
+adapter against a disposable synthetic sandbox. The helper requires an
+explicit `confirmSyntheticTarget: true` before it can create or delete
+resources. Do not run it against production.
 
 When an adapter is proposed as verified, include its backend/version, auth
 mode, synthetic target setup, Last EHR revision, and the scrubbed report or CI

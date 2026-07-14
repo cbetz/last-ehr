@@ -21,35 +21,38 @@ and it gives contributors concrete places to help.
 
 ### 2. Backend portability
 
-The `FhirBackend` interface is the main extension point. Medplum and local HAPI
-work today; the next useful adapters are:
+The `FhirBackend` interface is the main extension point. Medplum works today
+for authenticated use; local HAPI, Firely Server (`FHIR_BACKEND=firely`), and
+Aidbox (`FHIR_BACKEND=aidbox`) are verified synthetic-evaluation adapters,
+each with contract tests, a setup note, and an honest auth/tenant caveat in
+[docs/adapters.md](./docs/adapters.md). The next useful adapters are:
 
-- Aidbox
 - Oystehr
-- Firely Server
 - OpenEMR FHIR API, if the API surface can satisfy the tool contract
-
-Every adapter needs tests, a setup note, and an honest auth/tenant caveat.
 
 ### 2.1 Synthetic workflow evidence
 
-The first [FHIR Agent Safety Eval](./docs/evals.md) is shipped for the local
-HAPI reference path. It creates and deletes disposable charts, verifies the
-web-agent proposal/approval and denial mechanics, and emits a scrubbed report.
-It is not a clinical, authorization, or compliance certification.
+The [FHIR Agent Safety Eval](./docs/evals.md) creates and deletes disposable
+charts, verifies the web-agent proposal/approval and denial mechanics, and
+emits a scrubbed report. It is not a clinical, authorization, or compliance
+certification.
 
-Next, adapter contributors should run the same evaluator from their own
-synthetic sandbox tests. A future verified-integration directory will list only
-reviewed evidence: backend/version, auth mode, Last EHR revision, report/CI
-link, and retest date.
+Adapter sandboxes now run the same evaluator directly
+(`npm run eval -- --backend <name> --base-url <url> --confirm-synthetic`);
+the Firely and Aidbox adapters were verified this way, and the
+[support matrix](./docs/support.md) records each verified integration's auth
+mode and boundary. Still ahead: pinning each entry to a backend version, Last
+EHR revision, report/CI link, and retest date.
 
 ### 3. Safer approval workflows
 
-Approval-gated writes are the wedge. Near-term work:
+Approval-gated writes are the wedge. Shipped so far: the approval card shows
+the exact proposed fields with a FHIR-shaped preview, and deployments can opt
+into a [rejected-proposal audit trail](./docs/approval-gates.md)
+(`LASTEHR_AUDIT_REJECTED_PROPOSALS`) that records a FHIR AuditEvent per
+denial. Near-term work:
 
-- Show exact proposed fields and a FHIR-shaped preview before approval.
 - Support cancel/retry flows that are easy to understand.
-- Add optional rejected-proposal audit events for deployments that want them.
 - Explore editable proposals without weakening the "what you see is what saves"
   rule.
 - Add policy hooks so operators can require approval by resource type,

@@ -36,7 +36,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 10,
     audience: "Evaluators and first-time builders",
-    lastModified: "2026-07-09",
+    lastModified: "2026-07-14",
     keywords: ["local", "HAPI", "Medplum", "setup", "Docker"],
   },
   {
@@ -48,7 +48,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 20,
     audience: "Technical evaluators and architecture owners",
-    lastModified: "2026-07-09",
+    lastModified: "2026-07-14",
     keywords: ["support", "Medplum", "HAPI", "compatibility", "status"],
   },
   {
@@ -72,7 +72,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 20,
     audience: "Clinical, product, and security reviewers",
-    lastModified: "2026-07-09",
+    lastModified: "2026-07-14",
     keywords: ["approval", "writes", "human review", "safety", "Observation"],
   },
   {
@@ -96,7 +96,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 10,
     audience: "Backend contributors and integration teams",
-    lastModified: "2026-07-09",
+    lastModified: "2026-07-14",
     keywords: ["adapter", "Aidbox", "Firely", "Oystehr", "contract"],
   },
   {
@@ -120,7 +120,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 30,
     audience: "Adapter contributors and technical evaluators",
-    lastModified: "2026-07-11",
+    lastModified: "2026-07-14",
     keywords: ["eval", "safety", "approval", "synthetic", "HAPI", "adapter"],
   },
   {
@@ -132,7 +132,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Operate & maintain",
     order: 10,
     audience: "Operators and platform teams",
-    lastModified: "2026-07-09",
+    lastModified: "2026-07-14",
     keywords: ["deployment", "Docker", "environment", "rate limit", "PHI"],
   },
   {

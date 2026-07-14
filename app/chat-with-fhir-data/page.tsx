@@ -40,7 +40,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Does Last EHR work with backends other than Medplum?",
-    a: "Two paths work today: Medplum, hosted or self-hosted, is the authenticated path; the repository also includes a local HAPI FHIR mode for single-tenant synthetic evaluation. The HAPI stack has no auth and is not a production deployment mode. Aidbox, Oystehr, Firely, and other FHIR R4 backends need an adapter before they are supported. See the support matrix and adapter guide for the exact boundary.",
+    a: "Medplum, hosted or self-hosted, is the authenticated path. For synthetic evaluation there are three more adapters: the included local HAPI FHIR stack, Firely Server, and Aidbox, each verified with contract tests and the FHIR Agent Safety Eval. None of those three is an authenticated or PHI-ready mode. Oystehr and other FHIR R4 backends still need an adapter before they are supported. See the support matrix and adapter guide for the exact boundary.",
   },
   {
     q: "What clinical data can the agent read and write?",
@@ -335,10 +335,11 @@ npm run dev                  # http://localhost:3000/demo`}</code>
                 The FHIR tools live in lib/ai/tools.ts and the agent route in
                 app/api/chat/route.ts. Multi-tenancy, users, and permissions
                 come from your Medplum project (Project, ProjectMembership,
-                AccessPolicy); the layer does not reimplement them. Porting to
-                Aidbox, Oystehr, or Firely means implementing the backend
-                adapter contract; that is the intended seam, and contributions
-                are welcome. Check the{" "}
+                AccessPolicy); the layer does not reimplement them. Firely
+                Server and Aidbox adapters already ship for synthetic
+                evaluation; porting to Oystehr or another FHIR R4 backend
+                means implementing the same adapter contract, and
+                contributions are welcome. Check the{" "}
                 <Link
                   href="https://github.com/cbetz/last-ehr/blob/main/docs/support.md"
                   target="_blank"
