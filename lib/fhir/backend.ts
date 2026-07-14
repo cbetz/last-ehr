@@ -7,6 +7,7 @@ import type {
 
 import { MedplumBackend } from "./medplum";
 import { HapiBackend } from "./hapi";
+import { FirelyBackend } from "./firely";
 
 // The FHIR surface the agent tools require of a backend. Built-in
 // implementations are Medplum (./medplum.ts) and the local HAPI FHIR
@@ -44,9 +45,11 @@ export interface FhirBackend {
 }
 
 // The chat route resolves its backend here. FHIR_BACKEND selects the adapter:
-// "medplum" (default; hosted or self-hosted Medplum, token-authenticated) or
+// "medplum" (default; hosted or self-hosted Medplum, token-authenticated),
 // "hapi" (the included local, no-auth HAPI FHIR evaluation stack named by
-// FHIR_BASE_URL; see the self-host docs).
+// FHIR_BASE_URL), or "firely" (a Firely Server at FHIR_BASE_URL, anonymous or
+// with a static bearer token in FIRELY_ACCESS_TOKEN; synthetic evaluation
+// only). See the self-host docs and docs/support.md for each tier's limits.
 export function createFhirBackend(accessToken: string): FhirBackend {
   const backend = process.env.FHIR_BACKEND || "medplum";
   if (backend === "hapi") {
@@ -58,9 +61,21 @@ export function createFhirBackend(accessToken: string): FhirBackend {
     }
     return new HapiBackend(baseUrl);
   }
+  if (backend === "firely") {
+    const baseUrl = process.env.FHIR_BASE_URL;
+    if (!baseUrl) {
+      throw new Error(
+        "FHIR_BACKEND=firely requires FHIR_BASE_URL (for example https://server.fire.ly).",
+      );
+    }
+    return new FirelyBackend(
+      baseUrl,
+      process.env.FIRELY_ACCESS_TOKEN || undefined,
+    );
+  }
   if (backend !== "medplum") {
     throw new Error(
-      `Unknown FHIR_BACKEND "${backend}". Supported values: medplum, hapi.`,
+      `Unknown FHIR_BACKEND "${backend}". Supported values: medplum, hapi, firely.`,
     );
   }
   return new MedplumBackend(accessToken);

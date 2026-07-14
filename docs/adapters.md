@@ -1,9 +1,9 @@
 # Backend Adapters
 
 Backend adapters are the most useful contribution path. Medplum is supported
-today; the local HAPI FHIR stack is for synthetic evaluation only. The next
-valuable adapters are Aidbox,
-Oystehr, Firely Server, and other FHIR R4 backends with a clear auth story.
+today; the local HAPI FHIR stack and the Firely Server adapter below are for
+synthetic evaluation only. The next valuable adapters are Aidbox, Oystehr, and
+other FHIR R4 backends with a clear auth story.
 
 ## Start with the executable starter
 
@@ -89,6 +89,35 @@ synthetic workflows.
   - record observation with approval
 - Document caveats: auth, tenancy, audit logs, unsupported search parameters,
   server-specific quirks.
+
+## Firely Server (synthetic evaluation only)
+
+[`lib/fhir/firely.ts`](../lib/fhir/firely.ts) is a working adapter over the
+shared REST transport, registered as `FHIR_BACKEND=firely`. Its auth modes are
+anonymous or a static bearer token in `FIRELY_ACCESS_TOKEN`; a production
+Firely Server fronts its FHIR API with an OAuth2/SMART token service, and the
+adapter deliberately takes a pre-minted token rather than running that flow.
+
+```bash
+FHIR_BACKEND=firely
+FHIR_BASE_URL=https://server.fire.ly
+```
+
+Its verification target is Firely's public synthetic sandbox
+(`https://server.fire.ly`), which is anonymous, shared, and periodically
+wiped. That makes it a good disposable target and an unacceptable place for
+anything but synthetic data. Both verification layers are opt-in and
+repeatable:
+
+```bash
+RUN_FIRELY_E2E=1 FHIR_BASE_URL=https://server.fire.ly \
+  npx vitest run lib/fhir/firely.contract.integration.test.ts
+npm run eval -- --backend firely --base-url https://server.fire.ly --confirm-synthetic
+```
+
+Caveats: no SMART launch or MCP on this tier; the sandbox enforces no access
+control, so treat every record on it as public; and Last EHR does not manage
+Firely tokens, tenancy, or audit logs.
 
 ## Suggested adapter issues
 
