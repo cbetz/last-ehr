@@ -3,6 +3,36 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.2.4 — 2026-07-14
+
+Backend portability release: the first two adapters beyond Medplum and local
+HAPI, plus an opt-in audit trail for denied write proposals.
+
+- Added a Firely Server adapter (`FHIR_BACKEND=firely`), anonymous or with a
+  static bearer token in `FIRELY_ACCESS_TOKEN`. Verified on the
+  synthetic-evaluation tier against Firely's public sandbox
+  (`https://server.fire.ly`) with both contract harnesses and the FHIR Agent
+  Safety Eval (7/7).
+- Added an Aidbox adapter (`FHIR_BACKEND=aidbox`) using HTTP Basic from an
+  Aidbox Client against the box's `/fhir` endpoint. Verified on the
+  synthetic-evaluation tier against a dev-licensed local box
+  (`aidboxone:edge`) with both contract harnesses and the Safety Eval (7/7).
+  The adapter guide documents the working setup, including creating the
+  Client and AccessPolicy through a `BOX_INIT_BUNDLE` file (the admin login
+  is console-only and cannot basic-auth the API).
+- `npm run eval` can now target a registered adapter's disposable synthetic
+  sandbox (`--backend firely|aidbox --base-url <url> --confirm-synthetic`).
+  Adapter targets never prepare the local Docker stack and fail closed
+  without the explicit synthetic confirmation.
+- Added an opt-in rejected-proposal audit trail
+  (`LASTEHR_AUDIT_REJECTED_PROPOSALS=true`): each write proposal a reviewer
+  denies is recorded as one FHIR AuditEvent (tool name, patient reference,
+  approval id; never the proposed content). Covered end to end by the
+  Playwright approval-flow suite.
+- Brought README, ROADMAP, quickstart, eval docs, and the marketing pages in
+  line with the verified adapter pair and the shipped audit trail; every
+  mention keeps the synthetic-evaluation-only boundary explicit.
+
 ## 0.2.3 — 2026-07-14
 
 Post-launch audit fixes. All findings from the launch-day adversarial audit
