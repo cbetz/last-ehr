@@ -11,7 +11,7 @@ chart and proposes writes, and nothing is saved until you approve. Bring your
 own Medplum project and your own model key when you want a real agent, or
 start with the zero-key local synthetic walkthrough.
 
-> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum, or HAPI FHIR for local synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
+> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, or Aidbox for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
@@ -65,10 +65,13 @@ authorization, or compliance certification; see the [evaluation guide](./docs/ev
 ## Support status
 
 Last EHR is **Medplum-supported** for authenticated deployments and includes a
-**local, no-auth HAPI FHIR mode** for synthetic-data evaluation. Other FHIR R4
-backends need an adapter before they are supported. See the full
-[support matrix](./docs/support.md) for the web, SMART, MCP, auth, and
-evaluation boundaries before choosing a path.
+**local, no-auth HAPI FHIR mode** for synthetic-data evaluation. **Firely
+Server** (`FHIR_BACKEND=firely`) and **Aidbox** (`FHIR_BACKEND=aidbox`) are
+verified synthetic-evaluation adapters: each passed both contract harnesses
+and the [FHIR Agent Safety Eval](./docs/evals.md) against a disposable
+synthetic target. Other FHIR R4 backends need an adapter before they are
+supported. See the full [support matrix](./docs/support.md) for the web,
+SMART, MCP, auth, and evaluation boundaries before choosing a path.
 
 ## What it isn't
 
@@ -77,12 +80,12 @@ evaluation boundaries before choosing a path.
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with two built-in adapters: Medplum (hosted or self-hosted, token-authenticated) and local HAPI FHIR for synthetic evaluation. The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with four built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, and Aidbox for synthetic evaluation. The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
 
 ```mermaid
 flowchart LR
     B["Browser chat"] --> A["/api/chat<br/>streamText + 4 FHIR tools"]
-    A -- "reads<br/>search_patients, show_patient_info" --> M[("Your FHIR backend<br/>(Medplum or HAPI)")]
+    A -- "reads<br/>search_patients, show_patient_info" --> M[("Your FHIR backend<br/>(Medplum, HAPI, Firely, Aidbox)")]
     A -- "writes<br/>add_note, record_observation" --> C{"Approval card"}
     C -- "Approve & save" --> M
     C -- "Cancel" --> N["Nothing saved"]

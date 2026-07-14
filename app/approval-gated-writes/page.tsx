@@ -355,9 +355,12 @@ export default function ApprovalGatedWritesPage() {
                 </li>
                 <li>
                   <strong className="text-foreground">Audit.</strong> The
-                  backend versions and logs the write itself, but a canceled
-                  proposal leaves no trace. Should &quot;user saw this and
-                  rejected it&quot; be recorded?
+                  backend versions and logs the write itself, and a canceled
+                  proposal leaves no chart trace by default. Deployments that
+                  need &quot;user saw this and rejected it&quot; recorded can
+                  opt into one FHIR AuditEvent per denial
+                  (LASTEHR_AUDIT_REJECTED_PROPOSALS); the proposed content is
+                  deliberately not copied into it.
                 </li>
                 <li>
                   <strong className="text-foreground">Scope.</strong> Notes

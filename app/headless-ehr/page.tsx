@@ -84,7 +84,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Are there open-source headless EHR options?",
-    a: "Yes. Medplum is an open-source, FHIR-native headless backend with hosted and self-hosted options. HAPI FHIR is a long-standing open-source FHIR server you can build on. OpenEMR is open source but a full EMR rather than headless-first. Commercial options include Aidbox, Firely Server, Canvas Medical, and Oystehr. Last EHR is not a backend at all: it is an open-source AI agent layer that runs on top of one. Medplum is the supported authenticated path; the included HAPI stack is synthetic local evaluation only.",
+    a: "Yes. Medplum is an open-source, FHIR-native headless backend with hosted and self-hosted options. HAPI FHIR is a long-standing open-source FHIR server you can build on. OpenEMR is open source but a full EMR rather than headless-first. Commercial options include Aidbox, Firely Server, Canvas Medical, and Oystehr. Last EHR is not a backend at all: it is an open-source AI agent layer that runs on top of one. Medplum is the supported authenticated path; HAPI, Firely Server, and Aidbox adapters ship for synthetic evaluation only.",
   },
 ];
 
