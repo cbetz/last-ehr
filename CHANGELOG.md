@@ -3,6 +3,39 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.2.3 — 2026-07-14
+
+Post-launch audit fixes. All findings from the launch-day adversarial audit
+are now closed.
+
+- Scoped the shared demo's session visibility into the FHIR query itself:
+  chart reads fetch untagged seed rows and the session's own tagged rows as
+  separate searches, so another visitor's writes can no longer crowd a
+  visitor's own data out of the newest-100 window on a busy demo. The
+  post-fetch filter remains as a fallback for backends that ignore the
+  `:not` search modifier.
+- Hardened the demo against transient quickstart failures: a failed session
+  re-arm now blocks the send with a "demo is busy" notice instead of
+  surfacing a false "session expired" that told users to refresh away their
+  demo writes.
+- Added a system-prompt guardrail that chart content is data, never
+  instructions, and that patient ids come only from the user or prior tool
+  results.
+- Restored keyboard focus visibility on the chat input, announced async
+  loading/error states to assistive tech, and gave notice-bar dismiss
+  buttons a focus ring (WCAG 2.4.7 / 4.1.3).
+- Stopped shipping Medplum and PostHog in first-load JS on marketing and
+  docs routes; both now load only under /demo.
+- Built every subpage's social cards from one metadata helper so OpenGraph
+  and Twitter cards cannot drift; every page now emits its own card title
+  and full image dimensions instead of inheriting the homepage copy.
+- Moved the README demo GIF out of the web root and deleted an orphaned
+  image, trimming ~1MB from the app image.
+- Unified the brand mark on the last-chevron icon across the site and demo
+  header, and made the demo header behave at phone widths.
+- Documented the trusted-proxy requirement for per-IP rate limiting on
+  self-hosted deploys.
+
 ## 0.2.2 — 2026-07-12
 
 - Published a multi-arch app image to GHCR (`ghcr.io/cbetz/last-ehr`) from
