@@ -17,7 +17,7 @@ start with the zero-key local synthetic walkthrough.
 
 **[Try the live demo](https://www.lastehr.com/demo)**: no sign-up, synthetic data, and every write goes through the approval gate.
 
-![Last EHR demo: the agent finds a patient, then records an observation to the chart after the user approves the write](public/demo.gif)
+![Last EHR demo: the agent finds a patient, then records an observation to the chart after the user approves the write](.github/demo.gif)
 
 ## Start here
 
