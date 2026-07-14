@@ -1,10 +1,9 @@
 # Backend Adapters
 
 Backend adapters are the most useful contribution path. Medplum is supported
-today; the local HAPI FHIR stack and the Firely Server adapter below are for
-synthetic evaluation only, and the Aidbox adapter below is awaiting a
-licensed-sandbox verification run. The next valuable adapters are Oystehr and
-other FHIR R4 backends with a clear auth story.
+today; the local HAPI FHIR stack and the Firely Server and Aidbox adapters
+below are for synthetic evaluation only. The next valuable adapters are
+Oystehr and other FHIR R4 backends with a clear auth story.
 
 ## Start with the executable starter
 
@@ -120,38 +119,92 @@ Caveats: no SMART launch or MCP on this tier; the sandbox enforces no access
 control, so treat every record on it as public; and Last EHR does not manage
 Firely tokens, tenancy, or audit logs.
 
-## Aidbox (adapter present, verification wanted)
+## Aidbox (synthetic evaluation only)
 
-[`lib/fhir/aidbox.ts`](../lib/fhir/aidbox.ts) is a complete adapter over the
-shared REST transport with HTTP Basic auth from an Aidbox Client
-(`grant_types: ["basic"]`). It passes the wire-level REST contract, but it is
-deliberately **not** registered in `createFhirBackend` yet: running Aidbox
-requires a (free, self-service) license from the Aidbox user portal, so this
-repository has no license-free synthetic target to verify against.
+[`lib/fhir/aidbox.ts`](../lib/fhir/aidbox.ts) is a verified evaluation
+adapter over the shared REST transport, registered as `FHIR_BACKEND=aidbox`.
+Auth is HTTP Basic from an Aidbox Client (`grant_types: ["basic"]`):
+
+```bash
+FHIR_BACKEND=aidbox
+FHIR_BASE_URL=http://localhost:8888/fhir
+AIDBOX_CLIENT_ID=lastehr
+AIDBOX_CLIENT_SECRET=<your-client-secret>
+```
 
 Two Aidbox specifics the adapter encodes:
 
-- The base URL must be the FHIR-conformant endpoint, i.e. end in `/fhir`
-  (`https://<box>.aidbox.app/fhir` or `http://localhost:8888/fhir`). The root
-  path serves Aidbox's native API, which returns resources in Aidbox format
-  and would break the contract silently.
+- The base URL must be the FHIR-conformant endpoint, i.e. end in `/fhir`.
+  The root path serves Aidbox's native API, which returns resources in
+  Aidbox format and would break the contract silently.
 - Scope the Client with Aidbox AccessPolicy; Last EHR adds no access control
   of its own.
 
-To verify against your own disposable synthetic box and flip the factory
-switch:
+Repeatable setup for a disposable local box (this is the configuration the
+adapter was verified against, on `aidboxone:edge`):
 
-```bash
-RUN_AIDBOX_E2E=1 FHIR_BASE_URL=http://localhost:8888/fhir \
-  AIDBOX_CLIENT_ID=... AIDBOX_CLIENT_SECRET=... \
-  npx vitest run lib/fhir/aidbox.contract.integration.test.ts
-AIDBOX_CLIENT_ID=... AIDBOX_CLIENT_SECRET=... \
-  npm run eval -- --backend aidbox --base-url http://localhost:8888/fhir --confirm-synthetic
-```
+1. Create a free dev license in the [Aidbox portal](https://aidbox.app) and
+   download its generated Docker Compose file into a directory **outside**
+   this repository (the file is named `docker-compose.yaml`, which collides
+   with this repo's compose files).
+2. If the compose maps `8080:8080`, remap the host port; this repo's local
+   HAPI stack owns 8080. `8888:8080` matches the examples here.
+3. Basic auth requires a `Client` resource, and the box's admin login is a
+   `User` (console UI only), so create the Client with an init bundle rather
+   than curl-as-admin. Save `init-bundle.json` next to the compose file:
 
-With both layers green and a scrubbed eval report attached to the PR,
-register `FHIR_BACKEND=aidbox` in `lib/fhir/backend.ts` and add the support
-matrix row.
+   ```json
+   {
+     "resourceType": "Bundle",
+     "type": "batch",
+     "entry": [
+       {
+         "request": { "method": "PUT", "url": "/Client/lastehr" },
+         "resource": {
+           "resourceType": "Client",
+           "id": "lastehr",
+           "secret": "<your-client-secret>",
+           "grant_types": ["basic"]
+         }
+       },
+       {
+         "request": { "method": "PUT", "url": "/AccessPolicy/lastehr-allow" },
+         "resource": {
+           "resourceType": "AccessPolicy",
+           "id": "lastehr-allow",
+           "engine": "allow",
+           "link": [{ "resourceType": "Client", "id": "lastehr" }]
+         }
+       }
+     ]
+   }
+   ```
+
+   and wire it into the `aidbox` service in the compose file:
+
+   ```yaml
+   volumes:
+     - ./init-bundle.json:/init-bundle.json:ro
+   environment:
+     BOX_INIT_BUNDLE: file:///init-bundle.json
+   ```
+
+   Then `docker compose up -d --force-recreate aidbox`. The allow-all
+   AccessPolicy is for a disposable synthetic box only; scope it before
+   anything real.
+4. Re-run both verification layers:
+
+   ```bash
+   RUN_AIDBOX_E2E=1 FHIR_BASE_URL=http://localhost:8888/fhir \
+     AIDBOX_CLIENT_ID=lastehr AIDBOX_CLIENT_SECRET=<your-client-secret> \
+     npx vitest run lib/fhir/aidbox.contract.integration.test.ts
+   AIDBOX_CLIENT_ID=lastehr AIDBOX_CLIENT_SECRET=<your-client-secret> \
+     npm run eval -- --backend aidbox --base-url http://localhost:8888/fhir --confirm-synthetic
+   ```
+
+Caveats: a dev license is required to run the box at all; no SMART launch or
+MCP on this tier; and the box's AccessPolicy, tenancy, and audit logs remain
+Aidbox's job, not this layer's.
 
 ## Suggested adapter issues
 
