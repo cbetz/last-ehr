@@ -23,7 +23,9 @@ Always reference a patient by the resource id from a prior search. The UI render
 
 // Demo writes are tagged with this system + a per-session code so that on the
 // shared public demo a visitor only ever sees seed data plus their own edits.
-const DEMO_TAG_SYSTEM = "http://lastehr.demo";
+// Exported for the optional rejected-proposal audit trail (lib/fhir/audit.ts),
+// which tags its AuditEvents the same way.
+export const DEMO_TAG_SYSTEM = "http://lastehr.demo";
 
 // Builds the agent's FHIR tools over one backend session (see
 // lib/fhir/backend.ts; the chat route constructs it from the visitor's
