@@ -12,9 +12,15 @@ const repositoryRoot = resolve(
 const tsxLoader = resolve(repositoryRoot, "node_modules/tsx/dist/loader.mjs");
 const serverScript = resolve(repositoryRoot, "scripts/mcp-demo.ts");
 
-function textResult(result: { content: Array<{ type: string; text?: string }> }) {
-  const block = result.content.find(
-    (content): content is { type: "text"; text: string } => content.type === "text",
+// callTool's return type is a union that includes the SDK's legacy
+// { toolResult } compatibility shape, so narrow content at runtime instead of
+// assuming the modern content-array form in the signature.
+function textResult(result: Awaited<ReturnType<Client["callTool"]>>) {
+  const content = Array.isArray(result.content)
+    ? (result.content as Array<{ type: string; text?: string }>)
+    : [];
+  const block = content.find(
+    (item): item is { type: "text"; text: string } => item.type === "text",
   );
   if (!block) {
     throw new Error("Expected a text MCP tool result.");
