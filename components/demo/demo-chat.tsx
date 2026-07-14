@@ -156,7 +156,13 @@ export function DemoChat() {
   // token's window would otherwise lose the session mid-conversation. SMART
   // sessions are left alone; their cookie belongs to the launch flow, and
   // minting quickstart would clobber it with the shared demo credential.
-  const ensureSession = async () => {
+  // Set when the quickstart re-arm fails; rendered above the input so the
+  // user gets "busy, try again" instead of sending anyway, getting a 401, and
+  // being told (wrongly) to refresh away their demo writes.
+  const [sessionNotice, setSessionNotice] = useState<string | null>(null);
+
+  const ensureSession = async (): Promise<boolean> => {
+    setSessionNotice(null);
     const token = medplum.getAccessToken();
     if (token) {
       await fetch("/api/auth/session", {
@@ -164,16 +170,25 @@ export function DemoChat() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ accessToken: token }),
       });
-      return;
+      return true;
     }
-    if (document.cookie.includes("smart_session=1")) return;
-    if (process.env.NEXT_PUBLIC_QUICKSTART !== "true") return;
-    await fetch("/api/auth/quickstart", { method: "POST" }).catch(() => {});
+    if (document.cookie.includes("smart_session=1")) return true;
+    if (process.env.NEXT_PUBLIC_QUICKSTART !== "true") return true;
+    try {
+      // fetch resolves on 429/502, so a non-ok response must be checked here,
+      // not just a thrown network error.
+      const res = await fetch("/api/auth/quickstart", { method: "POST" });
+      if (res.ok) return true;
+    } catch {
+      // Network hiccup; fall through to the transient notice.
+    }
+    setSessionNotice("The demo is busy right now, so that didn't send. Try again in a moment.");
+    return false;
   };
 
   const ask = async (text: string) => {
     track("demo_message_sent");
-    await ensureSession();
+    if (!(await ensureSession())) return;
     sendMessage({ text });
   };
 
@@ -331,7 +346,7 @@ export function DemoChat() {
                                     tool: "add_note",
                                     approved: true,
                                   });
-                                  await ensureSession();
+                                  if (!(await ensureSession())) return;
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: true,
@@ -343,7 +358,7 @@ export function DemoChat() {
                                     tool: "add_note",
                                     approved: false,
                                   });
-                                  await ensureSession();
+                                  if (!(await ensureSession())) return;
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: false,
@@ -410,7 +425,7 @@ export function DemoChat() {
                                     tool: "record_observation",
                                     approved: true,
                                   });
-                                  await ensureSession();
+                                  if (!(await ensureSession())) return;
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: true,
@@ -422,7 +437,7 @@ export function DemoChat() {
                                     tool: "record_observation",
                                     approved: false,
                                   });
-                                  await ensureSession();
+                                  if (!(await ensureSession())) return;
                                   addToolApprovalResponse({
                                     id: part.approval.id,
                                     approved: false,
@@ -484,6 +499,11 @@ export function DemoChat() {
       <div className="fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80">
         <div className="mx-auto sm:max-w-2xl sm:px-4">
           <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
+            {sessionNotice && (
+              <p role="alert" className="text-center text-xs text-muted-foreground">
+                {sessionNotice}
+              </p>
+            )}
             <form
               ref={formRef}
               onSubmit={(e) => {

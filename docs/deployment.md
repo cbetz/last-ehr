@@ -62,6 +62,13 @@ KV_REST_API_TOKEN=...
 Without Redis/KV, the app falls back to an in-memory limiter, which is fine for
 local development but not reliable across serverless instances.
 
+Per-IP limits identify the client from the `x-forwarded-for` header (falling
+back to `x-real-ip`). On Vercel the platform overwrites that header, so it can
+be trusted. On a self-hosted deploy, run the app behind a reverse proxy that
+overwrites `x-forwarded-for` with the real client address; a directly exposed
+app lets clients spoof the header and mint themselves fresh per-IP buckets,
+leaving only the global cap to bound model spend.
+
 ## Docker
 
 ### Pull and run from GHCR
