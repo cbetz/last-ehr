@@ -8,6 +8,7 @@ import type {
 import { MedplumBackend } from "./medplum";
 import { HapiBackend } from "./hapi";
 import { FirelyBackend } from "./firely";
+import { AidboxBackend } from "./aidbox";
 
 // The FHIR surface the agent tools require of a backend. Built-in
 // implementations are Medplum (./medplum.ts) and the local HAPI FHIR
@@ -47,9 +48,12 @@ export interface FhirBackend {
 // The chat route resolves its backend here. FHIR_BACKEND selects the adapter:
 // "medplum" (default; hosted or self-hosted Medplum, token-authenticated),
 // "hapi" (the included local, no-auth HAPI FHIR evaluation stack named by
-// FHIR_BASE_URL), or "firely" (a Firely Server at FHIR_BASE_URL, anonymous or
-// with a static bearer token in FIRELY_ACCESS_TOKEN; synthetic evaluation
-// only). See the self-host docs and docs/support.md for each tier's limits.
+// FHIR_BASE_URL), "firely" (a Firely Server at FHIR_BASE_URL, anonymous or
+// with a static bearer token in FIRELY_ACCESS_TOKEN), or "aidbox" (an Aidbox
+// box's /fhir endpoint at FHIR_BASE_URL with a basic-auth Client in
+// AIDBOX_CLIENT_ID/AIDBOX_CLIENT_SECRET). Firely and Aidbox are synthetic
+// evaluation only; see the self-host docs and docs/support.md for each
+// tier's limits.
 export function createFhirBackend(accessToken: string): FhirBackend {
   const backend = process.env.FHIR_BACKEND || "medplum";
   if (backend === "hapi") {
@@ -73,9 +77,20 @@ export function createFhirBackend(accessToken: string): FhirBackend {
       process.env.FIRELY_ACCESS_TOKEN || undefined,
     );
   }
+  if (backend === "aidbox") {
+    const baseUrl = process.env.FHIR_BASE_URL;
+    const clientId = process.env.AIDBOX_CLIENT_ID;
+    const clientSecret = process.env.AIDBOX_CLIENT_SECRET;
+    if (!baseUrl || !clientId || !clientSecret) {
+      throw new Error(
+        "FHIR_BACKEND=aidbox requires FHIR_BASE_URL (the box's /fhir endpoint, for example http://localhost:8888/fhir) plus AIDBOX_CLIENT_ID and AIDBOX_CLIENT_SECRET.",
+      );
+    }
+    return new AidboxBackend(baseUrl, clientId, clientSecret);
+  }
   if (backend !== "medplum") {
     throw new Error(
-      `Unknown FHIR_BACKEND "${backend}". Supported values: medplum, hapi, firely.`,
+      `Unknown FHIR_BACKEND "${backend}". Supported values: medplum, hapi, firely, aidbox.`,
     );
   }
   return new MedplumBackend(accessToken);
