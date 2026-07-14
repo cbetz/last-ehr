@@ -15,14 +15,18 @@ export class McpConfigurationError extends Error {
   }
 }
 
-function value(env: NodeJS.ProcessEnv, key: string): string | undefined {
+// A plain string map rather than NodeJS.ProcessEnv: Next.js augments
+// ProcessEnv with a required NODE_ENV, which would force every test literal
+// (and any embedding caller) to carry unrelated keys. process.env remains
+// assignable.
+type EnvValues = Record<string, string | undefined>;
+
+function value(env: EnvValues, key: string): string | undefined {
   const candidate = env[key]?.trim();
   return candidate ? candidate : undefined;
 }
 
-export function loadMcpConfig(
-  env: NodeJS.ProcessEnv = process.env,
-): McpRuntimeConfig {
+export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
   const accessToken = value(env, "MEDPLUM_ACCESS_TOKEN");
   const clientId = value(env, "MEDPLUM_CLIENT_ID");
   const clientSecret = value(env, "MEDPLUM_CLIENT_SECRET");
