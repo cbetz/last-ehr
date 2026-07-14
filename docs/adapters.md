@@ -2,7 +2,8 @@
 
 Backend adapters are the most useful contribution path. Medplum is supported
 today; the local HAPI FHIR stack and the Firely Server adapter below are for
-synthetic evaluation only. The next valuable adapters are Aidbox, Oystehr, and
+synthetic evaluation only, and the Aidbox adapter below is awaiting a
+licensed-sandbox verification run. The next valuable adapters are Oystehr and
 other FHIR R4 backends with a clear auth story.
 
 ## Start with the executable starter
@@ -118,6 +119,39 @@ npm run eval -- --backend firely --base-url https://server.fire.ly --confirm-syn
 Caveats: no SMART launch or MCP on this tier; the sandbox enforces no access
 control, so treat every record on it as public; and Last EHR does not manage
 Firely tokens, tenancy, or audit logs.
+
+## Aidbox (adapter present, verification wanted)
+
+[`lib/fhir/aidbox.ts`](../lib/fhir/aidbox.ts) is a complete adapter over the
+shared REST transport with HTTP Basic auth from an Aidbox Client
+(`grant_types: ["basic"]`). It passes the wire-level REST contract, but it is
+deliberately **not** registered in `createFhirBackend` yet: running Aidbox
+requires a (free, self-service) license from the Aidbox user portal, so this
+repository has no license-free synthetic target to verify against.
+
+Two Aidbox specifics the adapter encodes:
+
+- The base URL must be the FHIR-conformant endpoint, i.e. end in `/fhir`
+  (`https://<box>.aidbox.app/fhir` or `http://localhost:8888/fhir`). The root
+  path serves Aidbox's native API, which returns resources in Aidbox format
+  and would break the contract silently.
+- Scope the Client with Aidbox AccessPolicy; Last EHR adds no access control
+  of its own.
+
+To verify against your own disposable synthetic box and flip the factory
+switch:
+
+```bash
+RUN_AIDBOX_E2E=1 FHIR_BASE_URL=http://localhost:8888/fhir \
+  AIDBOX_CLIENT_ID=... AIDBOX_CLIENT_SECRET=... \
+  npx vitest run lib/fhir/aidbox.contract.integration.test.ts
+AIDBOX_CLIENT_ID=... AIDBOX_CLIENT_SECRET=... \
+  npm run eval -- --backend aidbox --base-url http://localhost:8888/fhir --confirm-synthetic
+```
+
+With both layers green and a scrubbed eval report attached to the PR,
+register `FHIR_BACKEND=aidbox` in `lib/fhir/backend.ts` and add the support
+matrix row.
 
 ## Suggested adapter issues
 
