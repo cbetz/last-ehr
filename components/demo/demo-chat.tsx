@@ -465,14 +465,15 @@ export function DemoChat() {
               </div>
             )}
             {status === "submitted" && (
-              <div className="pb-4">
+              <div className="pb-4" role="status">
+                <span className="sr-only">Waiting for the assistant…</span>
                 <BotCard>
                   <MessageSkeleton />
                 </BotCard>
               </div>
             )}
             {error && (
-              <div className="pb-4">
+              <div className="pb-4" role="alert">
                 <BotMessage>{errorText(error)}</BotMessage>
               </div>
             )}
@@ -493,7 +494,7 @@ export function DemoChat() {
                 if (value) ask(value);
               }}
             >
-              <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 sm:rounded-md sm:border sm:px-12">
+              <div className="relative flex max-h-60 w-full grow flex-col overflow-hidden bg-background px-8 ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 sm:rounded-md sm:border sm:px-12">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -545,7 +546,7 @@ export function DemoChat() {
                       ? "Run the scripted approval demo…"
                       : "Ask about a patient…"
                   }
-                  className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus-within:outline-none sm:text-sm"
+                  className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus:outline-none sm:text-sm"
                   autoFocus
                   spellCheck={false}
                   autoComplete="off"
