@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronLast } from "lucide-react";
 import { useMedplum, useMedplumProfile } from "@medplum/react-hooks";
 
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ModeToggle";
 
@@ -25,22 +25,32 @@ export function DemoHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background">
-      <div className="container flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-          <ChevronLast className="h-5 w-5" aria-hidden="true" />
-          Last EHR
-          <span className="ml-1 rounded-full border px-2 py-0.5 text-xs font-medium text-muted-foreground">
+      <div className="container flex h-16 items-center justify-between gap-3 px-4">
+        <Link
+          href="/"
+          aria-label="Last EHR home"
+          className="flex min-w-0 items-center gap-2.5"
+        >
+          <BrandMark className="shrink-0" />
+          {/* min-w-0 + truncate: on a narrow screen the pill ellipsizes
+              instead of wrapping or pushing the header into overflow. */}
+          <span className="min-w-0 truncate rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
             {scriptedDemo ? "Scripted local demo" : "Live Demo"}
           </span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
           {profile && (
             <Button variant="ghost" size="sm" onClick={signOut}>
               Sign out
             </Button>
           )}
-          <Button variant="ghost" size="sm" asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="hidden sm:inline-flex"
+          >
             <Link href="/docs">Docs</Link>
           </Button>
           <Button variant="outline" size="sm" asChild>
