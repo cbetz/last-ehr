@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { HapiBackend } from "@/lib/fhir/hapi";
 import { FirelyBackend } from "@/lib/fhir/firely";
+import { AidboxBackend } from "@/lib/fhir/aidbox";
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { runFhirAgentSafetyEval } from "@/lib/eval/fhir-agent-safety";
 
@@ -16,7 +17,7 @@ const defaultReport = ".lastehr/fhir-agent-safety-eval.json";
 type EvalArguments = {
   prepare: boolean;
   report: string;
-  backend: "hapi" | "firely";
+  backend: "hapi" | "firely" | "aidbox";
   baseUrl?: string;
   confirmSynthetic: boolean;
 };
@@ -33,10 +34,12 @@ function help(): string {
     "The default command starts the loopback HAPI stack and resets synthetic data.",
     "It creates and deletes its own disposable test charts, then writes a scrubbed JSON report.",
     "",
-    "Adapter targets (--backend firely) never prepare the local stack and fail",
-    "closed without --confirm-synthetic, because the evaluator creates and",
-    "deletes resources on the target. Point it only at a disposable synthetic",
-    "sandbox. A bearer token is read from FIRELY_ACCESS_TOKEN when set.",
+    "Adapter targets (--backend firely | aidbox) never prepare the local stack",
+    "and fail closed without --confirm-synthetic, because the evaluator creates",
+    "and deletes resources on the target. Point it only at a disposable",
+    "synthetic sandbox. Credentials come from the environment: a bearer token",
+    "in FIRELY_ACCESS_TOKEN, or AIDBOX_CLIENT_ID + AIDBOX_CLIENT_SECRET (the",
+    "Aidbox --base-url must be the FHIR endpoint, ending in /fhir).",
   ].join("\n");
 }
 
@@ -59,8 +62,8 @@ function parseArguments(args: string[]): EvalArguments {
     }
     if (arg === "--backend") {
       const value = args[index + 1];
-      if (value !== "hapi" && value !== "firely") {
-        throw new Error("--backend must be hapi or firely.");
+      if (value !== "hapi" && value !== "firely" && value !== "aidbox") {
+        throw new Error("--backend must be hapi, firely, or aidbox.");
       }
       backend = value;
       index++;
@@ -117,6 +120,16 @@ function createEvalBackend({ backend, baseUrl }: EvalArguments): FhirBackend {
       baseUrl,
       process.env.FIRELY_ACCESS_TOKEN || undefined,
     );
+  }
+  if (backend === "aidbox") {
+    const clientId = process.env.AIDBOX_CLIENT_ID;
+    const clientSecret = process.env.AIDBOX_CLIENT_SECRET;
+    if (!baseUrl || !clientId || !clientSecret) {
+      throw new Error(
+        "--backend aidbox requires --base-url (ending in /fhir) plus AIDBOX_CLIENT_ID and AIDBOX_CLIENT_SECRET.",
+      );
+    }
+    return new AidboxBackend(baseUrl, clientId, clientSecret);
   }
   return new HapiBackend(baseUrl ?? localHapiUrl);
 }
