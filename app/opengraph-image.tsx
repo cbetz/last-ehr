@@ -31,21 +31,20 @@ export default function Image() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#596ef5",
-                color: "#ffffff",
-                fontSize: 24,
-                fontWeight: 800,
-              }}
+            {/* The last-chevron brand mark (see components/brand-mark.tsx). */}
+            <svg
+              width="38"
+              height="38"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#596ef5"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              +
-            </div>
+              <path d="m7 18 6-6-6-6" />
+              <path d="M17 6v12" />
+            </svg>
             <div style={{ display: "flex", fontSize: 28, fontWeight: 700 }}>
               Last<span style={{ color: "#8ea0ff" }}>EHR</span>
             </div>
