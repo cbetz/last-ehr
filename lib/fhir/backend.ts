@@ -45,6 +45,43 @@ export interface FhirBackend {
   deleteResource(resourceType: ResourceType, id: string): Promise<void>;
 }
 
+/**
+ * Whether a backend name's required server env is present, in the context the
+ * demo picker runs in (quickstart sessions). The chat route uses this to make
+ * an allowlisted-but-misconfigured pick degrade exactly like an unlisted one
+ * (silent fallback to the deployment default) instead of a bare 500 from the
+ * factory throw. "medplum" requires the quickstart client credentials because
+ * a picked-Medplum demo session is only usable with a real minted token.
+ */
+export function hasFhirBackendConfig(name: string): boolean {
+  // Deliberately stricter than the factory: the shared FHIR_BASE_URL counts
+  // only when the name IS the deployment default. Otherwise an allowlisted
+  // non-default pick could ride the fallback onto another backend's server
+  // through the wrong transport (e.g. a credential-less hapi pick aimed at
+  // the default Firely server's URL). A non-default pick must name its own
+  // per-backend base URL; failing this check degrades to silent fallback.
+  const isDefault = (process.env.FHIR_BACKEND || "medplum") === name;
+  const sharedUrl = isDefault ? process.env.FHIR_BASE_URL : undefined;
+  switch (name) {
+    case "medplum":
+      return Boolean(
+        process.env.MEDPLUM_CLIENT_ID && process.env.MEDPLUM_CLIENT_SECRET,
+      );
+    case "hapi":
+      return Boolean(process.env.HAPI_BASE_URL || sharedUrl);
+    case "firely":
+      return Boolean(process.env.FIRELY_BASE_URL || sharedUrl);
+    case "aidbox":
+      return Boolean(
+        (process.env.AIDBOX_BASE_URL || sharedUrl) &&
+          process.env.AIDBOX_CLIENT_ID &&
+          process.env.AIDBOX_CLIENT_SECRET,
+      );
+    default:
+      return false;
+  }
+}
+
 // The chat route resolves its backend here. The adapter is selected by the
 // optional backendName argument, falling back to FHIR_BACKEND:
 // "medplum" (default; hosted or self-hosted Medplum, token-authenticated),

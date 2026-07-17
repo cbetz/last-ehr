@@ -22,6 +22,7 @@ const scriptedDemoEnv = {
   // so the default 10/min in-memory limit trips from one localhost IP.
   RATE_LIMIT_PER_IP_MAX: "100",
   // Keep every optional external service off, matching CI.
+  NEXT_PUBLIC_DEMO_BACKENDS: "",
   NEXT_PUBLIC_POSTHOG_KEY: "",
   NEXT_PUBLIC_POSTHOG_HOST: "",
   NEXT_PUBLIC_MEDPLUM_BASE_URL: "",

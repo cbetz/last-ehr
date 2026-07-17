@@ -56,6 +56,7 @@ describe("quickstart route, hapi mode", () => {
     checkIpRateLimit.mockResolvedValue({ success: true, resetAfter: 0 });
     vi.stubEnv("FHIR_BACKEND", "hapi");
     vi.stubEnv("FHIR_BASE_URL", "http://localhost:8080/fhir");
+    vi.stubEnv("NEXT_PUBLIC_DEMO_BACKENDS", "");
   });
 
   afterEach(() => {
@@ -108,6 +109,55 @@ describe("quickstart route, medplum mode", () => {
 
   it("still requires Medplum credentials when FHIR_BACKEND is unset", async () => {
     vi.stubEnv("FHIR_BACKEND", "");
+    vi.stubEnv("MEDPLUM_CLIENT_ID", "");
+    vi.stubEnv("MEDPLUM_CLIENT_SECRET", "");
+    const res = await POST(request());
+    expect(res.status).toBe(404);
+    expect(cookieSets).toHaveLength(0);
+  });
+
+  it("requires Medplum credentials when medplum is in the demo allowlist on a non-medplum default", async () => {
+    // With medplum offered in the picker, a placeholder token would 401 the
+    // moment a visitor picks it, so the mint path (and its loud 404 when
+    // credentials are missing) must win over the placeholder branch.
+    vi.stubEnv("FHIR_BACKEND", "hapi");
+    vi.stubEnv("FHIR_BASE_URL", "http://localhost:8080/fhir");
+    vi.stubEnv("NEXT_PUBLIC_DEMO_BACKENDS", "medplum|Medplum,hapi|HAPI");
+    vi.stubEnv("MEDPLUM_CLIENT_ID", "");
+    vi.stubEnv("MEDPLUM_CLIENT_SECRET", "");
+    const res = await POST(request());
+    expect(res.status).toBe(404);
+    expect(cookieSets).toHaveLength(0);
+  });
+});
+
+describe("quickstart route, non-medplum defaults", () => {
+  beforeEach(() => {
+    jar.clear();
+    cookieSets.length = 0;
+    checkIpRateLimit.mockResolvedValue({ success: true, resetAfter: 0 });
+    vi.stubEnv("NEXT_PUBLIC_DEMO_BACKENDS", "");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("mints a placeholder session for a firely default (previously a 404)", async () => {
+    // The firely adapter authenticates from server env and ignores the
+    // cookie token; the cookie just means "a session exists", as with hapi.
+    vi.stubEnv("FHIR_BACKEND", "firely");
+    vi.stubEnv("MEDPLUM_CLIENT_ID", "");
+    vi.stubEnv("MEDPLUM_CLIENT_SECRET", "");
+    const res = await POST(request());
+    expect(res.status).toBe(204);
+    const names = cookieSets.map((c) => c.name);
+    expect(names).toContain("medplum_access_token");
+    expect(names).toContain("demo_session_id");
+  });
+
+  it("keeps failing loudly for a typo'd FHIR_BACKEND instead of minting a session that cannot chat", async () => {
+    vi.stubEnv("FHIR_BACKEND", "hapi-typo");
     vi.stubEnv("MEDPLUM_CLIENT_ID", "");
     vi.stubEnv("MEDPLUM_CLIENT_SECRET", "");
     const res = await POST(request());

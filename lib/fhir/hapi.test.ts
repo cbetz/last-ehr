@@ -9,7 +9,7 @@ vi.mock("@medplum/core", () => ({
 import { AidboxBackend } from "@/lib/fhir/aidbox";
 import { FirelyBackend } from "@/lib/fhir/firely";
 import { HapiBackend } from "@/lib/fhir/hapi";
-import { createFhirBackend } from "@/lib/fhir/backend";
+import { createFhirBackend, hasFhirBackendConfig } from "@/lib/fhir/backend";
 import { MedplumBackend } from "@/lib/fhir/medplum";
 import { defineFhirRestAdapterContract } from "@/test/fhir-rest-adapter-contract";
 
@@ -117,5 +117,55 @@ describe("createFhirBackend", () => {
   it("rejects unknown backends", () => {
     vi.stubEnv("FHIR_BACKEND", "not-a-backend");
     expect(() => createFhirBackend("tok")).toThrow("Unknown FHIR_BACKEND");
+  });
+});
+
+describe("hasFhirBackendConfig", () => {
+  it("mirrors what the factory needs to construct each adapter", () => {
+    vi.stubEnv("FHIR_BACKEND", "medplum");
+    vi.stubEnv("FHIR_BASE_URL", "");
+    vi.stubEnv("HAPI_BASE_URL", "");
+    vi.stubEnv("FIRELY_BASE_URL", "");
+    vi.stubEnv("MEDPLUM_CLIENT_ID", "");
+    vi.stubEnv("MEDPLUM_CLIENT_SECRET", "");
+    vi.stubEnv("AIDBOX_BASE_URL", "");
+    vi.stubEnv("AIDBOX_CLIENT_ID", "");
+    vi.stubEnv("AIDBOX_CLIENT_SECRET", "");
+    expect(hasFhirBackendConfig("hapi")).toBe(false);
+    expect(hasFhirBackendConfig("medplum")).toBe(false);
+    expect(hasFhirBackendConfig("firely")).toBe(false);
+    expect(hasFhirBackendConfig("aidbox")).toBe(false);
+    expect(hasFhirBackendConfig("not-a-backend")).toBe(false);
+
+    vi.stubEnv("HAPI_BASE_URL", "http://localhost:8080/fhir");
+    expect(hasFhirBackendConfig("hapi")).toBe(true);
+    vi.stubEnv("FIRELY_BASE_URL", "https://server.fire.ly");
+    expect(hasFhirBackendConfig("firely")).toBe(true);
+
+    // medplum needs the quickstart client credentials: a demo session picked
+    // onto Medplum is only usable with a real minted token.
+    vi.stubEnv("MEDPLUM_CLIENT_ID", "client");
+    vi.stubEnv("MEDPLUM_CLIENT_SECRET", "secret");
+    expect(hasFhirBackendConfig("medplum")).toBe(true);
+
+    vi.stubEnv("AIDBOX_BASE_URL", "http://localhost:8888/fhir");
+    vi.stubEnv("AIDBOX_CLIENT_ID", "lastehr");
+    vi.stubEnv("AIDBOX_CLIENT_SECRET", "secret");
+    expect(hasFhirBackendConfig("aidbox")).toBe(true);
+  });
+
+  it("counts the shared FHIR_BASE_URL only for the deployment's own default", () => {
+    // A non-default pick must name its own base URL; otherwise a
+    // credential-less hapi pick could ride the shared fallback onto the
+    // default backend's server through the wrong transport.
+    vi.stubEnv("FHIR_BACKEND", "firely");
+    vi.stubEnv("FHIR_BASE_URL", "https://firely.example/fhir");
+    vi.stubEnv("HAPI_BASE_URL", "");
+    vi.stubEnv("FIRELY_BASE_URL", "");
+    expect(hasFhirBackendConfig("hapi")).toBe(false);
+    expect(hasFhirBackendConfig("firely")).toBe(true);
+
+    vi.stubEnv("FHIR_BACKEND", "hapi");
+    expect(hasFhirBackendConfig("hapi")).toBe(true);
   });
 });

@@ -33,6 +33,7 @@
     "demo:local:prepare": "tsx scripts/demo-local.ts --prepare",
     "demo:local:down": "docker compose down",
     "check:models": "tsx scripts/check-models.ts",
+    "check:backends": "tsx scripts/check-backends.ts",
     "docker:local": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.app.yml up --build",
     "docker:local:down": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.app.yml down",
     "test": "vitest run",
