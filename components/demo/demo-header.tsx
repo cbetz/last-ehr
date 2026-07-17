@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMedplum, useMedplumProfile } from "@medplum/react-hooks";
 
 import { BrandMark } from "@/components/brand-mark";
+import { useDemoBackend } from "@/components/demo/demo-backend";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ModeToggle";
 
@@ -12,6 +13,12 @@ const scriptedDemo = process.env.NEXT_PUBLIC_SCRIPTED_DEMO === "true";
 export function DemoHeader() {
   const medplum = useMedplum();
   const profile = useMedplumProfile();
+  // The visitor's optimistic picker choice; the server may silently fall
+  // back, so this is a label, not a guarantee of the resolved backend.
+  const { backends, backendId, pickerEnabled } = useDemoBackend();
+  const pickedLabel = pickerEnabled
+    ? backends.find((b) => b.id === backendId)?.label
+    : undefined;
 
   async function signOut() {
     try {
@@ -35,7 +42,11 @@ export function DemoHeader() {
           {/* min-w-0 + truncate: on a narrow screen the pill ellipsizes
               instead of wrapping or pushing the header into overflow. */}
           <span className="min-w-0 truncate rounded-full border px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-            {scriptedDemo ? "Scripted local demo" : "Live Demo"}
+            {scriptedDemo
+              ? "Scripted local demo"
+              : pickedLabel
+                ? `Live Demo · ${pickedLabel}`
+                : "Live Demo"}
           </span>
         </Link>
 

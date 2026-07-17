@@ -33,6 +33,7 @@ import {
   conversionCardDismissed,
 } from "@/components/demo/conversion-card";
 import { DismissibleNotice } from "@/components/demo/dismissible-notice";
+import { useDemoBackend } from "@/components/demo/demo-backend";
 import { EmptyScreen } from "@/components/empty-screen";
 import { track } from "@/lib/analytics";
 import { parseDemoModels } from "@/lib/ai/demo-models";
@@ -96,6 +97,20 @@ export function DemoChat() {
     }
   };
 
+  // Demo backend picker (see components/demo/demo-backend.tsx). The ref
+  // mirrors the context value for the transport's headers function, exactly
+  // like the model picker above; the server re-validates every request.
+  const {
+    backends: demoBackends,
+    backendId: demoBackend,
+    pickBackend,
+    pickerEnabled: backendPickerEnabled,
+  } = useDemoBackend();
+  const demoBackendRef = useRef("");
+  useEffect(() => {
+    demoBackendRef.current = backendPickerEnabled ? demoBackend : "";
+  }, [demoBackend, backendPickerEnabled]);
+
   const {
     messages,
     sendMessage,
@@ -109,10 +124,14 @@ export function DemoChat() {
     // closure.
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      headers: (): Record<string, string> =>
-        !SCRIPTED_DEMO && demoModelRef.current
+      headers: (): Record<string, string> => ({
+        ...(!SCRIPTED_DEMO && demoModelRef.current
           ? { "x-demo-model": demoModelRef.current }
-          : {},
+          : {}),
+        ...(demoBackendRef.current
+          ? { "x-demo-backend": demoBackendRef.current }
+          : {}),
+      }),
     }),
     // Resume automatically only after the user answers a write approval, so the
     // gated tool's execute runs. All tools execute server-side inside
@@ -144,6 +163,50 @@ export function DemoChat() {
   const [showConversion, setShowConversion] = useState(false);
   const maybeShowConversion = () => {
     if (!smartSession && !conversionCardDismissed()) setShowConversion(true);
+  };
+
+  // Switching backends starts a new conversation: the transcript holds
+  // patient ids valid only on the old backend, and clearing messages also
+  // discards any pending approval card so a proposal can never execute
+  // against a different backend than the one that produced it. The
+  // demo_session_id cookie is backend-agnostic, so earlier tagged writes
+  // reappear when the visitor switches back.
+  const switchBackend = (id: string) => {
+    if (id === demoBackend) return;
+    if (messages.length > 0) {
+      if (
+        !window.confirm(
+          "Switching backends starts a new conversation. Your demo edits stay saved on each backend.",
+        )
+      ) {
+        return;
+      }
+      setMessages([]);
+      setInput("");
+      setShowConversion(false);
+    }
+    pickBackend(id);
+    // Static allowlisted label only, per the analytics policy.
+    track("demo_backend_picked", { backend: id || "default" });
+  };
+
+  // Answer a write-approval card. The card can be discarded while
+  // ensureSession is in flight (a backend switch clears the conversation);
+  // answering a no-longer-present approval must be a no-op, not an
+  // unhandled rejection.
+  const respondToApproval = async (
+    tool: string,
+    approvalId: string,
+    approved: boolean,
+  ) => {
+    track("demo_write_approval", { tool, approved });
+    if (!(await ensureSession())) return;
+    try {
+      await addToolApprovalResponse({ id: approvalId, approved });
+    } catch {
+      // The conversation was cleared out from under the card; nothing to do.
+    }
+    maybeShowConversion();
   };
 
   // Re-arm the server session cookie before every send and approval response.
@@ -235,7 +298,19 @@ export function DemoChat() {
       )}
       <div className="pb-[200px] pt-4 md:pt-10">
         {messages.length === 0 ? (
-          <EmptyScreen submitMessage={ask} scriptedDemo={SCRIPTED_DEMO} />
+          <EmptyScreen
+            submitMessage={ask}
+            scriptedDemo={SCRIPTED_DEMO}
+            backendPicker={
+              backendPickerEnabled
+                ? {
+                    backends: demoBackends,
+                    value: demoBackend,
+                    onPick: switchBackend,
+                  }
+                : undefined
+            }
+          />
         ) : (
           <div className="relative mx-auto max-w-2xl px-4">
             {messages.map((message, mi) => {
@@ -341,30 +416,20 @@ export function DemoChat() {
                                     { contentString: part.input.text },
                                   ],
                                 }}
-                                onApprove={async () => {
-                                  track("demo_write_approval", {
-                                    tool: "add_note",
-                                    approved: true,
-                                  });
-                                  if (!(await ensureSession())) return;
-                                  addToolApprovalResponse({
-                                    id: part.approval.id,
-                                    approved: true,
-                                  });
-                                  maybeShowConversion();
-                                }}
-                                onCancel={async () => {
-                                  track("demo_write_approval", {
-                                    tool: "add_note",
-                                    approved: false,
-                                  });
-                                  if (!(await ensureSession())) return;
-                                  addToolApprovalResponse({
-                                    id: part.approval.id,
-                                    approved: false,
-                                  });
-                                  maybeShowConversion();
-                                }}
+                                onApprove={() =>
+                                  respondToApproval(
+                                    "add_note",
+                                    part.approval.id,
+                                    true,
+                                  )
+                                }
+                                onCancel={() =>
+                                  respondToApproval(
+                                    "add_note",
+                                    part.approval.id,
+                                    false,
+                                  )
+                                }
                               />
                             </BotCard>
                           );
@@ -420,30 +485,20 @@ export function DemoChat() {
                                     code: part.input.unit,
                                   },
                                 }}
-                                onApprove={async () => {
-                                  track("demo_write_approval", {
-                                    tool: "record_observation",
-                                    approved: true,
-                                  });
-                                  if (!(await ensureSession())) return;
-                                  addToolApprovalResponse({
-                                    id: part.approval.id,
-                                    approved: true,
-                                  });
-                                  maybeShowConversion();
-                                }}
-                                onCancel={async () => {
-                                  track("demo_write_approval", {
-                                    tool: "record_observation",
-                                    approved: false,
-                                  });
-                                  if (!(await ensureSession())) return;
-                                  addToolApprovalResponse({
-                                    id: part.approval.id,
-                                    approved: false,
-                                  });
-                                  maybeShowConversion();
-                                }}
+                                onApprove={() =>
+                                  respondToApproval(
+                                    "record_observation",
+                                    part.approval.id,
+                                    true,
+                                  )
+                                }
+                                onCancel={() =>
+                                  respondToApproval(
+                                    "record_observation",
+                                    part.approval.id,
+                                    false,
+                                  )
+                                }
                               />
                             </BotCard>
                           );
@@ -538,24 +593,55 @@ export function DemoChat() {
                   </TooltipTrigger>
                   <TooltipContent>New Chat</TooltipContent>
                 </Tooltip>
-                {!SCRIPTED_DEMO && DEMO_MODELS.length > 0 && (
-                  <div className="absolute bottom-1.5 left-0 sm:left-4">
-                    <label className="sr-only" htmlFor="demo-model">
-                      Model
-                    </label>
-                    <select
-                      id="demo-model"
-                      value={demoModel}
-                      onChange={(e) => pickDemoModel(e.target.value)}
-                      className="max-w-[180px] rounded border bg-background px-1.5 py-0.5 text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <option value="">Default model</option>
-                      {DEMO_MODELS.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
+                {((!SCRIPTED_DEMO && DEMO_MODELS.length > 0) ||
+                  backendPickerEnabled) && (
+                  <div className="absolute bottom-1.5 left-0 flex gap-1 sm:left-4">
+                    {backendPickerEnabled && (
+                      <>
+                        <label className="sr-only" htmlFor="demo-backend">
+                          Backend
+                        </label>
+                        <select
+                          id="demo-backend"
+                          value={demoBackend}
+                          onChange={(e) => switchBackend(e.target.value)}
+                          // Not `status !== "ready"`: the error state is the
+                          // one moment a visitor most wants to switch away
+                          // from a failing backend.
+                          disabled={
+                            status === "submitted" || status === "streaming"
+                          }
+                          className="max-w-[140px] rounded border bg-background px-1.5 py-0.5 text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <option value="">Default backend</option>
+                          {demoBackends.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.label}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
+                    {!SCRIPTED_DEMO && DEMO_MODELS.length > 0 && (
+                      <>
+                        <label className="sr-only" htmlFor="demo-model">
+                          Model
+                        </label>
+                        <select
+                          id="demo-model"
+                          value={demoModel}
+                          onChange={(e) => pickDemoModel(e.target.value)}
+                          className="max-w-[140px] rounded border bg-background px-1.5 py-0.5 text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <option value="">Default model</option>
+                          {DEMO_MODELS.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.label}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
                   </div>
                 )}
                 <Textarea

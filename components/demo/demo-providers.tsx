@@ -5,6 +5,7 @@ import { MedplumClient } from "@medplum/core";
 import { MedplumProvider } from "@medplum/react-hooks";
 import posthog from "posthog-js";
 
+import { DemoBackendProvider } from "@/components/demo/demo-backend";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Demo-only client context. This module must stay out of the root layout:
@@ -46,7 +47,9 @@ const medplum = new MedplumClient({
 export function DemoProviders({ children }: { children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={0}>
-      <MedplumProvider medplum={medplum}>{children}</MedplumProvider>
+      <MedplumProvider medplum={medplum}>
+        <DemoBackendProvider>{children}</DemoBackendProvider>
+      </MedplumProvider>
     </TooltipProvider>
   );
 }
