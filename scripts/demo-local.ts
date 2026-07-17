@@ -11,6 +11,11 @@ const scriptedDemoEnv: NodeJS.ProcessEnv = {
   NODE_ENV: "development",
   FHIR_BACKEND: "hapi",
   FHIR_BASE_URL: "http://localhost:8080/fhir",
+  // Pin the per-backend URL overrides too, so an exported HAPI_BASE_URL (or
+  // sibling) can never steer the no-key demo away from the local stack.
+  HAPI_BASE_URL: "",
+  FIRELY_BASE_URL: "",
+  AIDBOX_BASE_URL: "",
   AI_PROVIDER: "scripted",
   LASTEHR_SCRIPTED_DEMO: "true",
   NEXT_PUBLIC_QUICKSTART: "true",

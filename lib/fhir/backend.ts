@@ -45,31 +45,37 @@ export interface FhirBackend {
   deleteResource(resourceType: ResourceType, id: string): Promise<void>;
 }
 
-// The chat route resolves its backend here. FHIR_BACKEND selects the adapter:
+// The chat route resolves its backend here. The adapter is selected by the
+// optional backendName argument, falling back to FHIR_BACKEND:
 // "medplum" (default; hosted or self-hosted Medplum, token-authenticated),
-// "hapi" (the included local, no-auth HAPI FHIR evaluation stack named by
-// FHIR_BASE_URL), "firely" (a Firely Server at FHIR_BASE_URL, anonymous or
-// with a static bearer token in FIRELY_ACCESS_TOKEN), or "aidbox" (an Aidbox
-// box's /fhir endpoint at FHIR_BASE_URL with a basic-auth Client in
-// AIDBOX_CLIENT_ID/AIDBOX_CLIENT_SECRET). Firely and Aidbox are synthetic
-// evaluation only; see the self-host docs and docs/support.md for each
-// tier's limits.
-export function createFhirBackend(accessToken: string): FhirBackend {
-  const backend = process.env.FHIR_BACKEND || "medplum";
+// "hapi" (the included local, no-auth HAPI FHIR evaluation stack), "firely"
+// (a Firely Server, anonymous or with a static bearer token in
+// FIRELY_ACCESS_TOKEN), or "aidbox" (an Aidbox box's /fhir endpoint with a
+// basic-auth Client in AIDBOX_CLIENT_ID/AIDBOX_CLIENT_SECRET). Each REST
+// adapter reads its own base URL (HAPI_BASE_URL, FIRELY_BASE_URL,
+// AIDBOX_BASE_URL) so several backends can be configured at once, falling
+// back to the shared FHIR_BASE_URL for existing single-backend deployments.
+// Firely and Aidbox are synthetic evaluation only; see the self-host docs
+// and docs/support.md for each tier's limits.
+export function createFhirBackend(
+  accessToken: string,
+  backendName?: string,
+): FhirBackend {
+  const backend = backendName || process.env.FHIR_BACKEND || "medplum";
   if (backend === "hapi") {
-    const baseUrl = process.env.FHIR_BASE_URL;
+    const baseUrl = process.env.HAPI_BASE_URL || process.env.FHIR_BASE_URL;
     if (!baseUrl) {
       throw new Error(
-        "FHIR_BACKEND=hapi requires FHIR_BASE_URL (for example http://localhost:8080/fhir).",
+        "FHIR_BACKEND=hapi requires HAPI_BASE_URL or FHIR_BASE_URL (for example http://localhost:8080/fhir).",
       );
     }
     return new HapiBackend(baseUrl);
   }
   if (backend === "firely") {
-    const baseUrl = process.env.FHIR_BASE_URL;
+    const baseUrl = process.env.FIRELY_BASE_URL || process.env.FHIR_BASE_URL;
     if (!baseUrl) {
       throw new Error(
-        "FHIR_BACKEND=firely requires FHIR_BASE_URL (for example https://server.fire.ly).",
+        "FHIR_BACKEND=firely requires FIRELY_BASE_URL or FHIR_BASE_URL (for example https://server.fire.ly).",
       );
     }
     return new FirelyBackend(
@@ -78,12 +84,12 @@ export function createFhirBackend(accessToken: string): FhirBackend {
     );
   }
   if (backend === "aidbox") {
-    const baseUrl = process.env.FHIR_BASE_URL;
+    const baseUrl = process.env.AIDBOX_BASE_URL || process.env.FHIR_BASE_URL;
     const clientId = process.env.AIDBOX_CLIENT_ID;
     const clientSecret = process.env.AIDBOX_CLIENT_SECRET;
     if (!baseUrl || !clientId || !clientSecret) {
       throw new Error(
-        "FHIR_BACKEND=aidbox requires FHIR_BASE_URL (the box's /fhir endpoint, for example http://localhost:8888/fhir) plus AIDBOX_CLIENT_ID and AIDBOX_CLIENT_SECRET.",
+        "FHIR_BACKEND=aidbox requires AIDBOX_BASE_URL or FHIR_BASE_URL (the box's /fhir endpoint, for example http://localhost:8888/fhir) plus AIDBOX_CLIENT_ID and AIDBOX_CLIENT_SECRET.",
       );
     }
     return new AidboxBackend(baseUrl, clientId, clientSecret);
