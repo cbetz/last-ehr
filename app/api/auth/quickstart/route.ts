@@ -2,6 +2,10 @@ import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { MedplumClient } from "@medplum/core";
 
+import {
+  KNOWN_FHIR_BACKENDS,
+  parseDemoBackends,
+} from "@/lib/fhir/demo-backends";
 import { checkIpRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
 // Node runtime so @medplum/core works.
@@ -102,11 +106,26 @@ async function setSessionCookies(token: string, maxAge: number): Promise<void> {
 }
 
 export async function POST(req: Request) {
-  // Local FHIR mode (FHIR_BACKEND=hapi): there is no token to mint, because
-  // the HAPI adapter sends no credentials. The chat route still requires the
-  // session cookie pair, so set a placeholder token and the session id that
-  // keeps per-browser demo writes isolated. Local, single-tenant use only.
-  if ((process.env.FHIR_BACKEND || "medplum") === "hapi") {
+  // A Medplum token is only worth minting when some path can use it: the
+  // deployment default is Medplum, or "medplum" is offered in the demo
+  // backend picker allowlist. Every other configuration (hapi, firely,
+  // aidbox defaults) authenticates from server env inside its adapter and
+  // ignores the cookie token entirely — the cookie just means "a session
+  // exists". Those get a placeholder token and the session id that keeps
+  // per-browser demo writes isolated. (Previously only hapi took this
+  // branch, so firely/aidbox-default deployments 404'd here unless Medplum
+  // credentials were also configured.) A typo'd FHIR_BACKEND deliberately
+  // falls through to the mint path, where it keeps failing loudly (404
+  // without credentials) instead of minting a placeholder session whose
+  // every chat request would 500 at the factory's unknown-backend throw.
+  const defaultBackend = process.env.FHIR_BACKEND || "medplum";
+  const placeholderSufficient =
+    defaultBackend !== "medplum" &&
+    (KNOWN_FHIR_BACKENDS as readonly string[]).includes(defaultBackend) &&
+    !parseDemoBackends(process.env.NEXT_PUBLIC_DEMO_BACKENDS).some(
+      (b) => b.id === "medplum",
+    );
+  if (placeholderSufficient) {
     const { success } = await checkIpRateLimit(
       `quickstart:${getClientIp(req)}`,
     );

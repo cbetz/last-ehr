@@ -16,7 +16,11 @@ import {
 import { parseDemoModels, resolveDemoModel } from "@/lib/ai/demo-models";
 import { buildTools, SYSTEM_PROMPT } from "@/lib/ai/tools";
 import { findDeniedProposals, recordRejectedProposal } from "@/lib/fhir/audit";
-import { createFhirBackend } from "@/lib/fhir/backend";
+import { createFhirBackend, hasFhirBackendConfig } from "@/lib/fhir/backend";
+import {
+  parseDemoBackends,
+  resolveDemoBackend,
+} from "@/lib/fhir/demo-backends";
 import { ScriptedDemoBackend } from "@/lib/fhir/scripted-demo";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
@@ -72,7 +76,26 @@ export async function POST(req: Request) {
     parseDemoModels(process.env.NEXT_PUBLIC_DEMO_MODELS),
   );
 
-  const backend = createFhirBackend(accessToken);
+  // Optional demo backend picker, mirroring the model picker above: honored
+  // ONLY for demo sessions (demo_session_id present — SMART and signed-in
+  // sessions never carry it) and never under the scripted gate, which is
+  // pinned to local HAPI. An allowlisted pick whose server config is
+  // incomplete degrades like an unlisted name: silent fallback to the
+  // deployment default, so probing yields no signal and a misconfigured
+  // entry cannot 500.
+  const requestedBackend =
+    sessionId && !isScriptedDemoEnabled()
+      ? resolveDemoBackend(
+          req.headers.get("x-demo-backend"),
+          parseDemoBackends(process.env.NEXT_PUBLIC_DEMO_BACKENDS),
+        )
+      : undefined;
+  const demoBackend =
+    requestedBackend && hasFhirBackendConfig(requestedBackend)
+      ? requestedBackend
+      : undefined;
+
+  const backend = createFhirBackend(accessToken, demoBackend);
   const tools = buildTools(
     isScriptedDemoEnabled()
       ? new ScriptedDemoBackend(backend, sessionId)
@@ -80,14 +103,23 @@ export async function POST(req: Request) {
     sessionId,
   );
 
-  // Opt-in rejected-proposal audit trail. Uses the raw backend, not the
-  // scripted wrapper: AuditEvents are system writes, not agent tool writes,
-  // so they are outside the scripted demo's narrowed write surface. Audit
-  // failures are logged and never block the chat turn.
+  // Opt-in rejected-proposal audit trail. Uses the deployment-default
+  // backend, never the visitor-picked one: the audit trail is the operator's
+  // record and must not be re-pointed (or fragmented) by the demo picker.
+  // It is also the raw backend, not the scripted wrapper: AuditEvents are
+  // system writes, not agent tool writes, so they are outside the scripted
+  // demo's narrowed write surface. Audit failures are logged and never block
+  // the chat turn.
   if (process.env.LASTEHR_AUDIT_REJECTED_PROPOSALS === "true") {
     for (const denial of findDeniedProposals(messages)) {
       try {
-        await recordRejectedProposal(backend, denial, sessionId);
+        // Constructed inside the try so a broken deployment default degrades
+        // to a logged audit failure (matching the invariant below) instead
+        // of failing a turn the picked backend could have carried.
+        const auditBackend = demoBackend
+          ? createFhirBackend(accessToken)
+          : backend;
+        await recordRejectedProposal(auditBackend, denial, sessionId);
       } catch (error) {
         console.error(
           "Rejected-proposal audit failed:",
