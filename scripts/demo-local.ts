@@ -27,6 +27,8 @@ const scriptedDemoEnv: NodeJS.ProcessEnv = {
   NEXT_PUBLIC_GOOGLE_AUTH_ORIGINS: "",
   NEXT_PUBLIC_DEMO_MODELS: "",
   NEXT_PUBLIC_DEMO_BACKENDS: "",
+  // Ships dark; the dev panel PR flips this on for the local walkthrough.
+  NEXT_PUBLIC_DEMO_DEV_OUTPUT: "",
   UPSTASH_REDIS_REST_URL: "",
   UPSTASH_REDIS_REST_TOKEN: "",
   KV_REST_API_URL: "",
