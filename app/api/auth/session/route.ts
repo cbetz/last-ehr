@@ -34,6 +34,12 @@ export async function POST(req: Request) {
     // before each send.
     maxAge: 60 * 60,
   });
+  // demo_session_id is the demo/real discriminator: the chat route treats any
+  // request carrying it as a demo session (write tagging, and demo-only
+  // affordances gate on it). A signed-in session is a real session, so a
+  // leftover cookie from an earlier quickstart visit must not follow it in.
+  // The SMART callback already does the same (app/launch/callback/route.ts).
+  cookieStore.delete("demo_session_id");
 
   return new Response(null, { status: 204 });
 }
