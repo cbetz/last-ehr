@@ -29,7 +29,10 @@ export function isScriptedDemoEnabled(
     env.AI_PROVIDER?.toLowerCase() === "scripted" &&
     env.LASTEHR_SCRIPTED_DEMO === "true" &&
     env.FHIR_BACKEND === "hapi" &&
-    hasLocalHapiUrl(env.FHIR_BASE_URL)
+    // Validate the URL the hapi transport actually connects to (the factory
+    // resolves HAPI_BASE_URL || FHIR_BASE_URL); checking a different variable
+    // would let a remote HAPI_BASE_URL slip past the local-only gate.
+    hasLocalHapiUrl(env.HAPI_BASE_URL || env.FHIR_BASE_URL)
   );
 }
 
@@ -84,7 +87,7 @@ export function getChatModel(overrideModelId?: string) {
     case "scripted":
       if (!isScriptedDemoEnabled()) {
         throw new Error(
-          "AI_PROVIDER=scripted is only available for the explicit local HAPI synthetic demo. Set FHIR_BACKEND=hapi, FHIR_BASE_URL=http://localhost:8080/fhir (or the Docker hapi host), and LASTEHR_SCRIPTED_DEMO=true.",
+          "AI_PROVIDER=scripted is only available for the explicit local HAPI synthetic demo. Set FHIR_BACKEND=hapi, HAPI_BASE_URL or FHIR_BASE_URL=http://localhost:8080/fhir (or the Docker hapi host), and LASTEHR_SCRIPTED_DEMO=true.",
         );
       }
       return createScriptedDemoModel();

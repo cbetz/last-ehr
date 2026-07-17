@@ -78,6 +78,33 @@ describe("getChatModel", () => {
     expect(() => getChatModel()).toThrow("only available for the explicit local HAPI");
   });
 
+  it("validates the effective URL the hapi transport uses, not just FHIR_BASE_URL", () => {
+    // A remote HAPI_BASE_URL must not slip past the gate behind a local
+    // FHIR_BASE_URL: the factory connects to HAPI_BASE_URL when set.
+    expect(
+      isScriptedDemoEnabled({
+        ...process.env,
+        AI_PROVIDER: "scripted",
+        LASTEHR_SCRIPTED_DEMO: "true",
+        FHIR_BACKEND: "hapi",
+        FHIR_BASE_URL: "http://localhost:8080/fhir",
+        HAPI_BASE_URL: "https://remote.example/fhir",
+      }),
+    ).toBe(false);
+
+    // A local HAPI_BASE_URL alone is a valid scripted configuration.
+    expect(
+      isScriptedDemoEnabled({
+        ...process.env,
+        AI_PROVIDER: "scripted",
+        LASTEHR_SCRIPTED_DEMO: "true",
+        FHIR_BACKEND: "hapi",
+        FHIR_BASE_URL: "",
+        HAPI_BASE_URL: "http://localhost:8080/fhir",
+      }),
+    ).toBe(true);
+  });
+
   it("requires the local HTTP HAPI endpoint rather than only a local hostname", () => {
     vi.stubEnv("AI_PROVIDER", "scripted");
     vi.stubEnv("LASTEHR_SCRIPTED_DEMO", "true");

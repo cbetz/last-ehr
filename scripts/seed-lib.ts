@@ -69,9 +69,9 @@ export async function wipePatient(
 
 /**
  * Resolve the backend the seed writes to, mirroring the app's own factory:
- * FHIR_BACKEND=hapi hits an open FHIR server at FHIR_BASE_URL with no
- * credentials; the default is Medplum via MEDPLUM_ACCESS_TOKEN or a
- * client-credentials login.
+ * FHIR_BACKEND=hapi hits an open FHIR server at HAPI_BASE_URL (falling back
+ * to FHIR_BASE_URL) with no credentials; the default is Medplum via
+ * MEDPLUM_ACCESS_TOKEN or a client-credentials login.
  */
 export async function createSeedBackend(): Promise<{
   backend: FhirBackend;
@@ -80,10 +80,10 @@ export async function createSeedBackend(): Promise<{
   const kind = process.env.FHIR_BACKEND || "medplum";
 
   if (kind === "hapi") {
-    const baseUrl = process.env.FHIR_BASE_URL;
+    const baseUrl = process.env.HAPI_BASE_URL || process.env.FHIR_BASE_URL;
     if (!baseUrl) {
       throw new Error(
-        "FHIR_BACKEND=hapi requires FHIR_BASE_URL (for example http://localhost:8080/fhir).",
+        "FHIR_BACKEND=hapi requires HAPI_BASE_URL or FHIR_BASE_URL (for example http://localhost:8080/fhir).",
       );
     }
     return { backend: new HapiBackend(baseUrl), target: baseUrl };
@@ -105,7 +105,7 @@ export async function createSeedBackend(): Promise<{
       "Seeding needs write access to your Medplum project. Set either:\n" +
         "  - MEDPLUM_CLIENT_ID + MEDPLUM_CLIENT_SECRET (a ClientApplication with write access), or\n" +
         "  - MEDPLUM_ACCESS_TOKEN (a token from an account that can write),\n" +
-        "or set FHIR_BACKEND=hapi + FHIR_BASE_URL for a local open FHIR server.",
+        "or set FHIR_BACKEND=hapi + HAPI_BASE_URL (or FHIR_BASE_URL) for a local open FHIR server.",
     );
   }
 

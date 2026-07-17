@@ -7,6 +7,11 @@ import { defineConfig } from "@playwright/test";
 const scriptedDemoEnv = {
   FHIR_BACKEND: "hapi",
   FHIR_BASE_URL: "http://localhost:8080/fhir",
+  // Pin the per-backend URL overrides so an ambient HAPI_BASE_URL cannot
+  // point the app under test at a different server than the one asserted on.
+  HAPI_BASE_URL: "",
+  FIRELY_BASE_URL: "",
+  AIDBOX_BASE_URL: "",
   AI_PROVIDER: "scripted",
   LASTEHR_SCRIPTED_DEMO: "true",
   NEXT_PUBLIC_QUICKSTART: "true",

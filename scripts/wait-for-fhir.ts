@@ -7,10 +7,11 @@ import { config as loadEnv } from "dotenv";
 loadEnv({ path: ".env.local", quiet: true });
 loadEnv({ path: ".env", quiet: true });
 
-const base = (process.env.FHIR_BASE_URL || "http://localhost:8080/fhir").replace(
-  /\/+$/,
-  "",
-);
+const base = (
+  process.env.HAPI_BASE_URL ||
+  process.env.FHIR_BASE_URL ||
+  "http://localhost:8080/fhir"
+).replace(/\/+$/, "");
 // First boot initializes the database schema and can take a couple of
 // minutes on top of the image pull.
 const deadline = Date.now() + 5 * 60 * 1000;

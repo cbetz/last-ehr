@@ -12,6 +12,12 @@ services:
     environment:
       FHIR_BACKEND: hapi
       FHIR_BASE_URL: http://hapi:8080/fhir
+      # Pin the per-backend URL overrides: a HAPI_BASE_URL in .env.local would
+      # otherwise flow through env_file and beat the pinned URL above (and
+      # localhost inside the container is not the hapi service).
+      HAPI_BASE_URL: ""
+      FIRELY_BASE_URL: ""
+      AIDBOX_BASE_URL: ""
       NEXT_PUBLIC_QUICKSTART: "${NEXT_PUBLIC_QUICKSTART:-true}"
       NEXT_PUBLIC_SCRIPTED_DEMO: "${NEXT_PUBLIC_SCRIPTED_DEMO:-}"
     depends_on:
