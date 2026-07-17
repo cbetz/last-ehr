@@ -3,6 +3,16 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { IconArrowRight } from "@/components/ui/icons";
 import { track } from "@/lib/analytics";
+import {
+  DEMO_BACKEND_TIERS,
+  type DemoBackend,
+} from "@/lib/fhir/demo-backends";
+
+const TIER_LABELS: Record<string, string> = {
+  supported: "Supported",
+  "local-eval": "Local evaluation",
+  "synthetic-eval": "Synthetic evaluation",
+};
 
 // A write leads so first-time visitors reach the approval gate (the thing
 // this demo exists to show) on their first click.
@@ -36,9 +46,15 @@ const scriptedExampleMessages = [
 export function EmptyScreen({
   submitMessage,
   scriptedDemo = false,
+  backendPicker,
 }: {
   submitMessage: (message: string) => void;
   scriptedDemo?: boolean;
+  backendPicker?: {
+    backends: DemoBackend[];
+    value: string;
+    onPick: (id: string) => void;
+  };
 }) {
   const messages = scriptedDemo ? scriptedExampleMessages : exampleMessages;
   const steps = scriptedDemo
@@ -69,6 +85,50 @@ export function EmptyScreen({
             </div>
           ))}
         </div>
+
+        {backendPicker && (
+          <div className="mt-6 rounded-md border bg-muted/40 p-3">
+            <div className="text-sm font-medium">Pick the EHR under the hood</div>
+            <p className="mt-1 text-sm leading-normal text-muted-foreground">
+              The same agent, tools, and approval gate run against whichever
+              FHIR backend you choose. Switching later starts a new
+              conversation.
+            </p>
+            <div
+              className="mt-3 flex flex-wrap gap-2"
+              role="group"
+              aria-label="Demo backend"
+            >
+              {backendPicker.backends.map((b) => {
+                const selected = backendPicker.value === b.id;
+                const tier =
+                  TIER_LABELS[
+                    DEMO_BACKEND_TIERS[b.id as keyof typeof DEMO_BACKEND_TIERS]
+                  ];
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => backendPicker.onPick(b.id)}
+                    className={`flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                      selected
+                        ? "border-foreground bg-background font-medium"
+                        : "bg-background text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {b.label}
+                    {tier && (
+                      <span className="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {tier}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <p className="mt-6 leading-normal text-muted-foreground">
           {scriptedDemo ? "Start the walkthrough:" : "Start with one of these:"}
