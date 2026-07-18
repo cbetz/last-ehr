@@ -23,10 +23,10 @@ const scriptedDemoEnv = {
   RATE_LIMIT_PER_IP_MAX: "100",
   // Keep every optional external service off, matching CI.
   NEXT_PUBLIC_DEMO_BACKENDS: "",
-  // Off until the dev-panel e2e lands. The flag-off response tail is pinned
-  // byte-identical to the previous release in app/api/chat/route.test.ts;
-  // this suite exercises the approval flow end to end on that path.
-  NEXT_PUBLIC_DEMO_DEV_OUTPUT: "",
+  // On, for the dev-panel e2e (including its DOM-level leak assertions).
+  // The flag-off response tail is pinned byte-identical to the previous
+  // release in app/api/chat/route.test.ts.
+  NEXT_PUBLIC_DEMO_DEV_OUTPUT: "true",
   NEXT_PUBLIC_POSTHOG_KEY: "",
   NEXT_PUBLIC_POSTHOG_HOST: "",
   NEXT_PUBLIC_MEDPLUM_BASE_URL: "",

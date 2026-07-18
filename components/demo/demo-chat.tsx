@@ -34,6 +34,8 @@ import {
 } from "@/components/demo/conversion-card";
 import { DismissibleNotice } from "@/components/demo/dismissible-notice";
 import { useDemoBackend } from "@/components/demo/demo-backend";
+import { DevPanel } from "@/components/demo/dev-panel";
+import type { FhirDevEvent } from "@/lib/fhir/observed";
 import { EmptyScreen } from "@/components/empty-screen";
 import { track } from "@/lib/analytics";
 import { parseDemoModels } from "@/lib/ai/demo-models";
@@ -47,6 +49,12 @@ const DEMO_MODELS = parseDemoModels(process.env.NEXT_PUBLIC_DEMO_MODELS);
 // The server independently requires AI_PROVIDER=scripted plus its local-HAPI
 // guard before it enables the scripted provider.
 const SCRIPTED_DEMO = process.env.NEXT_PUBLIC_SCRIPTED_DEMO === "true";
+// Renders the "Under the hood" toggle. Display state only: the server
+// independently gates event emission on the same flag plus a demo session,
+// so real (SMART/signed-in) sessions never stream FHIR detail regardless.
+const DEV_OUTPUT = process.env.NEXT_PUBLIC_DEMO_DEV_OUTPUT === "true";
+// Bounded so a long conversation cannot grow the panel without limit.
+const DEV_EVENT_CAP = 200;
 
 // The chat API writes its error bodies for users (rate limit, expired session,
 // model failure), and the transport surfaces that body as error.message. Show
@@ -111,6 +119,17 @@ export function DemoChat() {
     demoBackendRef.current = backendPickerEnabled ? demoBackend : "";
   }, [demoBackend, backendPickerEnabled]);
 
+  // "Under the hood" panel state, fed by the stream's transient dev-output
+  // data parts (they arrive via onData only and are never part of message
+  // history). devBackendName is the server-confirmed resolved backend.
+  const [devPanelOpen, setDevPanelOpen] = useState(false);
+  const [devEvents, setDevEvents] = useState<FhirDevEvent[]>([]);
+  const [devBackendName, setDevBackendName] = useState<string | undefined>();
+  const clearDevEvents = () => {
+    setDevEvents([]);
+    setDevBackendName(undefined);
+  };
+
   const {
     messages,
     sendMessage,
@@ -119,6 +138,13 @@ export function DemoChat() {
     setMessages,
     addToolApprovalResponse,
   } = useChat<ChatMessage>({
+    onData: (part) => {
+      if (part.type === "data-fhir") {
+        setDevEvents((prev) => [...prev.slice(-(DEV_EVENT_CAP - 1)), part.data]);
+      } else if (part.type === "data-backend") {
+        setDevBackendName(part.data.name);
+      }
+    },
     // headers is a function so the transport (constructed once) reads the
     // CURRENT picker choice from a ref; state alone would go stale in the
     // closure.
@@ -185,6 +211,8 @@ export function DemoChat() {
       setInput("");
       setShowConversion(false);
     }
+    // The panel documents one backend's conversation; a switch resets it.
+    clearDevEvents();
     pickBackend(id);
     // Static allowlisted label only, per the analytics policy.
     track("demo_backend_picked", { backend: id || "default" });
@@ -296,7 +324,9 @@ export function DemoChat() {
           </p>
         </DismissibleNotice>
       )}
-      <div className="pb-[200px] pt-4 md:pt-10">
+      <div
+        className={`pb-[200px] pt-4 md:pt-10 ${devPanelOpen ? "lg:pr-96" : ""}`}
+      >
         {messages.length === 0 ? (
           <EmptyScreen
             submitMessage={ask}
@@ -552,7 +582,17 @@ export function DemoChat() {
         <ChatScrollAnchor trackVisibility={true} />
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80">
+      {devPanelOpen && DEV_OUTPUT && !smartSession && (
+        <DevPanel
+          backendName={devBackendName}
+          events={devEvents}
+          onClose={() => setDevPanelOpen(false)}
+        />
+      )}
+
+      <div
+        className={`fixed inset-x-0 bottom-0 w-full bg-gradient-to-b from-muted/30 from-0% to-muted/30 to-50% duration-300 ease-in-out animate-in dark:from-background/10 dark:from-10% dark:to-background/80 ${devPanelOpen ? "lg:pr-96" : ""}`}
+      >
         <div className="mx-auto sm:max-w-2xl sm:px-4">
           <div className="space-y-4 border-t bg-background px-4 py-2 shadow-lg sm:rounded-t-xl sm:border md:py-4">
             {sessionNotice && (
@@ -585,6 +625,7 @@ export function DemoChat() {
                         // semantics are unchanged: only the localStorage flag
                         // suppresses it permanently.
                         setShowConversion(false);
+                        clearDevEvents();
                       }}
                     >
                       <IconPlus />
@@ -594,8 +635,22 @@ export function DemoChat() {
                   <TooltipContent>New Chat</TooltipContent>
                 </Tooltip>
                 {((!SCRIPTED_DEMO && DEMO_MODELS.length > 0) ||
-                  backendPickerEnabled) && (
+                  backendPickerEnabled ||
+                  (DEV_OUTPUT && !smartSession)) && (
                   <div className="absolute bottom-1.5 left-0 flex gap-1 sm:left-4">
+                    {DEV_OUTPUT && !smartSession && (
+                      <button
+                        type="button"
+                        aria-pressed={devPanelOpen}
+                        onClick={() => {
+                          if (!devPanelOpen) track("demo_dev_panel_opened");
+                          setDevPanelOpen((open) => !open);
+                        }}
+                        className="rounded border bg-background px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        Under the hood
+                      </button>
+                    )}
                     {backendPickerEnabled && (
                       <>
                         <label className="sr-only" htmlFor="demo-backend">
