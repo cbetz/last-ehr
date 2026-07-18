@@ -73,6 +73,11 @@ synthetic target. Other FHIR R4 backends need an adapter before they are
 supported. See the full [support matrix](./docs/support.md) for the web,
 SMART, MCP, auth, and evaluation boundaries before choosing a path.
 
+Self-hosted demos can offer a **backend picker** (swap the EHR under the
+live agent, per session) and an **"under the hood" panel** streaming the
+agent's FHIR operations — both off by default; see the support matrix for
+the eligibility rules and `npm run check:backends` for preflight.
+
 ## What it isn't
 
 - Not a charting EHR, not a system of record, and not a Medplum replacement. It's a thin agent layer: a small, growing set of tools over your FHIR backend.

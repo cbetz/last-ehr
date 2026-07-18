@@ -25,7 +25,14 @@ The `FhirBackend` interface is the main extension point. Medplum works today
 for authenticated use; local HAPI, Firely Server (`FHIR_BACKEND=firely`), and
 Aidbox (`FHIR_BACKEND=aidbox`) are verified synthetic-evaluation adapters,
 each with contract tests, a setup note, and an honest auth/tenant caveat in
-[docs/adapters.md](./docs/adapters.md). The next useful adapters are:
+[docs/adapters.md](./docs/adapters.md).
+
+Shipped: a demo **backend picker** (choose the EHR under the live agent, per
+session) and an **under-the-hood panel** streaming the agent's FHIR
+operations — both self-hosters-first and off by default; see the
+[support matrix](./docs/support.md) for the eligibility rules. The hosted
+demo stays Medplum-only until a second operator-owned, seeded backend
+exists. The next useful adapters are:
 
 - Oystehr
 - OpenEMR FHIR API, if the API surface can satisfy the tool contract
