@@ -34,6 +34,15 @@ unset, behavior is unchanged.
   `demo_session_id`, so a signed-in session can never present as a demo
   session; the rejected-proposal audit trail is pinned to the deployment
   default backend and cannot be re-pointed by a visitor's pick.
+- Fixed session-scoped chart views on HAPI: the visibility query's
+  bare-system token (`_tag:not=http://lastehr.demo|`, shipped in 0.2.3) is
+  rejected by HAPI (HAPI-1218), so any live-model HAPI deployment with a
+  demo session failed every chart read. The query now falls back to the
+  unfiltered search plus the client-side visibility filter on servers that
+  reject the shape. The backend contract harness gained a session-isolation
+  clause (`_tag` exact match strictly; the untagged set with the app's
+  exact fallback), and the FHIR Agent Safety Eval now performs sessioned
+  chart reads, so this path is exercised against a real server in CI.
 
 ## 0.2.4 — 2026-07-14
 

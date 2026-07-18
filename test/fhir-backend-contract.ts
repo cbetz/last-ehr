@@ -40,6 +40,7 @@ export function defineFhirBackendContract({
     let backend: FhirBackend;
     let patient: Patient & { id: string };
     let observationId: string | undefined;
+    const isolationObservationIds: string[] = [];
 
     beforeAll(async () => {
       backend = await createBackend();
@@ -56,6 +57,9 @@ export function defineFhirBackendContract({
         ...(observationId
           ? [backend.deleteResource("Observation", observationId)]
           : []),
+        ...isolationObservationIds.map((id) =>
+          backend.deleteResource("Observation", id),
+        ),
         ...(patient?.id ? [backend.deleteResource("Patient", patient.id)] : []),
       ]);
       const failures = cleanup.filter(
@@ -120,6 +124,90 @@ export function defineFhirBackendContract({
           }),
         ]),
       );
+    }, timeoutMs);
+
+    it("enforces the session-isolation search semantics (_tag and _tag:not)", async () => {
+      // The demo's per-session write isolation queries the server with
+      // exactly two shapes (searchVisible, lib/ai/tools.ts): rows tagged
+      // with this session's code (_tag=system|code) and rows carrying no
+      // tag in the demo system at all (_tag:not=system|). This clause is a
+      // hard precondition for demo-picker eligibility (docs/support.md):
+      //
+      // - The positive _tag match is the safety keystone and must hold
+      //   strictly — a server that matches the wrong rows here can leak one
+      //   visitor's writes into another's chart, and no client-side filter
+      //   runs on the own-tag query.
+      // - The bare-system :not query may be honored (best: query-level
+      //   filtering) or rejected loudly (e.g. HAPI-1218; the app falls back
+      //   to an unfiltered query plus its client-side visibility filter).
+      //   What must never happen is the composed visible set coming out
+      //   wrong, so the second half mirrors the app's fallback exactly.
+      const makeObservation = (
+        code: string,
+        tags?: { system: string; code: string }[],
+      ) =>
+        backend.createResource<Observation>({
+          resourceType: "Observation",
+          status: "final",
+          code: { text: `Isolation contract ${code}` },
+          subject: { reference: `Patient/${patient.id}` },
+          valueQuantity: {
+            value: 1,
+            unit: "test",
+            system: "http://unitsofmeasure.org",
+            code: "1",
+          },
+          ...(tags ? { meta: { tag: tags } } : {}),
+        });
+
+      const [own, other, untagged] = await Promise.all([
+        makeObservation("own", [
+          { system: CONTRACT_SYSTEM, code: `session-${runId}-own` },
+        ]),
+        makeObservation("other", [
+          { system: CONTRACT_SYSTEM, code: `session-${runId}-other` },
+        ]),
+        makeObservation("untagged"),
+      ]);
+      isolationObservationIds.push(own.id, other.id, untagged.id);
+
+      // Scoped to the contract patient so a shared sandbox's foreign rows
+      // cannot influence the result.
+      const subject = `Patient/${patient.id}`;
+
+      const ownRows = await backend.searchResources("Observation", {
+        subject,
+        _tag: `${CONTRACT_SYSTEM}|session-${runId}-own`,
+        _count: "50",
+      });
+      const ownIds = ownRows.map((resource) => resource.id);
+      expect(ownIds).toContain(own.id);
+      expect(ownIds).not.toContain(other.id);
+      expect(ownIds).not.toContain(untagged.id);
+
+      // The untagged-set query, with the app's exact fallback: servers that
+      // reject the bare-system token get the unfiltered query, and the
+      // client-side filter (mirroring isVisible) drops rows tagged in the
+      // system. The composed result must be right either way.
+      const untaggedRows = await backend
+        .searchResources("Observation", {
+          subject,
+          "_tag:not": `${CONTRACT_SYSTEM}|`,
+          _count: "50",
+        })
+        .catch(() =>
+          backend.searchResources("Observation", { subject, _count: "50" }),
+        );
+      const visibleUntagged = untaggedRows.filter(
+        (resource) =>
+          !(resource.meta?.tag ?? []).some(
+            (entry) => entry.system === CONTRACT_SYSTEM,
+          ),
+      );
+      const untaggedIds = visibleUntagged.map((resource) => resource.id);
+      expect(untaggedIds).toContain(untagged.id);
+      expect(untaggedIds).not.toContain(own.id);
+      expect(untaggedIds).not.toContain(other.id);
     }, timeoutMs);
 
     it("deletes the contract Observation", async () => {
