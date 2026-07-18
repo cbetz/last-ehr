@@ -46,9 +46,12 @@ export function DemoBackendProvider({
 }: {
   children: React.ReactNode;
 }) {
-  // Persisted per browser; read back in an effect to avoid a hydration
-  // mismatch (the model picker's exact pattern in demo-chat.tsx).
-  const [backendId, setBackendId] = React.useState("");
+  // The choice is always a concrete listed backend: the first entry is the
+  // default (operators put the backend they want default first), so the
+  // picker never shows an ambiguous "server default" option. Persisted per
+  // browser; read back in an effect to avoid a hydration mismatch (the model
+  // picker's pattern in demo-chat.tsx).
+  const [backendId, setBackendId] = React.useState(DEMO_BACKENDS[0]?.id ?? "");
   const [smartSession, setSmartSession] = React.useState(false);
   React.useEffect(() => {
     setSmartSession(document.cookie.includes("smart_session=1"));
