@@ -30,7 +30,7 @@ function loadEnvironmentFiles(env: NodeJS.ProcessEnv) {
 
 function help() {
   return [
-    "Last EHR MCP — read-only Medplum FHIR tools",
+    "Last EHR MCP — read-only FHIR chart tools (Medplum, or the local HAPI stack)",
     "",
     "Usage:",
     "  npx -y @lastehr/mcp                 Start the stdio MCP server",
@@ -38,6 +38,8 @@ function help() {
     "  npx -y @lastehr/mcp doctor          Validate local configuration",
     "",
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
+    "Local stack: FHIR_BACKEND=hapi with HAPI_BASE_URL or FHIR_BASE_URL",
+    "(no credentials; the local no-auth evaluation stack, synthetic data only).",
   ].join("\n");
 }
 
@@ -75,8 +77,14 @@ export async function runCli(
 
   if (command === "doctor") {
     const config = loadMcpConfig(env);
+    const authSummary =
+      config.backend === "hapi"
+        ? "local no-auth HAPI"
+        : config.accessToken
+          ? "access token"
+          : "client credentials";
     console.error(
-      `Last EHR MCP configuration is valid (${config.accessToken ? "access token" : "client credentials"}; read-only).`,
+      `Last EHR MCP configuration is valid (${config.backend}; ${authSummary}; read-only).`,
     );
     return;
   }
@@ -93,7 +101,7 @@ runCli().catch((error: unknown) => {
   const message =
     error instanceof McpConfigurationError
       ? error.message
-      : "Last EHR MCP could not start. Verify the Medplum configuration and try again.";
+      : "Last EHR MCP could not start. Verify the backend configuration and try again.";
   console.error(message);
   process.exitCode = 1;
 });

@@ -1,6 +1,6 @@
 # MCP Server
 
-`@lastehr/mcp` is the smallest installable Last EHR surface: a Medplum-only,
+`@lastehr/mcp` is the smallest installable Last EHR surface: a
 read-only MCP server for searching patients and opening a chart. It is
 deliberately separate from the web app, where writes are proposal-shaped and
 approval-gated.
@@ -10,7 +10,7 @@ approval-gated.
 Want to inspect the MCP interaction before creating a Medplum project or
 configuring a model-provider API key? The repository includes a separate
 synthetic HAPI Local Lab. It is intentionally **not** part of `@lastehr/mcp`
-and does not broaden that package's Medplum-only support boundary.
+and does not broaden that package's support boundary.
 
 From a local checkout with Node 22.18+ and Docker running:
 
@@ -108,6 +108,26 @@ MEDPLUM_ACCESS_TOKEN=...
 
 Set `MEDPLUM_BASE_URL` for self-hosted Medplum.
 
+## Local stack (`FHIR_BACKEND=hapi`)
+
+The published package also honors the same env pair the web app and seed use,
+so a fully local synthetic stack gets MCP too:
+
+```bash
+FHIR_BACKEND=hapi
+FHIR_BASE_URL=http://localhost:8080/fhir   # or HAPI_BASE_URL
+```
+
+No credentials: the repository's HAPI evaluation stack is no-auth by design,
+which is exactly why the same caveats apply as in the web app — local,
+single-tenant, synthetic data only; never point it at an exposed server or
+treat it as an authorization layer. Any configured `MEDPLUM_*` values are
+unused in this mode (a checkout's `.env` commonly carries both). The tools
+and the read-only boundary are identical to the Medplum mode.
+
+This is distinct from `npm run mcp:demo` (the checkout-only Local Lab), which
+remains fixture-restricted and needs no configuration at all.
+
 ## Registry metadata
 
 The package is listed in the [Official MCP Registry](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr), the client-facing installation record for the verified npm release.
@@ -133,9 +153,10 @@ chart data. Use the smallest Medplum AccessPolicy that meets the task, confirm
 that your MCP client and model provider are appropriate for the data, and do
 not treat this package as an authorization layer.
 
-`@lastehr/mcp` supports hosted or self-hosted **Medplum** authentication today.
-It does not claim generic FHIR, HAPI, SMART launch, or browser-approval parity.
-See the [support matrix](./support.md) for the complete boundary.
+`@lastehr/mcp` supports hosted or self-hosted **Medplum** authentication, plus
+the repository's local no-auth HAPI stack (`FHIR_BACKEND=hapi`, local synthetic
+data only). It does not claim generic FHIR, SMART launch, or browser-approval
+parity. See the [support matrix](./support.md) for the complete boundary.
 
 ## From a checkout
 

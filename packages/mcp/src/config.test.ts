@@ -43,3 +43,68 @@ describe("MCP runtime configuration", () => {
     ).toThrow("intentionally read-only");
   });
 });
+
+describe("MCP FHIR_BACKEND selection", () => {
+  it("defaults to medplum", () => {
+    expect(
+      loadMcpConfig({ MEDPLUM_ACCESS_TOKEN: "token-value" }),
+    ).toMatchObject({ backend: "medplum" });
+  });
+
+  it("selects hapi from the same env pair the web app honors", () => {
+    expect(
+      loadMcpConfig({
+        FHIR_BACKEND: "hapi",
+        FHIR_BASE_URL: "http://localhost:8080/fhir",
+      }),
+    ).toMatchObject({
+      backend: "hapi",
+      baseUrl: "http://localhost:8080/fhir",
+      writePolicy: "read-only",
+    });
+  });
+
+  it("prefers the per-backend HAPI_BASE_URL over the shared FHIR_BASE_URL", () => {
+    expect(
+      loadMcpConfig({
+        FHIR_BACKEND: "hapi",
+        HAPI_BASE_URL: "http://hapi:8080/fhir",
+        FHIR_BASE_URL: "http://other:8080/fhir",
+      }),
+    ).toMatchObject({ baseUrl: "http://hapi:8080/fhir" });
+  });
+
+  it("ignores unused Medplum credentials in hapi mode (a checkout's .env carries both)", () => {
+    expect(
+      loadMcpConfig({
+        FHIR_BACKEND: "hapi",
+        FHIR_BASE_URL: "http://localhost:8080/fhir",
+        MEDPLUM_ACCESS_TOKEN: "token-value",
+        MEDPLUM_CLIENT_ID: "client-id",
+        MEDPLUM_CLIENT_SECRET: "client-secret",
+      }),
+    ).toMatchObject({ backend: "hapi" });
+  });
+
+  it("requires a base URL and a valid URL in hapi mode", () => {
+    expect(() => loadMcpConfig({ FHIR_BACKEND: "hapi" })).toThrow(
+      "HAPI_BASE_URL or FHIR_BASE_URL",
+    );
+    expect(() =>
+      loadMcpConfig({ FHIR_BACKEND: "hapi", FHIR_BASE_URL: "not a url" }),
+    ).toThrow("complete URL");
+  });
+
+  it("rejects unknown backends and write flags in every mode", () => {
+    expect(() =>
+      loadMcpConfig({ FHIR_BACKEND: "firely", FHIR_BASE_URL: "http://x/" }),
+    ).toThrow("Supported values: medplum (default), hapi");
+    expect(() =>
+      loadMcpConfig({
+        FHIR_BACKEND: "hapi",
+        FHIR_BASE_URL: "http://localhost:8080/fhir",
+        LASTEHR_MCP_WRITES: "true",
+      }),
+    ).toThrow("intentionally read-only");
+  });
+});

@@ -1,8 +1,10 @@
 # @lastehr/mcp
 
-Read-only Medplum FHIR tools for MCP clients. This package is the smallest
-installable Last EHR surface: it can search patients and show a chart, but it
-does not include write tools in the `0.1.x` line.
+Read-only FHIR chart tools for MCP clients, over a Medplum project or the
+Last EHR repository's local HAPI evaluation stack (`FHIR_BACKEND=hapi`,
+synthetic data only). This package is the smallest installable Last EHR
+surface: it can search patients and show a chart, but it does not include
+write tools in the `0.1.x` line.
 
 The registry metadata lives in [`server.json`](./server.json) and is published
 alongside each verified npm release.
@@ -41,8 +43,11 @@ MEDPLUM_CLIENT_ID=...
 MEDPLUM_CLIENT_SECRET=...
 ```
 
-Set `MEDPLUM_BASE_URL` for a self-hosted Medplum deployment. Run
-`npx -y @lastehr/mcp doctor` to validate configuration without starting MCP.
+Set `MEDPLUM_BASE_URL` for a self-hosted Medplum deployment. For the
+repository's local no-auth HAPI stack, set `FHIR_BACKEND=hapi` and
+`FHIR_BASE_URL` (or `HAPI_BASE_URL`) instead — local, synthetic data only.
+Run `npx -y @lastehr/mcp doctor` to validate configuration without starting
+MCP.
 
 ## Safety boundary
 

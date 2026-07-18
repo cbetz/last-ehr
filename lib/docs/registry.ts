@@ -48,7 +48,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 20,
     audience: "Technical evaluators and architecture owners",
-    lastModified: "2026-07-14",
+    lastModified: "2026-07-18",
     keywords: ["support", "Medplum", "HAPI", "compatibility", "status"],
   },
   {
@@ -108,7 +108,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 20,
     audience: "Agent and MCP builders",
-    lastModified: "2026-07-11",
+    lastModified: "2026-07-18",
     keywords: ["MCP", "Claude", "Medplum", "read only", "tools"],
   },
   {

@@ -7,11 +7,12 @@ import {
 import { z } from "zod";
 
 import { loadMcpConfig, type McpRuntimeConfig } from "./config.js";
+import { HapiReadClient } from "./hapi.js";
 import { createMedplumClient } from "./medplum.js";
 import {
   createReadTools,
   type McpReadTool,
-  type MedplumReadClient,
+  type FhirReadClient,
 } from "./read-tools.js";
 
 export const MCP_SERVER_VERSION = "0.1.1";
@@ -89,7 +90,7 @@ export async function callMcpTool(
       content: [
         {
           type: "text",
-          text: "The FHIR request could not be completed. Verify the Medplum access policy and server configuration.",
+          text: "The FHIR request could not be completed. Verify the backend access policy and server configuration.",
         },
       ],
     };
@@ -109,7 +110,7 @@ export function createMcpServer(
       capabilities: { tools: {} },
       instructions:
         options.instructions ??
-        "Read-only FHIR chart tools over a Medplum project. Search for a patient before opening a chart, and treat all returned chart data as sensitive.",
+        "Read-only FHIR chart tools over the configured FHIR backend. Search for a patient before opening a chart, and treat all returned chart data as sensitive.",
     },
   );
 
@@ -130,16 +131,27 @@ export type StartedMcpServer = {
   tools: McpReadTool[];
 };
 
+async function createBackendClient(
+  config: McpRuntimeConfig,
+): Promise<FhirReadClient> {
+  if (config.backend === "hapi") {
+    // Local, no-auth synthetic evaluation stack; the URL was validated by
+    // loadMcpConfig and the same local-only caveats as the web app apply.
+    return new HapiReadClient(config.baseUrl as string);
+  }
+  return createMedplumClient(config);
+}
+
 export async function startMcpServer({
   env = process.env,
   client,
 }: {
   env?: NodeJS.ProcessEnv;
-  client?: MedplumReadClient;
+  client?: FhirReadClient;
 } = {}): Promise<StartedMcpServer> {
   const config = loadMcpConfig(env);
-  const medplum = client ?? (await createMedplumClient(config));
-  const tools = createReadTools(medplum);
+  const backendClient = client ?? (await createBackendClient(config));
+  const tools = createReadTools(backendClient);
   const server = createMcpServer(tools);
 
   await server.connect(new StdioServerTransport());

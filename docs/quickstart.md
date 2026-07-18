@@ -66,7 +66,7 @@ It prepares the same local HAPI stack and prints a client registration command.
 The MCP process is hard-wired to the local Docker endpoint and exposes only the
 four repository fixture patients through `search_patients` and
 `show_patient_info`. This is a synthetic evaluation path, not generic HAPI
-support or a substitute for the published Medplum-only `@lastehr/mcp` package.
+support or a substitute for the published `@lastehr/mcp` package.
 Claude Code or Cursor still uses its usual model account and may transmit those
 synthetic tool results to its provider. Port 8080 must be free; leave the local
 stack running while connected and use `npm run demo:local:down` when finished.
