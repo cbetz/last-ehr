@@ -3,8 +3,18 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.2.6 — 2026-07-18
 
+Aidbox joins the demo backend picker (operator-owned boxes), the MCP
+package gains a local-stack mode, and a round of picker UX and adapter
+polish. Every new backend/feature is still default-off.
+
+- Demo backend picker UX, from feedback on a live two-backend demo: the
+  input-bar controls no longer overlap the composer, the pre-chat card and
+  the in-conversation select are shown one at a time (never both), the
+  confusing empty "Default backend" option is gone (the first listed
+  backend is the concrete default), and the adapter-tier badges are dropped
+  from the picker (they misled in a synthetic demo).
 - Aidbox is now demo-picker eligible for operator-owned boxes: a hosted dev
   sandbox (`edge`, FHIR 4.0.1) passed the real-server contract including
   the session-isolation clause, the seed, and the Safety Eval (7/7).
