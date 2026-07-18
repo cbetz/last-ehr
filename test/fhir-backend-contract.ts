@@ -53,23 +53,34 @@ export function defineFhirBackendContract({
     }, timeoutMs);
 
     afterAll(async () => {
-      const cleanup = await Promise.allSettled([
-        ...(observationId
-          ? [backend.deleteResource("Observation", observationId)]
-          : []),
-        ...isolationObservationIds.map((id) =>
-          backend.deleteResource("Observation", id),
-        ),
-        ...(patient?.id ? [backend.deleteResource("Patient", patient.id)] : []),
-      ]);
-      const failures = cleanup.filter(
-        (result): result is PromiseRejectedResult => result.status === "rejected",
-      );
+      // Sequential on purpose: concurrent deletes of resources referencing
+      // the same Patient contend on some servers (HAPI answers HAPI-0826
+      // version-constraint failures), and cleanup must be reliable on every
+      // adapter target.
+      const deletions: Array<{ type: "Observation" | "Patient"; id: string }> =
+        [
+          ...(observationId
+            ? [{ type: "Observation" as const, id: observationId }]
+            : []),
+          ...isolationObservationIds.map((id) => ({
+            type: "Observation" as const,
+            id,
+          })),
+          ...(patient?.id
+            ? [{ type: "Patient" as const, id: patient.id }]
+            : []),
+        ];
+      const failures: string[] = [];
+      for (const { type, id } of deletions) {
+        try {
+          await backend.deleteResource(type, id);
+        } catch (error) {
+          failures.push(String(error));
+        }
+      }
       if (failures.length > 0) {
         throw new Error(
-          `Could not clean up ${name} contract resources: ${failures
-            .map((failure) => String(failure.reason))
-            .join("; ")}`,
+          `Could not clean up ${name} contract resources: ${failures.join("; ")}`,
         );
       }
     }, timeoutMs);
@@ -160,15 +171,15 @@ export function defineFhirBackendContract({
           ...(tags ? { meta: { tag: tags } } : {}),
         });
 
-      const [own, other, untagged] = await Promise.all([
-        makeObservation("own", [
-          { system: CONTRACT_SYSTEM, code: `session-${runId}-own` },
-        ]),
-        makeObservation("other", [
-          { system: CONTRACT_SYSTEM, code: `session-${runId}-other` },
-        ]),
-        makeObservation("untagged"),
+      // Sequential for the same reason as the cleanup: concurrent writes
+      // referencing one Patient can contend on some servers.
+      const own = await makeObservation("own", [
+        { system: CONTRACT_SYSTEM, code: `session-${runId}-own` },
       ]);
+      const other = await makeObservation("other", [
+        { system: CONTRACT_SYSTEM, code: `session-${runId}-other` },
+      ]);
+      const untagged = await makeObservation("untagged");
       isolationObservationIds.push(own.id, other.id, untagged.id);
 
       // Scoped to the contract patient so a shared sandbox's foreign rows
