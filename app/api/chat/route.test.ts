@@ -19,13 +19,40 @@ vi.mock("@/lib/utils/rate-limit", () => ({
   getClientIp: () => "203.0.113.7",
 }));
 
-// Fake model layer: streamText must never run a model here.
-const { streamText, isScriptedDemoEnabled } = vi.hoisted(() => ({
-  streamText: vi.fn(() => ({
-    toUIMessageStreamResponse: () => new Response(null, { status: 200 }),
-  })),
-  isScriptedDemoEnabled: vi.fn(() => false),
-}));
+// Fake model layer: streamText must never run a model here. Both stream
+// tails record the options they were handed (the onError placement is a
+// safety boundary), and toUIMessageStream emits a bare 'start' chunk so the
+// real createUIMessageStream's messageId behavior is exercised.
+const {
+  streamText,
+  toUIMessageStreamOptions,
+  toUIMessageStreamResponseOptions,
+  isScriptedDemoEnabled,
+} = vi.hoisted(() => {
+  type ErrorOpts = { onError?: (error: unknown) => string };
+  const toUIMessageStreamOptions: ErrorOpts[] = [];
+  const toUIMessageStreamResponseOptions: ErrorOpts[] = [];
+  return {
+    toUIMessageStreamOptions,
+    toUIMessageStreamResponseOptions,
+    streamText: vi.fn(() => ({
+      toUIMessageStream: (opts?: ErrorOpts) => {
+        toUIMessageStreamOptions.push(opts ?? {});
+        return new ReadableStream({
+          start(controller) {
+            controller.enqueue({ type: "start" });
+            controller.close();
+          },
+        });
+      },
+      toUIMessageStreamResponse: (opts?: ErrorOpts) => {
+        toUIMessageStreamResponseOptions.push(opts ?? {});
+        return new Response("main-identical-tail", { status: 200 });
+      },
+    })),
+    isScriptedDemoEnabled: vi.fn(() => false),
+  };
+});
 vi.mock("ai", async (importOriginal) => ({
   ...(await importOriginal<typeof import("ai")>()),
   streamText,
@@ -80,11 +107,14 @@ describe("chat route demo-backend gate", () => {
     findDeniedProposals.mockReturnValue([]);
     recordRejectedProposal.mockClear();
     isScriptedDemoEnabled.mockReturnValue(false);
+    toUIMessageStreamOptions.length = 0;
+    toUIMessageStreamResponseOptions.length = 0;
     vi.stubEnv("FHIR_BACKEND", "medplum");
     vi.stubEnv("NEXT_PUBLIC_DEMO_BACKENDS", "medplum|Medplum,hapi|HAPI");
     vi.stubEnv("HAPI_BASE_URL", "http://localhost:8080/fhir");
     vi.stubEnv("FHIR_BASE_URL", "");
     vi.stubEnv("LASTEHR_AUDIT_REJECTED_PROPOSALS", "");
+    vi.stubEnv("NEXT_PUBLIC_DEMO_DEV_OUTPUT", "");
   });
 
   afterEach(() => {
@@ -132,5 +162,84 @@ describe("chat route demo-backend gate", () => {
       name?: string;
     };
     expect(auditBackend).toEqual({ accessToken: "tok", name: undefined });
+  });
+
+  it("keeps the main-identical tail with the flag off, with the scrubber in its onError seat", async () => {
+    // The pre-dev-output tail (result.toUIMessageStreamResponse) is
+    // load-bearing: createUIMessageStream stamps a messageId onto 'start',
+    // which would break the approval auto-resend. Flag off must not touch it.
+    const body = await (await POST(request())).text();
+    expect(body).toBe("main-identical-tail");
+    expect(toUIMessageStreamOptions).toHaveLength(0);
+    expect(toUIMessageStreamResponseOptions).toHaveLength(1);
+    const onError = toUIMessageStreamResponseOptions[0].onError;
+    const scrubbed = onError!(
+      new Error("FHIR request failed: Patient/secret-id not permitted"),
+    );
+    expect(scrubbed).toBe(
+      "A chart request failed. Check your backend access and try again.",
+    );
+    expect(scrubbed).not.toContain("secret-id");
+  });
+
+  it("scrubs mid-stream errors in toUIMessageStream's own onError (safety boundary)", async () => {
+    // With dev output on, toUIMessageStream stringifies mid-stream
+    // streamText failures through its OWN onError (default: raw
+    // error.message). The route must hand the scrubber to it directly —
+    // createUIMessageStream's onError alone would let FHIR diagnostics
+    // reach the browser.
+    vi.stubEnv("NEXT_PUBLIC_DEMO_DEV_OUTPUT", "true");
+    await POST(request());
+    expect(toUIMessageStreamOptions).toHaveLength(1);
+    const onError = toUIMessageStreamOptions[0].onError;
+    expect(onError).toBeTypeOf("function");
+    const scrubbed = onError!(
+      new Error("FHIR request failed: Patient/secret-id not permitted"),
+    );
+    expect(scrubbed).toBe(
+      "A chart request failed. Check your backend access and try again.",
+    );
+    expect(scrubbed).not.toContain("secret-id");
+  });
+
+  it("continues the last assistant message's id on resume turns (approval auto-resend)", async () => {
+    // Regression pin for the messageId injection: without originalMessages,
+    // createUIMessageStream stamps a fresh id on 'start' and the approval
+    // auto-resend duplicates the assistant message client-side.
+    vi.stubEnv("NEXT_PUBLIC_DEMO_DEV_OUTPUT", "true");
+    const resumeShaped = new Request("http://localhost/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        messages: [
+          { id: "u1", role: "user", parts: [{ type: "text", text: "hi" }] },
+          {
+            id: "a1",
+            role: "assistant",
+            parts: [{ type: "text", text: "proposing…" }],
+          },
+        ],
+      }),
+    });
+    const body = await (await POST(resumeShaped)).text();
+    expect(body).toContain('"messageId":"a1"');
+  });
+
+  it("streams a transient data-backend part only when dev output is on for a demo session", async () => {
+    vi.stubEnv("NEXT_PUBLIC_DEMO_DEV_OUTPUT", "true");
+    const body = await (await POST(request({ "x-demo-backend": "hapi" }))).text();
+    expect(body).toContain('"type":"data-backend"');
+    expect(body).toContain('"name":"hapi"');
+    expect(body).toContain('"transient":true');
+  });
+
+  it("streams no dev parts when the flag is off or the session is not a demo session", async () => {
+    const flagOff = await (await POST(request())).text();
+    expect(flagOff).not.toContain("data-backend");
+
+    vi.stubEnv("NEXT_PUBLIC_DEMO_DEV_OUTPUT", "true");
+    jar.delete("demo_session_id");
+    const noSession = await (await POST(request())).text();
+    expect(noSession).not.toContain("data-backend");
   });
 });

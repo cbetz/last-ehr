@@ -1,10 +1,11 @@
 import {
   streamText,
   convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   stepCountIs,
   type UIMessage,
   type InferUITools,
-  type UIDataTypes,
 } from "ai";
 import { cookies } from "next/headers";
 
@@ -21,6 +22,7 @@ import {
   parseDemoBackends,
   resolveDemoBackend,
 } from "@/lib/fhir/demo-backends";
+import { ObservedFhirBackend, type FhirDevEvent } from "@/lib/fhir/observed";
 import { ScriptedDemoBackend } from "@/lib/fhir/scripted-demo";
 import { checkRateLimit, getClientIp } from "@/lib/utils/rate-limit";
 
@@ -29,7 +31,14 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 export type ChatTools = InferUITools<ReturnType<typeof buildTools>>;
-export type ChatMessage = UIMessage<never, UIDataTypes, ChatTools>;
+// Dev-output data parts ("data-fhir", "data-backend"): streamed transient —
+// they reach useChat's onData but are never persisted into message.parts, so
+// the client never re-POSTs them in the conversation history.
+export type DemoDevData = {
+  fhir: FhirDevEvent;
+  backend: { name: string };
+};
+export type ChatMessage = UIMessage<never, DemoDevData, ChatTools>;
 
 // Error bodies double as the user-facing message: the useChat transport turns
 // a non-OK response body into error.message, and the client shows any message
@@ -96,12 +105,13 @@ export async function POST(req: Request) {
       : undefined;
 
   const backend = createFhirBackend(accessToken, demoBackend);
-  const tools = buildTools(
-    isScriptedDemoEnabled()
-      ? new ScriptedDemoBackend(backend, sessionId)
-      : backend,
-    sessionId,
-  );
+
+  // Dev output is an explicit, bounded carve-out from the scrubbing policy
+  // (docs/threat-model.md): opt-in env flag, demo sessions only. SMART and
+  // signed-in sessions never carry demo_session_id, so they never stream
+  // FHIR detail regardless of the flag.
+  const devOutput =
+    process.env.NEXT_PUBLIC_DEMO_DEV_OUTPUT === "true" && Boolean(sessionId);
 
   // Opt-in rejected-proposal audit trail. Uses the deployment-default
   // backend, never the visitor-picked one: the audit trail is the operator's
@@ -129,27 +139,95 @@ export async function POST(req: Request) {
     }
   }
 
-  const result = streamText({
-    model: getChatModel(demoModel),
-    system: SYSTEM_PROMPT,
-    messages: await convertToModelMessages(messages),
-    tools,
-    stopWhen: stepCountIs(5),
+  const modelMessages = await convertToModelMessages(messages);
+
+  // Errors must be scrubbed before they stream: a backend error can contain
+  // a resource id or other chart-adjacent detail, and provider errors embed
+  // the full request body (messages + chart context), which must reach
+  // neither the browser nor hosted logs. The scrubber goes in EVERY onError
+  // seat: toUIMessageStream(Response) stringifies mid-stream streamText
+  // failures through its OWN onError (default: raw error.message), while
+  // createUIMessageStream's onError only covers errors thrown by execute or
+  // a rejected merged read.
+  const scrubStreamError = (error: unknown): string => {
+    console.error("Chat stream error:", toSafeChatErrorLog(error));
+    return toSafeChatErrorMessage(error);
+  };
+
+  // Resolved before any stream exists so a config error (unknown provider,
+  // bedrock without MODEL_ID) fails the request loudly instead of streaming
+  // a 200 with an error part.
+  const model = getChatModel(demoModel);
+
+  if (!devOutput) {
+    // Byte-identical response tail to the pre-dev-output route. This is
+    // load-bearing, not a stylistic branch: createUIMessageStream stamps a
+    // server-generated messageId onto the 'start' chunk, which the approval
+    // auto-resend turn must NOT carry unless it continues the last
+    // assistant message — see the originalMessages note below.
+    const result = streamText({
+      model,
+      system: SYSTEM_PROMPT,
+      messages: modelMessages,
+      tools: buildTools(
+        isScriptedDemoEnabled()
+          ? new ScriptedDemoBackend(backend, sessionId)
+          : backend,
+        sessionId,
+      ),
+      stopWhen: stepCountIs(5),
+      // Client disconnect / Stop aborts the model call and the tool loop
+      // instead of letting the full step budget run against the chart.
+      abortSignal: req.signal,
+    });
+    return result.toUIMessageStreamResponse({ onError: scrubStreamError });
+  }
+
+  const stream = createUIMessageStream<ChatMessage>({
+    // Continuation identity: without originalMessages, createUIMessageStream
+    // stamps a FRESH messageId on every 'start' chunk, so the approval
+    // auto-resend (which continues the last assistant message) would push a
+    // duplicate assistant message client-side instead of updating in place —
+    // the original card freezes as a pending skeleton and the next POST
+    // carries a dangling duplicate tool call. With originalMessages, resume
+    // turns reuse the last assistant message's id.
+    originalMessages: messages as ChatMessage[],
+    execute: ({ writer }) => {
+      // The observer wraps the RAW backend, inside the scripted wrapper, so
+      // in scripted mode the panel shows the calls actually forwarded to the
+      // chart. The audit writer above stays unobserved: system writes are
+      // not part of the agent-reachable surface the panel documents.
+      const observed = new ObservedFhirBackend(
+        backend,
+        (event) =>
+          writer.write({ type: "data-fhir", data: event, transient: true }),
+        sessionId,
+      );
+      const toolBackend = isScriptedDemoEnabled()
+        ? new ScriptedDemoBackend(observed, sessionId)
+        : observed;
+      // The resolved (post-fallback) backend, so the panel is server truth.
+      writer.write({
+        type: "data-backend",
+        data: { name: demoBackend ?? (process.env.FHIR_BACKEND || "medplum") },
+        transient: true,
+      });
+
+      const result = streamText({
+        model,
+        system: SYSTEM_PROMPT,
+        messages: modelMessages,
+        tools: buildTools(toolBackend, sessionId),
+        stopWhen: stepCountIs(5),
+        // createUIMessageStream's outer stream does not propagate the
+        // response cancellation into merged streams, so the request signal
+        // is the only thing that stops the model + tool loop on disconnect.
+        abortSignal: req.signal,
+      });
+      writer.merge(result.toUIMessageStream({ onError: scrubStreamError }));
+    },
+    onError: scrubStreamError,
   });
 
-  return result.toUIMessageStreamResponse({
-    // Without this, mid-stream failures (model provider down, key over quota)
-    // reach the client as a masked "An error occurred". Model-provider
-    // failures arrive as AI_* API errors. Do not echo arbitrary FHIR or
-    // upstream diagnostics to the browser: a backend error can contain a
-    // resource id or other chart-adjacent detail, and analytics must never
-    // receive it either.
-    onError: (error) => {
-      // Log a compact summary, never the raw error object: provider errors
-      // embed the full request body (messages + chart context) in
-      // requestBodyValues, which must not reach hosted logs.
-      console.error("Chat stream error:", toSafeChatErrorLog(error));
-      return toSafeChatErrorMessage(error);
-    },
-  });
+  return createUIMessageStreamResponse({ stream });
 }
