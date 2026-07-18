@@ -3,12 +3,13 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.2.5 — 2026-07-17
 
 Demo backend picker and under-the-hood dev output: a demo visitor can pick
 which configured FHIR backend powers their session and watch the agent's
 chart operations live. Both features default off; with the new env vars
-unset, behavior is unchanged.
+unset, behavior is unchanged. Also fixes session-scoped chart views on
+HAPI.
 
 - Demo backend picker (`NEXT_PUBLIC_DEMO_BACKENDS`, `id|Label` pairs): the
   client sends a name-only `x-demo-backend` header, validated server-side
