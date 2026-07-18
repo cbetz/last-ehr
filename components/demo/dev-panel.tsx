@@ -76,7 +76,9 @@ export function DevPanel({
                 </span>
                 <span className="min-w-0 break-all">{event.path}</span>
                 <span className="ml-auto shrink-0 text-muted-foreground">
-                  {event.ok ? "ok" : "err"} · {event.durationMs}ms
+                  {event.ok ? "ok" : `err${event.status ? ` ${event.status}` : ""}`}
+                  {" · "}
+                  {event.durationMs}ms
                   {typeof event.resultCount === "number"
                     ? ` · ${event.resultCount} match${event.resultCount === 1 ? "" : "es"}`
                     : ""}

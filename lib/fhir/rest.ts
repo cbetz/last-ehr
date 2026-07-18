@@ -66,7 +66,12 @@ export class FhirRestBackend implements FhirBackend {
       } catch {
         // Non-JSON error body; keep the status code.
       }
-      throw new Error(`FHIR request failed: ${detail}`);
+      // statusCode rides along for structured consumers: the log scrubber
+      // (lib/ai/chat-errors.ts) appends it to server logs, and the dev-output
+      // observer surfaces it as a bare number without the diagnostic text.
+      throw Object.assign(new Error(`FHIR request failed: ${detail}`), {
+        statusCode: res.status,
+      });
     }
     // Deletes and some servers' creates answer 200/204 with an empty body.
     if (!text) return undefined as T;

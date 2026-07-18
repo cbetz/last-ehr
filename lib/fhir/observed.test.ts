@@ -110,6 +110,30 @@ describe("ObservedFhirBackend", () => {
     expect(events.every((e) => e.ok === false)).toBe(true);
   });
 
+  it("surfaces a transport-attached statusCode as a bare number, nothing else", async () => {
+    const inner = fakeBackend();
+    inner.search = async () => {
+      throw Object.assign(new Error(DIAGNOSTIC), { statusCode: 404 });
+    };
+    const events: FhirDevEvent[] = [];
+    const backend = new ObservedFhirBackend(
+      inner,
+      (event) => events.push(event),
+      SESSION_ID,
+    );
+    await expect(backend.search("Observation")).rejects.toThrow(DIAGNOSTIC);
+    expect(events[0]).toMatchObject({ ok: false, status: 404 });
+    // The status is the number alone; the diagnostic text stays scrubbed.
+    expect(JSON.stringify(events)).not.toContain("secret-id");
+
+    // Non-numeric statusCode shapes are dropped, not passed through.
+    inner.search = async () => {
+      throw Object.assign(new Error(DIAGNOSTIC), { statusCode: "404 weird" });
+    };
+    await expect(backend.search("Observation")).rejects.toThrow(DIAGNOSTIC);
+    expect(events[1].status).toBeUndefined();
+  });
+
   it("delegates deleteResource without an event (never agent-reachable)", async () => {
     const events: FhirDevEvent[] = [];
     await observed(events).deleteResource("Patient", "p1");

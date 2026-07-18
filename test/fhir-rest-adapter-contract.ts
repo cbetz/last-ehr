@@ -139,6 +139,18 @@ export function defineFhirRestAdapterContract({
       );
     });
 
+    it("attaches the numeric statusCode to failures for structured consumers", async () => {
+      // The log scrubber and the dev-output observer read error.statusCode;
+      // it must be the bare number, never part of a richer payload.
+      stubFetch(404, {
+        resourceType: "OperationOutcome",
+        issue: [{ severity: "error", diagnostics: "Not found" }],
+      });
+      await expect(
+        createBackend(baseUrl).search("Patient", { _id: "nope" }),
+      ).rejects.toMatchObject({ statusCode: 404 });
+    });
+
     it("requires a representation with an id after a create", async () => {
       stubFetch(201, "");
       await expect(

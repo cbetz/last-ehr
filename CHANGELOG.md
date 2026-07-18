@@ -10,6 +10,10 @@ self-hosters can tell what moved between pulls.
   persistent synthetic charts the demo uses. Adapter targets fail closed
   without `-- --confirm-synthetic`, matching the safety eval's posture,
   because the seed deletes and recreates matching charts.
+- Failed FHIR operations now carry their HTTP status as a bare number: the
+  REST transport attaches `statusCode` to its errors, server logs append it
+  (via the existing log scrubber), and the demo dev panel shows `err 404`
+  instead of just `err` — never the diagnostic text.
 - Closed the last two launch-audit findings: chart notes (the free-form,
   visitor-writable field) now carry an explicit untrusted-content boundary
   in tool results, named by the system prompt's chart-content-is-data rule

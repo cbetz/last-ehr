@@ -32,6 +32,11 @@ export type FhirDevEvent = {
   path: string;
   /** Outcome only — never the error text. */
   ok: boolean;
+  /**
+   * HTTP status when a FAILED operation carried one (the REST transport
+   * attaches statusCode to its errors) — a bare number, never diagnostics.
+   */
+  status?: number;
   durationMs: number;
   /** Search ops: matched resources (search-mode "match" rows only). */
   resultCount?: number;
@@ -44,6 +49,15 @@ function countMatches(bundle: Bundle): number {
   return (bundle.entry ?? []).filter(
     (entry) => !entry.search?.mode || entry.search.mode === "match",
   ).length;
+}
+
+/** The numeric statusCode a transport attached to its error, if any. */
+function statusOf(error: unknown): number | undefined {
+  const statusCode =
+    typeof error === "object" && error !== null && "statusCode" in error
+      ? (error as { statusCode: unknown }).statusCode
+      : undefined;
+  return typeof statusCode === "number" ? statusCode : undefined;
 }
 
 export class ObservedFhirBackend implements FhirBackend {
@@ -100,6 +114,7 @@ export class ObservedFhirBackend implements FhirBackend {
         method: "GET",
         path: this.path(resourceType, params),
         ok: false,
+        status: statusOf(error),
         durationMs: Date.now() - started,
       });
       throw error;
@@ -128,6 +143,7 @@ export class ObservedFhirBackend implements FhirBackend {
         method: "GET",
         path: this.path(resourceType, params),
         ok: false,
+        status: statusOf(error),
         durationMs: Date.now() - started,
       });
       throw error;
@@ -156,6 +172,7 @@ export class ObservedFhirBackend implements FhirBackend {
         method: "POST",
         path: this.path(resource.resourceType),
         ok: false,
+        status: statusOf(error),
         durationMs: Date.now() - started,
         resourceType: resource.resourceType,
       });
