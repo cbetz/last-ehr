@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 // No UPSTASH_* env in the test environment, so this exercises the in-memory
 // fallback path.
@@ -28,5 +28,20 @@ describe("rate limiter (in-memory fallback)", () => {
   it("falls back to 'unknown' with no proxy headers", () => {
     const req = new Request("http://localhost/api/chat", { method: "POST" });
     expect(getClientIp(req)).toBe("unknown");
+  });
+
+  it("ignores spoofable proxy headers when RATE_LIMIT_TRUST_PROXY=false", () => {
+    // A self-hosted deploy with no header-normalizing proxy: a client-set
+    // x-forwarded-for must not mint a fresh per-IP bucket per request.
+    vi.stubEnv("RATE_LIMIT_TRUST_PROXY", "false");
+    try {
+      const req = new Request("http://localhost/api/chat", {
+        method: "POST",
+        headers: { "x-forwarded-for": "198.51.100.9" },
+      });
+      expect(getClientIp(req)).toBe("unknown");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

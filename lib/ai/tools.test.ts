@@ -156,8 +156,10 @@ describe("agent FHIR tools", () => {
     expect(out.observations).toEqual([
       { id: "o1", label: "Heart rate", value: "72 /min", date: "2026-01-28" },
     ]);
+    // Notes carry the untrusted-content boundary the system prompt names;
+    // the chart UI strips it for display.
     expect(out.notes).toEqual([
-      { id: "n1", text: "follow up", date: "2026-02-01" },
+      { id: "n1", text: "<chart_text>follow up</chart_text>", date: "2026-02-01" },
     ]);
     expect(out.medications).toEqual([
       {

@@ -225,7 +225,12 @@ export function PatientCard({
               <div className="space-y-4">
                 {notes.map((n) => (
                   <div key={n.id} className="space-y-1">
-                    <p className="text-sm">{n.text}</p>
+                    {/* The tool wraps note text in an untrusted-content
+                        boundary for the model; the reader just gets the
+                        note. */}
+                    <p className="text-sm">
+                      {n.text.replace(/<\/?chart_text>/g, "")}
+                    </p>
                     {n.date && (
                       <p className="text-xs text-muted-foreground">{n.date}</p>
                     )}
