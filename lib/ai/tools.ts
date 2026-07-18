@@ -69,17 +69,29 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
   ): Promise<ExtractResource<K>[]> => {
     if (!sessionId) return backend.searchResources(resourceType, params);
     const [untagged, own] = await Promise.all([
-      backend.searchResources(resourceType, {
-        ...params,
-        "_tag:not": `${DEMO_TAG_SYSTEM}|`,
-      }),
+      backend
+        .searchResources(resourceType, {
+          ...params,
+          "_tag:not": `${DEMO_TAG_SYSTEM}|`,
+        })
+        .catch(() =>
+          // Some servers reject the bare-system token outright (HAPI:
+          // HAPI-1218) instead of honoring or ignoring it. Rerun without
+          // the tag filter; the isVisible pass below still drops other
+          // sessions' rows, at the cost of the pre-query-filter caveat on
+          // those servers only: foreign rows spend the server-side _count
+          // window before being filtered.
+          backend.searchResources(resourceType, params),
+        ),
       backend.searchResources(resourceType, {
         ...params,
         _tag: `${DEMO_TAG_SYSTEM}|session-${sessionId}`,
       }),
     ]);
     // The two result sets are disjoint by construction; the id-dedupe only
-    // guards against a backend answering both queries with overlapping rows.
+    // guards against a backend answering both queries with overlapping rows
+    // (guaranteed on the fallback path above). isVisible then drops foreign
+    // sessions' rows for backends that ignored or rejected the :not filter.
     const seen = new Set<string>();
     return [...untagged, ...own]
       .filter((res) => {
@@ -88,6 +100,7 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
         seen.add(res.id);
         return true;
       })
+      .filter(isVisible)
       .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
       .slice(0, Number(params._count) || undefined);
   };

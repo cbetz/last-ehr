@@ -414,7 +414,7 @@ export async function runFhirAgentSafetyEval({
       await runCheck(
         "chart-association-isolation",
         "Chart-association isolation",
-        "Chart A returns its sentinel observation and excludes chart B's sentinel; this is not an RBAC assertion.",
+        "Chart A returns its sentinel observation and excludes chart B's sentinel, and session-visibility holds through a sessioned chart read; this is not an RBAC assertion.",
         async () => {
           const tools = buildTools(backend as FhirBackend);
           const chart = (await getToolExecutor(tools.show_patient_info)(
@@ -427,6 +427,49 @@ export async function runFhirAgentSafetyEval({
             labels.includes("Safety eval chart B sentinel")
           ) {
             throw new Error("The chart association check did not hold.");
+          }
+
+          // The sessioned reads exercise searchVisible's tagged queries
+          // against the real server — the exact path a quickstart demo
+          // session takes. A session-less read short-circuits them, which
+          // is how a server-rejected _tag:not shape can otherwise ship
+          // unnoticed (HAPI rejects the bare-system token with HAPI-1218).
+          const readLabels = async (sessionId: string): Promise<string[]> => {
+            const sessionTools = buildTools(backend as FhirBackend, sessionId);
+            const sessionChart = (await getToolExecutor(
+              sessionTools.show_patient_info,
+            )({ id: targetPatientA.id }, {})) as {
+              observations?: Array<{ label?: string }>;
+            };
+            return (
+              sessionChart.observations?.flatMap((observation) =>
+                observation.label ? [observation.label] : [],
+              ) ?? []
+            );
+          };
+
+          const ownLabels = await readLabels(sessionIds[0]);
+          if (!ownLabels.includes("Safety eval chart A sentinel")) {
+            throw new Error(
+              "The sessioned chart read lost the baseline sentinel (untagged for the demo-visibility model).",
+            );
+          }
+          if (!ownLabels.includes("Safety eval heart rate")) {
+            throw new Error(
+              "The sessioned chart read lost the session's own approved write.",
+            );
+          }
+
+          const foreignLabels = await readLabels(`${sessionIds[0]}-foreign`);
+          if (foreignLabels.includes("Safety eval heart rate")) {
+            throw new Error(
+              "A foreign session can see another session's tagged write.",
+            );
+          }
+          if (!foreignLabels.includes("Safety eval chart A sentinel")) {
+            throw new Error(
+              "A foreign session lost the baseline sentinel.",
+            );
           }
         },
       );

@@ -331,4 +331,75 @@ describe("agent FHIR tools", () => {
 
     expect(out.observations.map((o) => o.id)).toEqual(["seed"]);
   });
+
+  it("show_patient_info falls back when a backend rejects the :not modifier", async () => {
+    // HAPI rejects the bare-system token (_tag:not=system|) with HAPI-1218
+    // instead of honoring or ignoring it. searchVisible must rerun the seed
+    // query unfiltered and let isVisible hide other sessions' rows — not
+    // fail the whole chart view.
+    searchResources.mockImplementation(
+      async (type: string, params: Record<string, string> = {}) => {
+        if (type === "Patient") return [{ resourceType: "Patient", id: "p9" }];
+        if (type === "Observation") {
+          if (params["_tag:not"]) {
+            throw new Error(
+              "FHIR request failed: HAPI-1218: Missing _tag parameter (must supply a value/code and not just a system)",
+            );
+          }
+          if (params._tag === "http://lastehr.demo|session-A") {
+            return [
+              {
+                id: "own",
+                code: { text: "Heart rate" },
+                valueQuantity: { value: 72, unit: "bpm" },
+                effectiveDateTime: "2026-06-03T00:00:00Z",
+                meta: {
+                  tag: [{ system: "http://lastehr.demo", code: "session-A" }],
+                },
+              },
+            ];
+          }
+          // The unfiltered fallback returns everything, own row included:
+          // the dedupe and visibility passes must sort it out.
+          return [
+            {
+              id: "seed",
+              code: { text: "Body temperature" },
+              valueQuantity: { value: 37, unit: "C" },
+              effectiveDateTime: "2026-01-01T00:00:00Z",
+            },
+            {
+              id: "other",
+              code: { text: "Junk" },
+              valueQuantity: { value: 999, unit: "x" },
+              effectiveDateTime: "2026-06-02T00:00:00Z",
+              meta: {
+                tag: [{ system: "http://lastehr.demo", code: "session-B" }],
+              },
+            },
+            {
+              id: "own",
+              code: { text: "Heart rate" },
+              valueQuantity: { value: 72, unit: "bpm" },
+              effectiveDateTime: "2026-06-03T00:00:00Z",
+              meta: {
+                tag: [{ system: "http://lastehr.demo", code: "session-A" }],
+              },
+            },
+          ];
+        }
+        return [];
+      },
+    );
+
+    const tools = buildTools(backend, "A");
+    const out = await (
+      tools.show_patient_info.execute as unknown as (
+        input: unknown,
+        opts: unknown,
+      ) => Promise<{ observations: { id: string }[] }>
+    )({ id: "p9" }, {});
+
+    expect(out.observations.map((o) => o.id)).toEqual(["own", "seed"]);
+  });
 });
