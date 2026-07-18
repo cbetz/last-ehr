@@ -180,9 +180,15 @@ export async function checkRateLimit(identifier: string): Promise<LimitResult> {
 /**
  * Client IP from proxy headers. On Vercel `x-forwarded-for` is set by the
  * platform; on a self-hosted deploy this header is only trustworthy behind a
- * proxy that overwrites it (otherwise a client can spoof it).
+ * proxy that overwrites it (otherwise a client can spoof it and mint a fresh
+ * per-IP bucket per request). A self-hosted deploy with no such proxy should
+ * set RATE_LIMIT_TRUST_PROXY=false: forwarded headers are then ignored and
+ * every client shares the one deployment-wide bucket — stricter under load,
+ * but not spoofable.
  */
 export function getClientIp(req: Request): string {
+  if (process.env.RATE_LIMIT_TRUST_PROXY === "false") return "unknown";
+
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0].trim();
 

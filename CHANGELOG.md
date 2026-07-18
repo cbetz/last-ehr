@@ -10,6 +10,12 @@ self-hosters can tell what moved between pulls.
   persistent synthetic charts the demo uses. Adapter targets fail closed
   without `-- --confirm-synthetic`, matching the safety eval's posture,
   because the seed deletes and recreates matching charts.
+- Closed the last two launch-audit findings: chart notes (the free-form,
+  visitor-writable field) now carry an explicit untrusted-content boundary
+  in tool results, named by the system prompt's chart-content-is-data rule
+  and stripped by the chart UI; and self-hosted deploys without a
+  header-normalizing proxy can set `RATE_LIMIT_TRUST_PROXY=false` so a
+  spoofed `x-forwarded-for` cannot mint fresh per-IP rate-limit buckets.
 
 ## 0.2.5 — 2026-07-17
 
