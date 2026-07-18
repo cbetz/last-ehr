@@ -298,6 +298,15 @@ export function DemoChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Input-bar controls. The backend select is the mid-conversation SWITCH
+  // surface; the pre-chat pick lives in the EmptyScreen card, so the two
+  // never show at once (messages.length gates them). The row reserves
+  // bottom padding in the textarea so it never overlaps the placeholder.
+  const showModelPicker = !SCRIPTED_DEMO && DEMO_MODELS.length > 0;
+  const showBackendSelect = backendPickerEnabled && messages.length > 0;
+  const showDevToggle = DEV_OUTPUT && !smartSession;
+  const hasInputControls = showModelPicker || showBackendSelect || showDevToggle;
+
   return (
     <>
       {SCRIPTED_DEMO && !smartSession && (
@@ -634,11 +643,9 @@ export function DemoChat() {
                   </TooltipTrigger>
                   <TooltipContent>New Chat</TooltipContent>
                 </Tooltip>
-                {((!SCRIPTED_DEMO && DEMO_MODELS.length > 0) ||
-                  backendPickerEnabled ||
-                  (DEV_OUTPUT && !smartSession)) && (
+                {hasInputControls && (
                   <div className="absolute bottom-1.5 left-0 flex gap-1 sm:left-4">
-                    {DEV_OUTPUT && !smartSession && (
+                    {showDevToggle && (
                       <button
                         type="button"
                         aria-pressed={devPanelOpen}
@@ -651,7 +658,7 @@ export function DemoChat() {
                         Under the hood
                       </button>
                     )}
-                    {backendPickerEnabled && (
+                    {showBackendSelect && (
                       <>
                         <label className="sr-only" htmlFor="demo-backend">
                           Backend
@@ -668,7 +675,6 @@ export function DemoChat() {
                           }
                           className="max-w-[140px] rounded border bg-background px-1.5 py-0.5 text-xs text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
-                          <option value="">Default backend</option>
                           {demoBackends.map((b) => (
                             <option key={b.id} value={b.id}>
                               {b.label}
@@ -677,7 +683,7 @@ export function DemoChat() {
                         </select>
                       </>
                     )}
-                    {!SCRIPTED_DEMO && DEMO_MODELS.length > 0 && (
+                    {showModelPicker && (
                       <>
                         <label className="sr-only" htmlFor="demo-model">
                           Model
@@ -707,7 +713,12 @@ export function DemoChat() {
                       ? "Run the scripted approval demo…"
                       : "Ask about a patient…"
                   }
-                  className="min-h-[60px] w-full resize-none bg-transparent px-4 py-[1.3rem] focus:outline-none sm:text-sm"
+                  // pb-10 when the controls row is present so its absolutely
+                  // positioned chips never sit on top of the placeholder or
+                  // typed text (the row is pinned to the container's bottom).
+                  className={`min-h-[60px] w-full resize-none bg-transparent px-4 pt-[1.3rem] focus:outline-none sm:text-sm ${
+                    hasInputControls ? "pb-10" : "pb-[1.3rem]"
+                  }`}
                   autoFocus
                   spellCheck={false}
                   autoComplete="off"
