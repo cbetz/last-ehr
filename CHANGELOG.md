@@ -5,6 +5,11 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- `@lastehr/mcp` honors `FHIR_BACKEND=hapi` with `HAPI_BASE_URL` or
+  `FHIR_BASE_URL` — the same env pair as the web app and seed — so a fully
+  local synthetic stack gets MCP too (no credentials; the local no-auth
+  caveats apply, and the package stays read-only). Medplum remains the
+  default and is unchanged.
 - `npm run seed` can now target the Firely and Aidbox adapters
   (`FHIR_BACKEND=firely|aidbox`), so those sandboxes get the same four
   persistent synthetic charts the demo uses. Adapter targets fail closed

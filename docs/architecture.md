@@ -24,7 +24,8 @@ flowchart LR
 - `lib/fhir/medplum.ts`: Medplum adapter.
 - `lib/fhir/hapi.ts`: plain FHIR R4 REST adapter for local HAPI mode.
 - `components/demo/demo-chat.tsx`: browser chat and approval-card rendering.
-- `packages/mcp/src`: standalone, Medplum-only MCP package with two
+- `packages/mcp/src`: standalone MCP package (Medplum, or the local HAPI
+  stack via `FHIR_BACKEND=hapi`) with two
   chart-reading tools.
 - `scripts/mcp-demo.ts`: checkout-only synthetic HAPI MCP Local Lab. It shares
   the two read schemas, but its separate read facade resolves only the seeded

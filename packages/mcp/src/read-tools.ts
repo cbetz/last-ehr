@@ -5,7 +5,7 @@ import type {
 } from "@medplum/fhirtypes";
 import { z } from "zod";
 
-export interface MedplumReadClient {
+export interface FhirReadClient {
   search<K extends ResourceType>(
     resourceType: K,
     params?: Record<string, string>,
@@ -15,6 +15,9 @@ export interface MedplumReadClient {
     params?: Record<string, string>,
   ): Promise<ExtractResource<K>[]>;
 }
+
+/** @deprecated Renamed to FhirReadClient when FHIR_BACKEND support landed. */
+export type MedplumReadClient = FhirReadClient;
 
 export type McpReadTool = {
   name: "search_patients" | "show_patient_info";
@@ -37,15 +40,16 @@ const showPatientInfoSchema = z.object({
 
 /**
  * The public package deliberately contains only chart-reading capabilities.
- * A caller's Medplum policy still governs which records these requests can
- * return; this MCP server never implements authorization itself.
+ * The configured backend still governs which records these requests can
+ * return (a Medplum access policy, or the local no-auth evaluation stack's
+ * everything); this MCP server never implements authorization itself.
  */
-export function createReadTools(client: MedplumReadClient): McpReadTool[] {
+export function createReadTools(client: FhirReadClient): McpReadTool[] {
   return [
     {
       name: "search_patients",
       description:
-        "Search patients by name. This tool is read-only and returns only records allowed by the configured Medplum access policy.",
+        "Search patients by name. This tool is read-only and returns only records the configured FHIR backend allows.",
       inputSchema: searchPatientsSchema,
       async execute(input: unknown) {
         const { name } = searchPatientsSchema.parse(input);
@@ -56,7 +60,7 @@ export function createReadTools(client: MedplumReadClient): McpReadTool[] {
     {
       name: "show_patient_info",
       description:
-        "Show a patient's chart by resource id. This tool is read-only and may return PHI allowed by the configured Medplum access policy.",
+        "Show a patient's chart by resource id. This tool is read-only and may return sensitive chart data the configured FHIR backend allows.",
       inputSchema: showPatientInfoSchema,
       async execute(input: unknown) {
         const { id } = showPatientInfoSchema.parse(input);

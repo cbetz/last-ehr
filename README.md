@@ -24,7 +24,7 @@ start with the zero-key local synthetic walkthrough.
 | Goal | Start here |
 | --- | --- |
 | See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo): no sign-up. |
-| Give an MCP client bounded Medplum chart reads | `npx -y @lastehr/mcp init --client claude-code` |
+| Give an MCP client bounded chart reads (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
 | Prove the synthetic web-agent workflow locally | `npm run eval` |
 | Inspect the complete flow locally with no account or model key | `npm run demo:local` |
@@ -170,7 +170,7 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 - [Backend adapters](./docs/adapters.md): the adapter contract, harnesses, checklist, and contribution path.
 - [Adapter starter](./examples/fhir-adapter-starter): an executable bearer-token FHIR REST baseline with a contract suite.
 - [Approval-gated writes](./docs/approval-gates.md): what the gate protects and what it does not.
-- [MCP server](./docs/mcp.md): published, read-only Medplum chart tools plus the checkout-only synthetic Local Lab.
+- [MCP server](./docs/mcp.md): published, read-only chart tools (Medplum, or the local HAPI stack) plus the checkout-only synthetic Local Lab.
 - [FHIR Agent Safety Eval](./docs/evals.md): a disposable synthetic workflow report for proposal, approval, denial, association, and cleanup mechanics.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
 - [Threat model](./docs/threat-model.md): trust boundaries and known limitations.

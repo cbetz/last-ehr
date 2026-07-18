@@ -119,7 +119,7 @@ const docCollections = [
       },
       {
         title: "MCP server",
-        description: "A Medplum-only package plus a fixture-restricted checkout Local Lab.",
+        description: "A read-only package (Medplum or local HAPI) plus a fixture-restricted checkout Local Lab.",
         href: "/docs/mcp",
         icon: Braces,
       },

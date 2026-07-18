@@ -1,6 +1,14 @@
 export type McpWritePolicy = "read-only";
 
+export type McpBackend = "medplum" | "hapi";
+
 export type McpRuntimeConfig = {
+  /**
+   * "medplum" (default; token or client-credentials auth) or "hapi" (the
+   * repository's local, no-auth FHIR evaluation stack — synthetic data on
+   * one machine only, mirroring FHIR_BACKEND in the web app).
+   */
+  backend: McpBackend;
   baseUrl?: string;
   accessToken?: string;
   clientId?: string;
@@ -27,6 +35,41 @@ function value(env: EnvValues, key: string): string | undefined {
 }
 
 export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
+  if (value(env, "LASTEHR_MCP_WRITES")) {
+    throw new McpConfigurationError(
+      "@lastehr/mcp 0.1 is intentionally read-only. Remove LASTEHR_MCP_WRITES from this server configuration.",
+    );
+  }
+
+  const backend = value(env, "FHIR_BACKEND") ?? "medplum";
+  if (backend !== "medplum" && backend !== "hapi") {
+    throw new McpConfigurationError(
+      `Unknown FHIR_BACKEND "${backend}" for @lastehr/mcp. Supported values: medplum (default), hapi.`,
+    );
+  }
+
+  if (backend === "hapi") {
+    // The same env pair the web app and seed honor. No credentials: the
+    // local evaluation stack is no-auth by design, so any configured
+    // MEDPLUM_* values are simply unused in this mode (a checkout's .env
+    // commonly carries both).
+    const hapiBaseUrl =
+      value(env, "HAPI_BASE_URL") ?? value(env, "FHIR_BASE_URL");
+    if (!hapiBaseUrl) {
+      throw new McpConfigurationError(
+        "FHIR_BACKEND=hapi requires HAPI_BASE_URL or FHIR_BASE_URL (for example http://localhost:8080/fhir).",
+      );
+    }
+    try {
+      new URL(hapiBaseUrl);
+    } catch {
+      throw new McpConfigurationError(
+        "The HAPI base URL must be a complete URL, for example http://localhost:8080/fhir.",
+      );
+    }
+    return { backend, baseUrl: hapiBaseUrl, writePolicy: "read-only" };
+  }
+
   const accessToken = value(env, "MEDPLUM_ACCESS_TOKEN");
   const clientId = value(env, "MEDPLUM_CLIENT_ID");
   const clientSecret = value(env, "MEDPLUM_CLIENT_SECRET");
@@ -60,13 +103,8 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     );
   }
 
-  if (value(env, "LASTEHR_MCP_WRITES")) {
-    throw new McpConfigurationError(
-      "@lastehr/mcp 0.1 is intentionally read-only. Remove LASTEHR_MCP_WRITES from this server configuration.",
-    );
-  }
-
   return {
+    backend,
     baseUrl,
     accessToken,
     clientId,
