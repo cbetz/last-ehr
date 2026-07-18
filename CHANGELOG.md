@@ -3,6 +3,14 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- `npm run seed` can now target the Firely and Aidbox adapters
+  (`FHIR_BACKEND=firely|aidbox`), so those sandboxes get the same four
+  persistent synthetic charts the demo uses. Adapter targets fail closed
+  without `-- --confirm-synthetic`, matching the safety eval's posture,
+  because the seed deletes and recreates matching charts.
+
 ## 0.2.5 — 2026-07-17
 
 Demo backend picker and under-the-hood dev output: a demo visitor can pick
