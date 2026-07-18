@@ -129,6 +129,15 @@ RUN_FIRELY_E2E=1 FHIR_BASE_URL=https://server.fire.ly \
 npm run eval -- --backend firely --base-url https://server.fire.ly --confirm-synthetic
 ```
 
+Persistent synthetic charts (the same four patients the demo uses) can be
+seeded with the same explicit confirmation the eval requires, because the
+seed deletes and recreates matching charts:
+
+```bash
+FHIR_BACKEND=firely FIRELY_BASE_URL=https://server.fire.ly \
+  npm run seed -- --confirm-synthetic
+```
+
 Caveats: no SMART launch or MCP on this tier; the sandbox enforces no access
 control, so treat every record on it as public; and Last EHR does not manage
 Firely tokens, tenancy, or audit logs.

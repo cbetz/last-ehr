@@ -169,7 +169,11 @@ async function createChart(
 }
 
 async function main(): Promise<void> {
-  const { backend, target } = await createSeedBackend();
+  const { backend, target } = await createSeedBackend({
+    // Adapter targets (firely/aidbox) fail closed without this, matching
+    // the safety eval's posture: npm run seed -- --confirm-synthetic
+    confirmSyntheticTarget: process.argv.includes("--confirm-synthetic"),
+  });
 
   // Wipe + recreate each patient so the seed is idempotent: re-running always
   // produces one clean chart per patient instead of duplicating.

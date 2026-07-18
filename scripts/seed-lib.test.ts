@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 
 // The wipe tests never construct a Medplum client, so keep the dependency
 // mocked and focused on the seed cleanup behavior.
@@ -6,8 +6,15 @@ vi.mock("@medplum/core", () => ({
   MedplumClient: class {},
 }));
 
-import { wipePatient, CHILD_TYPES } from "@/scripts/seed-lib";
+import {
+  createSeedBackend,
+  wipePatient,
+  CHILD_TYPES,
+} from "@/scripts/seed-lib";
+import { AidboxBackend } from "@/lib/fhir/aidbox";
 import type { FhirBackend } from "@/lib/fhir/backend";
+import { FirelyBackend } from "@/lib/fhir/firely";
+import { HapiBackend } from "@/lib/fhir/hapi";
 
 function fakeBackend(overrides: Partial<Record<keyof FhirBackend, unknown>>) {
   return {
@@ -99,5 +106,72 @@ describe("wipePatient", () => {
     ]) {
       expect(CHILD_TYPES).toContain(type);
     }
+  });
+});
+
+describe("createSeedBackend", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("selects HAPI from the per-backend or shared URL, no confirmation needed", async () => {
+    vi.stubEnv("FHIR_BACKEND", "hapi");
+    vi.stubEnv("HAPI_BASE_URL", "http://localhost:8080/fhir");
+    const { backend, target } = await createSeedBackend();
+    expect(backend).toBeInstanceOf(HapiBackend);
+    expect(target).toBe("http://localhost:8080/fhir");
+  });
+
+  it("fails closed on adapter targets without the synthetic confirmation", async () => {
+    // The seed deletes and recreates matching charts, so firely/aidbox
+    // mirror the safety eval's --confirm-synthetic posture.
+    vi.stubEnv("FHIR_BACKEND", "firely");
+    vi.stubEnv("FIRELY_BASE_URL", "https://server.fire.ly");
+    await expect(createSeedBackend()).rejects.toThrow("--confirm-synthetic");
+  });
+
+  it("selects Firely with the confirmation and a base URL", async () => {
+    vi.stubEnv("FHIR_BACKEND", "firely");
+    vi.stubEnv("FIRELY_BASE_URL", "https://server.fire.ly");
+    const { backend } = await createSeedBackend({
+      confirmSyntheticTarget: true,
+    });
+    expect(backend).toBeInstanceOf(FirelyBackend);
+  });
+
+  it("selects Aidbox with the confirmation, URL, and client credentials", async () => {
+    vi.stubEnv("FHIR_BACKEND", "aidbox");
+    vi.stubEnv("AIDBOX_BASE_URL", "http://localhost:8888/fhir");
+    vi.stubEnv("AIDBOX_CLIENT_ID", "lastehr");
+    vi.stubEnv("AIDBOX_CLIENT_SECRET", "secret");
+    const { backend } = await createSeedBackend({
+      confirmSyntheticTarget: true,
+    });
+    expect(backend).toBeInstanceOf(AidboxBackend);
+  });
+
+  it("throws loudly when aidbox credentials are missing", async () => {
+    vi.stubEnv("FHIR_BACKEND", "aidbox");
+    vi.stubEnv("AIDBOX_BASE_URL", "http://localhost:8888/fhir");
+    vi.stubEnv("AIDBOX_CLIENT_ID", "");
+    vi.stubEnv("AIDBOX_CLIENT_SECRET", "");
+    await expect(
+      createSeedBackend({ confirmSyntheticTarget: true }),
+    ).rejects.toThrow("AIDBOX_CLIENT_ID");
+  });
+
+  it("rejects unknown backends, listing every supported value", async () => {
+    vi.stubEnv("FHIR_BACKEND", "not-a-backend");
+    await expect(createSeedBackend()).rejects.toThrow(
+      "medplum, hapi, firely, aidbox",
+    );
+  });
+
+  it("still requires Medplum credentials for the default backend", async () => {
+    vi.stubEnv("FHIR_BACKEND", "");
+    vi.stubEnv("MEDPLUM_ACCESS_TOKEN", "");
+    vi.stubEnv("MEDPLUM_CLIENT_ID", "");
+    vi.stubEnv("MEDPLUM_CLIENT_SECRET", "");
+    await expect(createSeedBackend()).rejects.toThrow("MEDPLUM_CLIENT_ID");
   });
 });

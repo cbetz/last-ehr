@@ -2,6 +2,8 @@ import { MedplumClient } from "@medplum/core";
 import type { ResourceType } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "../lib/fhir/backend";
+import { AidboxBackend } from "../lib/fhir/aidbox";
+import { FirelyBackend } from "../lib/fhir/firely";
 import { MedplumBackend } from "../lib/fhir/medplum";
 import { HapiBackend } from "../lib/fhir/hapi";
 import { SYNTHETIC_SYSTEM } from "./fixtures/patients";
@@ -70,10 +72,15 @@ export async function wipePatient(
 /**
  * Resolve the backend the seed writes to, mirroring the app's own factory:
  * FHIR_BACKEND=hapi hits an open FHIR server at HAPI_BASE_URL (falling back
- * to FHIR_BASE_URL) with no credentials; the default is Medplum via
+ * to FHIR_BASE_URL) with no credentials; firely/aidbox are the
+ * synthetic-evaluation adapters and, like the safety eval, fail closed
+ * without an explicit synthetic-target confirmation (the seed deletes and
+ * recreates matching charts); the default is Medplum via
  * MEDPLUM_ACCESS_TOKEN or a client-credentials login.
  */
-export async function createSeedBackend(): Promise<{
+export async function createSeedBackend({
+  confirmSyntheticTarget = false,
+}: { confirmSyntheticTarget?: boolean } = {}): Promise<{
   backend: FhirBackend;
   target: string;
 }> {
@@ -89,9 +96,44 @@ export async function createSeedBackend(): Promise<{
     return { backend: new HapiBackend(baseUrl), target: baseUrl };
   }
 
+  if (kind === "firely" || kind === "aidbox") {
+    if (!confirmSyntheticTarget) {
+      throw new Error(
+        `FHIR_BACKEND=${kind} seeds an adapter target: the seed deletes and recreates synthetic charts, so it must only run against a disposable synthetic sandbox. Re-run with: npm run seed -- --confirm-synthetic`,
+      );
+    }
+    if (kind === "firely") {
+      const baseUrl = process.env.FIRELY_BASE_URL || process.env.FHIR_BASE_URL;
+      if (!baseUrl) {
+        throw new Error(
+          "FHIR_BACKEND=firely requires FIRELY_BASE_URL or FHIR_BASE_URL (for example https://server.fire.ly).",
+        );
+      }
+      return {
+        backend: new FirelyBackend(
+          baseUrl,
+          process.env.FIRELY_ACCESS_TOKEN || undefined,
+        ),
+        target: baseUrl,
+      };
+    }
+    const baseUrl = process.env.AIDBOX_BASE_URL || process.env.FHIR_BASE_URL;
+    const clientId = process.env.AIDBOX_CLIENT_ID;
+    const clientSecret = process.env.AIDBOX_CLIENT_SECRET;
+    if (!baseUrl || !clientId || !clientSecret) {
+      throw new Error(
+        "FHIR_BACKEND=aidbox requires AIDBOX_BASE_URL or FHIR_BASE_URL (the box's /fhir endpoint) plus AIDBOX_CLIENT_ID and AIDBOX_CLIENT_SECRET.",
+      );
+    }
+    return {
+      backend: new AidboxBackend(baseUrl, clientId, clientSecret),
+      target: baseUrl,
+    };
+  }
+
   if (kind !== "medplum") {
     throw new Error(
-      `Unknown FHIR_BACKEND "${kind}". Supported values: medplum, hapi.`,
+      `Unknown FHIR_BACKEND "${kind}". Supported values: medplum, hapi, firely, aidbox.`,
     );
   }
 
