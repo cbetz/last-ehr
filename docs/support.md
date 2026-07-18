@@ -33,12 +33,22 @@ A deployment can let demo visitors pick which configured backend powers
 their session (`NEXT_PUBLIC_DEMO_BACKENDS`, `id|Label` pairs) and stream an
 under-the-hood panel of the agent's FHIR operations
 (`NEXT_PUBLIC_DEMO_DEV_OUTPUT`). Both default off. The allowlist is bound to
-this matrix **in code**: only Supported and local-evaluation tiers (today
-`medplum` and `hapi`) are demo-eligible, and the synthetic-evaluation
-adapters are dropped by the parser regardless of the env value. Flipping a
-backend's eligibility is a governance change — it requires updating this
-matrix in the same PR plus contract-harness evidence against the concrete
-target, including the `_tag`/`_tag:not` session-isolation semantics.
+this matrix **in code**: `medplum`, `hapi`, and `aidbox` are demo-eligible,
+and every other adapter is dropped by the parser regardless of the env
+value. Flipping a backend's eligibility is a governance change — it requires
+updating this matrix in the same PR plus contract-harness evidence against
+the concrete target, including the `_tag`/`_tag:not` session-isolation
+semantics.
+
+Aidbox's eligibility evidence (2026-07-18, operator-owned hosted dev
+sandbox, `edge`, FHIR 4.0.1): real-server contract 5/5 including the
+isolation clause, seed, and Safety Eval 7/7. One measured caveat: Aidbox
+silently ignores the bare-system `_tag:not` token, so per-session
+visibility runs on the client-side filter arm — a visitor's own writes are
+never affected (they ride a separate tagged query), but under heavy
+concurrent demo load other sessions' rows can crowd seed rows out of the
+server-side result window. Offer an Aidbox picker option only on a box you
+own and seed.
 
 Operator rules:
 
@@ -48,10 +58,10 @@ Operator rules:
   design, and the check script is where you find out loudly.
 - `hapi` is local evaluation only: never offer it on a publicly reachable
   deployment.
-- The hosted lastehr.com demo remains Medplum-only (the picker needs at
-  least two entries to render) until a second operator-owned, seeded,
-  isolated backend exists. Firely's public sandbox is shared, world-writable,
-  and periodically wiped, so it is unsuitable for any public allowlist.
+- The hosted lastehr.com demo can offer Medplum plus an operator-owned,
+  seeded Aidbox box (the picker needs at least two entries to render).
+  Firely's public sandbox is shared, world-writable, and periodically
+  wiped, so it is unsuitable for any public allowlist.
 - Dev output is for synthetic demo deployments only; see the
   [threat model](./threat-model.md) for its exact boundary.
 

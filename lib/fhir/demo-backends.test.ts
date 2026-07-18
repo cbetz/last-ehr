@@ -21,11 +21,16 @@ describe("parseDemoBackends", () => {
   });
 
   it("drops ids outside the code-level eligibility gate", () => {
-    // firely/aidbox are known adapters but synthetic-eval tier; unknown ids
-    // and typos must never become picker options either.
+    // firely is a known adapter but stays ineligible (shared public
+    // sandbox); unknown ids and typos must never become picker options.
+    // aidbox is eligible as of 2026-07-18 (operator-owned box verified with
+    // the isolation clause).
     expect(
       parseDemoBackends("medplum|Medplum,firely|Firely,aidbox|Aidbox,oystehr"),
-    ).toEqual([{ id: "medplum", label: "Medplum" }]);
+    ).toEqual([
+      { id: "medplum", label: "Medplum" },
+      { id: "aidbox", label: "Aidbox" },
+    ]);
   });
 
   it("collapses duplicate ids to the first entry", () => {

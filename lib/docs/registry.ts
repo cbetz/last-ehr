@@ -96,7 +96,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 10,
     audience: "Backend contributors and integration teams",
-    lastModified: "2026-07-14",
+    lastModified: "2026-07-18",
     keywords: ["adapter", "Aidbox", "Firely", "Oystehr", "contract"],
   },
   {

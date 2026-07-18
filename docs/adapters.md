@@ -229,6 +229,23 @@ Caveats: a dev license is required to run the box at all; no SMART launch or
 MCP on this tier; and the box's AccessPolicy, tenancy, and audit logs remain
 Aidbox's job, not this layer's.
 
+### Hosted sandbox verification and demo eligibility
+
+A hosted Aidbox dev sandbox (Health Samurai-hosted, `edge`, FHIR 4.0.1) was
+verified on 2026-07-18 with the same two layers plus the seed: real-server
+contract 5/5 — including the session-isolation clause — and the FHIR Agent
+Safety Eval 7/7. On that basis `aidbox` is **demo-eligible**
+(`DEMO_ELIGIBLE_BACKENDS`) for operator-owned boxes. Two findings worth
+knowing:
+
+- Aidbox silently ignores the bare-system `_tag:not` token (verified by
+  probe: a tagged row came back from `_tag:not=<system>|`), so session
+  visibility runs on the app's client-side filter arm — safe, with the
+  documented window-crowding caveat under heavy concurrent load.
+- Anonymous access is rejected (401) and only the Basic-auth Client can act;
+  before pointing a public demo at a box, scope the Client's AccessPolicy to
+  the demo's resource types rather than the allow-all used for verification.
+
 ## Suggested adapter issues
 
 Open or pick up one adapter at a time. A good issue title looks like:
