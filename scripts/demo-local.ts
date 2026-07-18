@@ -27,8 +27,9 @@ const scriptedDemoEnv: NodeJS.ProcessEnv = {
   NEXT_PUBLIC_GOOGLE_AUTH_ORIGINS: "",
   NEXT_PUBLIC_DEMO_MODELS: "",
   NEXT_PUBLIC_DEMO_BACKENDS: "",
-  // Ships dark; the dev panel PR flips this on for the local walkthrough.
-  NEXT_PUBLIC_DEMO_DEV_OUTPUT: "",
+  // The zero-key walkthrough gets the full under-the-hood experience against
+  // its local Docker HAPI stack (synthetic data only).
+  NEXT_PUBLIC_DEMO_DEV_OUTPUT: "true",
   UPSTASH_REDIS_REST_URL: "",
   UPSTASH_REDIS_REST_TOKEN: "",
   KV_REST_API_URL: "",
