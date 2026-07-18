@@ -32,10 +32,14 @@ session) and an **under-the-hood panel** streaming the agent's FHIR
 operations — both self-hosters-first and off by default; see the
 [support matrix](./docs/support.md) for the eligibility rules. The hosted
 demo stays Medplum-only until a second operator-owned, seeded backend
-exists. The next useful adapters are:
+exists. Adapter status:
 
-- Oystehr
-- OpenEMR FHIR API, if the API surface can satisfy the tool contract
+- Oystehr — adapter built ([#122](https://github.com/cbetz/last-ehr/pull/122),
+  draft), sandbox verification pending on developer-account approval
+- OpenEMR FHIR API — no-go for now: the write surface cannot satisfy the
+  tool contract (no Communication resource, no Observation create, no FHIR
+  delete, meta.tag discarded on create). Evidence and reopen criteria in
+  [#123](https://github.com/cbetz/last-ehr/issues/123).
 
 ### 2.1 Synthetic workflow evidence
 
