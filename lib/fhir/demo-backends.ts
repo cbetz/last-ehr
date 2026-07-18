@@ -21,13 +21,19 @@ export const KNOWN_FHIR_BACKENDS = [
 
 /**
  * The ids that may be offered in a demo picker at all, enforced in code so an
- * operator env var alone can never widen the demo surface. Firely and Aidbox
- * are synthetic-evaluation tier (docs/support.md): flipping one to eligible
- * is a governance change that must land with updated support-matrix docs and
- * per-target contract-harness evidence (test/fhir-backend-contract.ts,
+ * operator env var alone can never widen the demo surface. Flipping an id to
+ * eligible is a governance change that must land with updated support-matrix
+ * docs and per-target contract-harness evidence (test/fhir-backend-contract.ts,
  * including the _tag/_tag:not isolation semantics), not an env edit.
+ *
+ * aidbox was flipped 2026-07-18 against an operator-owned hosted dev sandbox
+ * (edge, FHIR 4.0.1): contract 5/5 including the isolation clause, seeded,
+ * safety eval 7/7. Note its _tag:not bare-system token is silently ignored,
+ * so isolation runs on the client-side filter arm — safe, with the
+ * window-crowding caveat under heavy concurrent load (docs/support.md).
+ * Firely stays excluded: its public sandbox is shared and world-writable.
  */
-export const DEMO_ELIGIBLE_BACKENDS = ["medplum", "hapi"] as const;
+export const DEMO_ELIGIBLE_BACKENDS = ["medplum", "hapi", "aidbox"] as const;
 
 /** docs/support.md tier per known backend, for picker badges and checks. */
 export const DEMO_BACKEND_TIERS: Record<

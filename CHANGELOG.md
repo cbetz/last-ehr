@@ -5,6 +5,12 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Aidbox is now demo-picker eligible for operator-owned boxes: a hosted dev
+  sandbox (`edge`, FHIR 4.0.1) passed the real-server contract including
+  the session-isolation clause, the seed, and the Safety Eval (7/7).
+  Measured caveat recorded in docs/support.md: Aidbox silently ignores the
+  bare-system `_tag:not` token, so per-session visibility runs on the
+  client-side filter arm.
 - `@lastehr/mcp` honors `FHIR_BACKEND=hapi` with `HAPI_BASE_URL` or
   `FHIR_BASE_URL` — the same env pair as the web app and seed — so a fully
   local synthetic stack gets MCP too (no credentials; the local no-auth
