@@ -27,6 +27,34 @@ The scripted path is not a bundled model and does not make the HAPI stack
 suitable for real PHI. It is a reproducible way to inspect the approval-loop
 mechanics before configuring a provider.
 
+## Demo backend picker and dev output
+
+A deployment can let demo visitors pick which configured backend powers
+their session (`NEXT_PUBLIC_DEMO_BACKENDS`, `id|Label` pairs) and stream an
+under-the-hood panel of the agent's FHIR operations
+(`NEXT_PUBLIC_DEMO_DEV_OUTPUT`). Both default off. The allowlist is bound to
+this matrix **in code**: only Supported and local-evaluation tiers (today
+`medplum` and `hapi`) are demo-eligible, and the synthetic-evaluation
+adapters are dropped by the parser regardless of the env value. Flipping a
+backend's eligibility is a governance change — it requires updating this
+matrix in the same PR plus contract-harness evidence against the concrete
+target, including the `_tag`/`_tag:not` session-isolation semantics.
+
+Operator rules:
+
+- Each allowlisted backend needs its own server config (per-backend base
+  URL; Medplum needs the quickstart credentials). Preflight with
+  `npm run check:backends` — the runtime drops bad entries silently by
+  design, and the check script is where you find out loudly.
+- `hapi` is local evaluation only: never offer it on a publicly reachable
+  deployment.
+- The hosted lastehr.com demo remains Medplum-only (the picker needs at
+  least two entries to render) until a second operator-owned, seeded,
+  isolated backend exists. Firely's public sandbox is shared, world-writable,
+  and periodically wiped, so it is unsuitable for any public allowlist.
+- Dev output is for synthetic demo deployments only; see the
+  [threat model](./threat-model.md) for its exact boundary.
+
 ## What "supported" means
 
 A supported configuration has a documented setup path and is expected to work

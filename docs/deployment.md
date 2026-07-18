@@ -97,9 +97,16 @@ flipped to public in the GHCR package settings before anonymous pulls work.
 
 The published image bakes `NEXT_PUBLIC_QUICKSTART` and
 `NEXT_PUBLIC_SCRIPTED_DEMO` on and everything else off: no PostHog analytics,
-no Medplum Google client, no demo model picker. Any deployment that needs
-different `NEXT_PUBLIC_*` values must build its own image; see the build-time
-note at the end of this section.
+no Medplum Google client, no demo model picker, no demo backend picker, no
+dev-output panel. Any deployment that needs different `NEXT_PUBLIC_*` values
+must build its own image; see the build-time note at the end of this section.
+
+To offer the demo backend picker, set `NEXT_PUBLIC_DEMO_BACKENDS` (see
+`.env.example` and the [support matrix](./support.md) for the eligibility and
+tier rules) and run `npm run check:backends` before deploying; the
+under-the-hood panel is `NEXT_PUBLIC_DEMO_DEV_OUTPUT=true`, synthetic demo
+deployments only (see the [threat model](./threat-model.md)). Both are
+build-time inlined like every `NEXT_PUBLIC_*` value.
 
 ### Build locally
 

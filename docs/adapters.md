@@ -68,6 +68,20 @@ its real-server contract runs in the local HAPI CI job. A target-specific
 adapter PR should add the same two layers, then verify the web agent's four
 synthetic workflows.
 
+## Demo picker eligibility and dev output
+
+Two things an adapter PR does **not** need to touch:
+
+- The demo dev-output panel observes at the `FhirBackend` interface
+  (`lib/fhir/observed.ts`, a decorator like the scripted wrapper), so
+  adapters need no instrumentation of their own.
+- The demo backend picker's eligibility gate (`DEMO_ELIGIBLE_BACKENDS` in
+  `lib/fhir/demo-backends.ts`) is deliberately separate from adapter
+  support. A verified synthetic-evaluation adapter is still not
+  demo-pickable; flipping eligibility is its own governance PR with
+  support-matrix and `_tag`-isolation evidence (see
+  [docs/support.md](./support.md)).
+
 ## Adapter checklist
 
 - Start from `examples/fhir-adapter-starter` or `lib/fhir/hapi.ts`, then add

@@ -3,6 +3,38 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+Demo backend picker and under-the-hood dev output: a demo visitor can pick
+which configured FHIR backend powers their session and watch the agent's
+chart operations live. Both features default off; with the new env vars
+unset, behavior is unchanged.
+
+- Demo backend picker (`NEXT_PUBLIC_DEMO_BACKENDS`, `id|Label` pairs): the
+  client sends a name-only `x-demo-backend` header, validated server-side
+  with silent fallback, mirroring the demo model picker. Eligibility is
+  gated in code to the Supported and local-evaluation tiers (`medplum`,
+  `hapi`); synthetic-evaluation adapters cannot be offered via env alone.
+  Preflight an allowlist with `npm run check:backends`.
+- Per-backend base URLs (`HAPI_BASE_URL`, `FIRELY_BASE_URL`,
+  `AIDBOX_BASE_URL`, each falling back to the shared `FHIR_BASE_URL`), so
+  several backends can be configured side by side. The scripted-demo gate,
+  seed, and readiness scripts resolve the same effective URL as the app.
+- Under-the-hood dev panel (`NEXT_PUBLIC_DEMO_DEV_OUTPUT=true`): streams
+  structured FHIR operation events (method, relative path, outcome, timing,
+  counts) to demo sessions as transient data parts. Events never contain
+  error text, auth material, hosts, or the demo session id; the boundary is
+  documented in the threat model and pinned by safety-boundary tests.
+  `npm run demo:local` now enables the panel for the zero-key walkthrough.
+- Quickstart now issues placeholder demo sessions for any non-Medplum
+  default backend (previously `FHIR_BACKEND=firely|aidbox` returned 404
+  unless Medplum credentials were also set), and mints a Medplum token when
+  `medplum` is allowlisted on a non-Medplum default.
+- Security tightening: sign-in (`/api/auth/session`) now clears a leftover
+  `demo_session_id`, so a signed-in session can never present as a demo
+  session; the rejected-proposal audit trail is pinned to the deployment
+  default backend and cannot be re-pointed by a visitor's pick.
+
 ## 0.2.4 — 2026-07-14
 
 Backend portability release: the first two adapters beyond Medplum and local

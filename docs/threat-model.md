@@ -18,6 +18,14 @@ do not mistake the approval card for a full security system.
 - Next.js route handlers to model provider.
 - Demo shared credential to per-browser session visibility filter.
 - Web approval card to backend write execution.
+- Browser-supplied demo backend name to server allowlist validation: the
+  client sends only a name (`x-demo-backend`), never a URL or credential.
+  The name is honored only for demo sessions, only when it survives the
+  code-level eligibility gate plus the operator allowlist plus a server
+  config-completeness check, and anything else falls back to the deployment
+  default silently, so probing yields no signal. The rejected-proposal audit
+  trail is always written to the deployment default, never the picked
+  backend.
 
 ## Intended controls
 
@@ -28,6 +36,30 @@ do not mistake the approval card for a full security system.
 - Public demo has per-IP and global rate limits.
 - The published MCP package contains only two read tools; no write tool is
   compiled or registered in the `0.1.x` line.
+
+## Dev output (synthetic demo only)
+
+`NEXT_PUBLIC_DEMO_DEV_OUTPUT` is a deliberate, bounded carve-out from the
+"keep backend detail out of the browser" posture, for the demo's
+under-the-hood panel. The boundary:
+
+- Off by default; even when on, events stream only to demo sessions
+  (`demo_session_id` present). SMART and signed-in sessions never receive
+  FHIR detail.
+- Events are structured operation summaries: op, method, relative path,
+  ok/err, duration, match counts, created ids (synthetic data the demo
+  already renders). They NEVER contain access tokens or auth headers, base
+  URLs or hosts, error or OperationOutcome diagnostic text, raw bodies, or
+  the demo session id (redacted from `_tag` filters — it is an HttpOnly
+  capability token).
+- One acknowledged signal: with the flag on, the stream echoes the resolved
+  backend name, revealing the deployment default. The operator accepts this
+  by enabling the flag.
+- Keep the flag off on any deployment heading toward real data.
+
+Every new field added to `FhirDevEvent` is a potential leak vector: extend
+the negative assertions in `lib/fhir/observed.test.ts` and the dev-panel e2e
+first, and treat them as safety-boundary tests.
 
 ## Known limitations
 
