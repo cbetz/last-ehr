@@ -3,6 +3,15 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- Added an Oystehr adapter (`FHIR_BACKEND=oystehr`): OAuth2 M2M client
+  credentials against Oystehr's hosted FHIR R4 API, with lazy token minting,
+  exp-based caching, and single-flighted refresh. Registered with unit
+  contract coverage and eval/seed wiring; real-sandbox verification (the
+  backend contract run plus the FHIR Agent Safety Eval) is pending and
+  tracked in docs/support.md before the adapter is called verified.
+
 ## 0.2.8 — 2026-07-20
 
 - The site and README now lead with the protocol: "Make every AI chart

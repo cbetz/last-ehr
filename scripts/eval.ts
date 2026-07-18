@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { HapiBackend } from "@/lib/fhir/hapi";
 import { FirelyBackend } from "@/lib/fhir/firely";
 import { AidboxBackend } from "@/lib/fhir/aidbox";
+import { OystehrBackend } from "@/lib/fhir/oystehr";
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { runFhirAgentSafetyEval } from "@/lib/eval/fhir-agent-safety";
 
@@ -17,7 +18,7 @@ const defaultReport = ".lastehr/fhir-agent-safety-eval.json";
 type EvalArguments = {
   prepare: boolean;
   report: string;
-  backend: "hapi" | "firely" | "aidbox";
+  backend: "hapi" | "firely" | "aidbox" | "oystehr";
   baseUrl?: string;
   confirmSynthetic: boolean;
 };
@@ -30,6 +31,7 @@ function help(): string {
     "  npm run eval",
     "  npm run eval -- --no-prepare --report artifacts/fhir-agent-safety-eval.json",
     "  npm run eval -- --backend firely --base-url https://server.fire.ly --confirm-synthetic",
+    "  npm run eval -- --backend oystehr --confirm-synthetic",
     "",
     "The default command starts the loopback HAPI stack and resets synthetic data.",
     "It creates and deletes its own disposable test charts, then writes a scrubbed JSON report.",
@@ -38,8 +40,10 @@ function help(): string {
     "and fail closed without --confirm-synthetic, because the evaluator creates",
     "and deletes resources on the target. Point it only at a disposable",
     "synthetic sandbox. Credentials come from the environment: a bearer token",
-    "in FIRELY_ACCESS_TOKEN, or AIDBOX_CLIENT_ID + AIDBOX_CLIENT_SECRET (the",
-    "Aidbox --base-url must be the FHIR endpoint, ending in /fhir).",
+    "in FIRELY_ACCESS_TOKEN, AIDBOX_CLIENT_ID + AIDBOX_CLIENT_SECRET (the",
+    "Aidbox --base-url must be the FHIR endpoint, ending in /fhir), or",
+    "OYSTEHR_CLIENT_ID + OYSTEHR_CLIENT_SECRET (an M2M client; --base-url",
+    "defaults to Oystehr's hosted FHIR API).",
   ].join("\n");
 }
 
@@ -62,8 +66,13 @@ function parseArguments(args: string[]): EvalArguments {
     }
     if (arg === "--backend") {
       const value = args[index + 1];
-      if (value !== "hapi" && value !== "firely" && value !== "aidbox") {
-        throw new Error("--backend must be hapi, firely, or aidbox.");
+      if (
+        value !== "hapi" &&
+        value !== "firely" &&
+        value !== "aidbox" &&
+        value !== "oystehr"
+      ) {
+        throw new Error("--backend must be hapi, firely, aidbox, or oystehr.");
       }
       backend = value;
       index++;
@@ -98,7 +107,9 @@ function parseArguments(args: string[]): EvalArguments {
     // The loopback HAPI stack is the only target this script may set up or
     // reset. Adapter targets are the contributor's own disposable sandbox.
     prepare = false;
-    if (!baseUrl) {
+    // Oystehr is SaaS-only with a canonical endpoint, so --base-url is
+    // optional there; every other adapter target must name its sandbox.
+    if (!baseUrl && backend !== "oystehr") {
       throw new Error(`--backend ${backend} requires --base-url.`);
     }
     if (!confirmSynthetic) {
@@ -130,6 +141,23 @@ function createEvalBackend({ backend, baseUrl }: EvalArguments): FhirBackend {
       );
     }
     return new AidboxBackend(baseUrl, clientId, clientSecret);
+  }
+  if (backend === "oystehr") {
+    const clientId = process.env.OYSTEHR_CLIENT_ID;
+    const clientSecret = process.env.OYSTEHR_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      throw new Error(
+        "--backend oystehr requires OYSTEHR_CLIENT_ID and OYSTEHR_CLIENT_SECRET (an M2M client; see docs/adapters.md).",
+      );
+    }
+    return new OystehrBackend({
+      clientId,
+      clientSecret,
+      // `||` so a pinned-empty OYSTEHR_BASE_URL falls through to the
+      // adapter's hosted default instead of arriving as "".
+      baseUrl: baseUrl || process.env.OYSTEHR_BASE_URL || undefined,
+      projectId: process.env.OYSTEHR_PROJECT_ID || undefined,
+    });
   }
   return new HapiBackend(baseUrl ?? localHapiUrl);
 }

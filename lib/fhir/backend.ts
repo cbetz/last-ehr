@@ -9,6 +9,7 @@ import { MedplumBackend } from "./medplum";
 import { HapiBackend } from "./hapi";
 import { FirelyBackend } from "./firely";
 import { AidboxBackend } from "./aidbox";
+import { OystehrBackend } from "./oystehr";
 
 // The FHIR surface the agent tools require of a backend. Built-in
 // implementations are Medplum (./medplum.ts) and the local HAPI FHIR
@@ -77,6 +78,12 @@ export function hasFhirBackendConfig(name: string): boolean {
           process.env.AIDBOX_CLIENT_ID &&
           process.env.AIDBOX_CLIENT_SECRET,
       );
+    case "oystehr":
+      // No base URL requirement: Oystehr is SaaS-only and the adapter
+      // defaults to the official hosted endpoint.
+      return Boolean(
+        process.env.OYSTEHR_CLIENT_ID && process.env.OYSTEHR_CLIENT_SECRET,
+      );
     default:
       return false;
   }
@@ -131,9 +138,27 @@ export function createFhirBackend(
     }
     return new AidboxBackend(baseUrl, clientId, clientSecret);
   }
+  if (backend === "oystehr") {
+    const clientId = process.env.OYSTEHR_CLIENT_ID;
+    const clientSecret = process.env.OYSTEHR_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      throw new Error(
+        "FHIR_BACKEND=oystehr requires OYSTEHR_CLIENT_ID and OYSTEHR_CLIENT_SECRET (an M2M client; see docs/adapters.md).",
+      );
+    }
+    // Deliberately NO shared FHIR_BASE_URL fallback: Oystehr is SaaS-only
+    // with a canonical endpoint, and the shared variable would alias another
+    // backend's URL into this adapter's transport.
+    return new OystehrBackend({
+      clientId,
+      clientSecret,
+      baseUrl: process.env.OYSTEHR_BASE_URL || undefined,
+      projectId: process.env.OYSTEHR_PROJECT_ID || undefined,
+    });
+  }
   if (backend !== "medplum") {
     throw new Error(
-      `Unknown FHIR_BACKEND "${backend}". Supported values: medplum, hapi, firely, aidbox.`,
+      `Unknown FHIR_BACKEND "${backend}". Supported values: medplum, hapi, firely, aidbox, oystehr.`,
     );
   }
   return new MedplumBackend(accessToken);

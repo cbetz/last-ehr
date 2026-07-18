@@ -109,7 +109,7 @@ export async function POST(req: Request) {
   // A Medplum token is only worth minting when some path can use it: the
   // deployment default is Medplum, or "medplum" is offered in the demo
   // backend picker allowlist. Every other configuration (hapi, firely,
-  // aidbox defaults) authenticates from server env inside its adapter and
+  // aidbox, oystehr defaults) authenticates from server env inside its adapter and
   // ignores the cookie token entirely — the cookie just means "a session
   // exists". Those get a placeholder token and the session id that keeps
   // per-browser demo writes isolated. (Previously only hapi took this
