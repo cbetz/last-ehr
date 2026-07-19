@@ -17,7 +17,13 @@ self-hosters can tell what moved between pulls.
   versions; requirements a mechanical suite cannot observe ship as an
   explicit attestations block. The repository's own `@lastehr/mcp` write
   profile is conformance run #1 (see the worked example manifest in
-  packages/conformance/examples).
+  packages/conformance/examples). `--strict` additionally counts the
+  SHOULD-level audit checks — the AIAST security label on every approved
+  write, and author/verifier Provenance — and CI now runs the suite in
+  strict mode against the repository's own stdio server and live HAPI on
+  every commit, uploading the report as a build artifact. New
+  docs/conformance.md page documents running it against your own
+  implementation.
 
 ## 0.2.7 — 2026-07-19
 

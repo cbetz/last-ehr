@@ -136,6 +136,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["eval", "safety", "approval", "synthetic", "HAPI", "adapter"],
   },
   {
+    slug: "conformance",
+    file: "docs/conformance.md",
+    title: "Protocol Conformance Suite",
+    description:
+      "Test any implementation of the agent-write protocol with a scripted reviewer and independent FHIR verification.",
+    group: "Build & integrate",
+    order: 35,
+    audience: "Protocol implementers and safety reviewers",
+    lastModified: "2026-07-19",
+    keywords: ["conformance", "protocol", "MCP", "approval", "AIAST", "suite"],
+  },
+  {
     slug: "deployment",
     file: "docs/deployment.md",
     title: "Deployment",

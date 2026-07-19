@@ -35,6 +35,8 @@ Usage:
                      Bearer auth: set AWP_FHIR_BEARER_TOKEN in the env.
   --confirm-synthetic  Required. The target must be a disposable synthetic
                      store: the suite creates and deletes resources.
+  --strict           Count should-level audit checks (AIAST label, write
+                     Provenance) toward the overall status.
   --report           Write the JSON report here (default: stdout only).
 
 Passing proves gate mechanics against this suite's scripted reviewer. It
@@ -77,6 +79,7 @@ async function main(): Promise<void> {
     }),
     manifest,
     suiteVersion: SUITE_VERSION,
+    strict: argv.includes("--strict"),
   });
 
   for (const check of report.checks) {

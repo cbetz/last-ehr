@@ -38,6 +38,11 @@ export type RunConformanceOptions = {
    * in-memory tests; default 500.
    */
   settleMs?: number;
+  /**
+   * Count should-level (audit) failures toward the overall status. Off by
+   * default: the spec's Audit section is SHOULD-level.
+   */
+  strict?: boolean;
 };
 
 function getPath(resource: FhirResource, dotPath: string): unknown {
@@ -177,6 +182,13 @@ export async function runConformance(
     }
   };
 
+  // The committed resources approved-write verified, kept for the
+  // should-level audit checks.
+  const approvedResources: Array<{
+    tool: WriteToolManifest;
+    resource: FhirResource;
+  }> = [];
+
   const targetReady = await runCheck(
     "synthetic-target",
     "hygiene",
@@ -206,6 +218,8 @@ export async function runConformance(
       skip("approved-write", "must", "Approved write", "Skipped: no synthetic target.");
       skip("denied-write", "must", "Denied write", "Skipped: no synthetic target.");
       skip("unavailable-write", "must", "Unavailable decision", "Skipped: no synthetic target.");
+      skip("audit-aiast", "should", "AIAST security label", "Skipped: no synthetic target.");
+      skip("audit-provenance", "should", "Write Provenance", "Skipped: no synthetic target.");
     } else {
       // Spec section 2: hosts that cannot render proposals MUST NOT be
       // offered write capability at all — and a call anyway saves nothing.
@@ -379,6 +393,7 @@ export async function runConformance(
               resourceType: tool.creates,
               id: resource.id as string,
             });
+            approvedResources.push({ tool, resource });
             const serialized = JSON.stringify(resource);
             if (!serialized.includes(String(nonce))) throw new Error("nonce missing");
             const { args } = substituteArguments(tool, patientId ?? "", nonce);
@@ -479,6 +494,69 @@ export async function runConformance(
           }
         },
       );
+
+      // Spec Audit section (SHOULD): approved writes carry the standard
+      // AIAST security label so agent writes are distinguishable from
+      // human ones with one _security search.
+      await runCheck(
+        "audit-aiast",
+        "should",
+        "AIAST security label",
+        "Every approved write carries the AIAST label (Artificial Intelligence asserted) in meta.security.",
+        async () => {
+          if (approvedResources.length === 0) throw new Error("no writes");
+          for (const { resource } of approvedResources) {
+            const security =
+              (resource.meta as
+                | { security?: Array<{ system?: string; code?: string }> }
+                | undefined)?.security ?? [];
+            if (
+              !security.some(
+                (label) =>
+                  label.system ===
+                    "http://terminology.hl7.org/CodeSystem/v3-ObservationValue" &&
+                  label.code === "AIAST",
+              )
+            ) {
+              throw new Error("missing AIAST");
+            }
+          }
+        },
+      );
+
+      // Spec Audit section (SHOULD): a Provenance resource binds each
+      // approved write to the agent (author) and the reviewer (verifier).
+      await runCheck(
+        "audit-provenance",
+        "should",
+        "Write Provenance",
+        "Each approved write is targeted by a Provenance naming an author agent and a verifier agent.",
+        async () => {
+          if (approvedResources.length === 0) throw new Error("no writes");
+          for (const { tool, resource } of approvedResources) {
+            const provenances = await probe.searchResources("Provenance", {
+              target: `${tool.creates}/${resource.id}`,
+              _count: "50",
+            });
+            const roles = new Set(
+              provenances
+                .flatMap(
+                  (provenance) =>
+                    (provenance as {
+                      agent?: Array<{
+                        type?: { coding?: Array<{ code?: string }> };
+                      }>;
+                    }).agent ?? [],
+                )
+                .flatMap((agent) => agent.type?.coding ?? [])
+                .map((coding) => coding.code),
+            );
+            if (!roles.has("author") || !roles.has("verifier")) {
+              throw new Error("missing provenance roles");
+            }
+          }
+        },
+      );
     }
   } finally {
     await runCheck(
@@ -525,6 +603,7 @@ export async function runConformance(
     );
   }
 
+  const strict = options.strict ?? false;
   return {
     schemaVersion: CONFORMANCE_REPORT_SCHEMA_VERSION,
     suite: {
@@ -533,8 +612,13 @@ export async function runConformance(
     },
     spec: SPEC,
     target: "synthetic-disposable",
+    strict,
     generatedAt: now().toISOString(),
-    status: checks.every((check) => check.status === "pass")
+    status: checks.every(
+      (check) =>
+        check.status === "pass" ||
+        (!strict && check.level === "should" && check.status === "fail"),
+    )
       ? "pass"
       : "fail",
     checks,

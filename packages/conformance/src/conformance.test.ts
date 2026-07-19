@@ -97,6 +97,7 @@ function inMemoryConnector(
   writeToolsFactory?: (
     liveServer: Parameters<typeof createElicitationApproval>[0],
   ) => McpWriteTool[],
+  emitProvenance = false,
 ): Connector {
   return async (options) => {
     const fhir = store.asWriteClient();
@@ -104,7 +105,9 @@ function inMemoryConnector(
       writeTools:
         writeToolsFactory ??
         ((liveServer) =>
-          createWriteTools(fhir, createElicitationApproval(liveServer))),
+          createWriteTools(fhir, createElicitationApproval(liveServer), {
+            emitProvenance,
+          })),
     });
     const [clientTransport, serverTransport] =
       InMemoryTransport.createLinkedPair();
@@ -155,10 +158,11 @@ describe("agent-write conformance suite", () => {
     const store = new InMemoryFhirStore();
     const report = await runConformance({
       confirmSyntheticTarget: true,
-      connector: inMemoryConnector(store),
+      connector: inMemoryConnector(store, undefined, true),
       probe: store,
       manifest: MANIFEST,
       settleMs: 0,
+      strict: true,
     });
 
     expect(
@@ -172,9 +176,12 @@ describe("agent-write conformance suite", () => {
       ["approved-write", "pass"],
       ["denied-write", "pass"],
       ["unavailable-write", "pass"],
+      ["audit-aiast", "pass"],
+      ["audit-provenance", "pass"],
       ["cleanup", "pass"],
     ]);
     expect(report.status).toBe("pass");
+    expect(report.strict).toBe(true);
     // Cleanup really cleaned: the store holds nothing the suite created.
     expect(store.size()).toBe(0);
     // The citable report carries no dynamic values in details.
@@ -231,6 +238,28 @@ describe("agent-write conformance suite", () => {
     expect(byId.get("proposal-gate")).toBe("fail");
     // Denial did not prevent persistence.
     expect(byId.get("denied-write")).toBe("fail");
+  });
+
+  it("audit checks are should-level: provenance-less passes non-strict, fails strict", async () => {
+    for (const strict of [false, true]) {
+      const store = new InMemoryFhirStore();
+      const report = await runConformance({
+        confirmSyntheticTarget: true,
+        // Provenance emission off: the AIAST label still ships (always
+        // on), the Provenance does not.
+        connector: inMemoryConnector(store, undefined, false),
+        probe: store,
+        manifest: parseManifest({ writeTools: [MANIFEST.writeTools[0]] }),
+        settleMs: 0,
+        strict,
+      });
+      const byId = new Map(
+        report.checks.map((check) => [check.id, check.status]),
+      );
+      expect(byId.get("audit-aiast")).toBe("pass");
+      expect(byId.get("audit-provenance")).toBe("fail");
+      expect(report.status).toBe(strict ? "fail" : "pass");
+    }
   });
 
   it("refuses to run without the synthetic-target confirmation", async () => {
