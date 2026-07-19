@@ -15,16 +15,20 @@ export type CheckId =
   | "approved-write"
   | "denied-write"
   | "unavailable-write"
+  | "audit-aiast"
+  | "audit-provenance"
   | "cleanup";
 
 /**
  * must — mechanically proves a spec MUST; a failure is nonconformance.
+ * should — checks a spec SHOULD (the audit layer); a failure blocks the
+ *   run only under strict mode, and the report records which mode ran.
  * partial — proves a weaker property than the spec sentence it cites
  *   (stated in the check detail); passing is evidence, not proof.
  * hygiene — suite mechanics (disposable target, cleanup), not a spec
  *   requirement.
  */
-export type CheckLevel = "must" | "partial" | "hygiene";
+export type CheckLevel = "must" | "should" | "partial" | "hygiene";
 
 export type ConformanceCheck = {
   id: CheckId;
@@ -55,6 +59,8 @@ export type ConformanceReport = {
   spec: typeof SPEC;
   /** Static by design: the report never echoes caller-supplied labels. */
   target: "synthetic-disposable";
+  /** Whether should-level (audit) failures counted toward the status. */
+  strict: boolean;
   generatedAt: string;
   status: "pass" | "fail";
   checks: ConformanceCheck[];

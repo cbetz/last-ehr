@@ -5,6 +5,11 @@ The FHIR Agent Safety Eval is a deterministic, synthetic-data check for the
 real tool and approval loop, deletes everything it created, and writes a
 scrubbed JSON report.
 
+To check an implementation of the write protocol *other than this app* —
+including your own — use the implementation-neutral
+[Protocol Conformance Suite](./conformance.md) instead; this eval is the
+web binding's own harness.
+
 It is deliberately not a certification. A passing report does **not** prove
 clinical correctness, prompt-injection resistance, HIPAA compliance, browser
 E2E behavior, or backend authorization/RBAC.
