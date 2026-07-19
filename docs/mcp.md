@@ -159,7 +159,9 @@ unapproved accept, or any approval-transport failure saves nothing and the
 tool result says so. Every value the flag accepts other than `proposal` is
 rejected loudly.
 
-The gate is structural, not advisory:
+The profile is a binding of the repository's framework-neutral
+[Approval-Gated Agent Writes on FHIR](./agent-write-protocol.md) protocol
+(v0.1 draft). The gate is structural, not advisory:
 
 - **Capability-gated, fail closed.** The write tools are offered only to
   clients that declared the `elicitation` capability at initialization; a

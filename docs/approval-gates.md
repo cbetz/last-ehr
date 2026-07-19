@@ -3,7 +3,11 @@
 Approval-gated writes are the core product pattern in Last EHR.
 
 The agent can read immediately, but it cannot write to the chart through the
-web app until the user approves the proposed write.
+web app until the user approves the proposed write. The pattern is now also
+specified as a small framework-neutral protocol —
+[Approval-Gated Agent Writes on FHIR](./agent-write-protocol.md) (v0.1
+draft) — with this page's approval card and the MCP write profile as its two
+reference bindings.
 
 ## Current behavior
 
