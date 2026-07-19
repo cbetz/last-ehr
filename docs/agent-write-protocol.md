@@ -77,7 +77,7 @@ Requirements:
   all (capability gating), so a degraded host cannot even ask.
 - Denied and unavailable SHOULD be distinguishable in the result: a denial
   attributes a decision to a human; unavailability must not.
-- The decision exchange requests a *decision*, never data.
+- The decision exchange MUST request a *decision*, never data.
 
 Implementations MAY apply automated **policy** that narrows what may
 commit. Policy can only deny: a policy outcome is never an approval, MUST
@@ -143,8 +143,18 @@ fetched rows as a fallback).
 
 ## Conformance
 
-The [FHIR Agent Safety Eval](./evals.md) is the seed conformance suite for
-this protocol. Its deterministic checks map to the requirements above:
+Two suites check these mechanics today. The
+[FHIR Agent Safety Eval](./evals.md) is the seed suite for this
+repository's web binding. **`@lastehr/agent-write-conformance`**
+([packages/conformance](https://github.com/cbetz/last-ehr/tree/main/packages/conformance))
+is the standalone suite for the protocol's generic wire binding today:
+an MCP stdio client with a scripted reviewer that drives an implementing
+server (declared via a small manifest) and verifies every outcome
+against the FHIR store with its own reads —
+capability gating, proposal-before-persistence (probed during
+deliberation), boolean-only decision shape, approve/deny/cancel/
+unapproved/transport-failure outcomes, and commit fidelity. The seed
+suite's deterministic checks map to the requirements above:
 
 | Requirement | Eval check |
 | --- | --- |

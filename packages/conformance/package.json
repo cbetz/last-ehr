@@ -1,0 +1,63 @@
+{
+  "name": "@lastehr/agent-write-conformance",
+  "version": "0.1.0",
+  "description": "Conformance suite for the Approval-Gated Agent Writes on FHIR protocol (v0.1 draft): drives any MCP server implementing the write profile with a scripted reviewer and verifies gate mechanics against a live FHIR store.",
+  "license": "Apache-2.0",
+  "author": "Chris Betz",
+  "homepage": "https://www.lastehr.com/docs/agent-write-protocol",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cbetz/last-ehr.git",
+    "directory": "packages/conformance"
+  },
+  "bugs": {
+    "url": "https://github.com/cbetz/last-ehr/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "fhir",
+    "healthcare",
+    "agent",
+    "approval",
+    "conformance"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "awp-conformance": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "examples",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": "^22.18.0 || >=24.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build && npm run test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.9",
+    "vitest": "^4.1.9"
+  }
+}

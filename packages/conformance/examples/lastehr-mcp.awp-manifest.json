@@ -1,0 +1,37 @@
+{
+  "writeTools": [
+    {
+      "name": "record_observation",
+      "arguments": {
+        "patientId": "$PATIENT_ID",
+        "label": "Conformance probe",
+        "value": "$NONCE",
+        "unit": "bpm"
+      },
+      "creates": "Observation",
+      "patientReferencePath": "subject.reference",
+      "nonceField": "value"
+    },
+    {
+      "name": "add_note",
+      "arguments": {
+        "patientId": "$PATIENT_ID",
+        "text": "Conformance probe note $NONCE"
+      },
+      "creates": "Communication",
+      "patientReferencePath": "subject.reference",
+      "nonceField": "text"
+    },
+    {
+      "name": "create_task",
+      "arguments": {
+        "patientId": "$PATIENT_ID",
+        "description": "Conformance probe task $NONCE"
+      },
+      "creates": "Task",
+      "patientReferencePath": "for.reference",
+      "nonceField": "description"
+    }
+  ],
+  "parseResult": "default"
+}
