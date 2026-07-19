@@ -3,6 +3,22 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- New package `@lastehr/agent-write-conformance` (0.1.0): the standalone
+  conformance suite for the Approval-Gated Agent Writes on FHIR protocol
+  (v0.1 draft). An MCP stdio client with a scripted reviewer spawns any
+  implementing server fresh per scenario, answers each elicitation every
+  possible way, and verifies every outcome against the FHIR store with
+  its own reads — capability gate, proposal-before-persistence (probed
+  during reviewer deliberation), boolean-only decision shape, approved/
+  denied/unavailable outcomes, commit fidelity, and cleanup. Reports are
+  scrub-clean (static details only) and stamp the suite and spec
+  versions; requirements a mechanical suite cannot observe ship as an
+  explicit attestations block. The repository's own `@lastehr/mcp` write
+  profile is conformance run #1 (see the worked example manifest in
+  packages/conformance/examples).
+
 ## 0.2.7 — 2026-07-19
 
 - New gated write `create_task` in both bindings: propose a follow-up
