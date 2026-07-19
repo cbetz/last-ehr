@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.cbetz/last-ehr",
-  "title": "Last EHR — Medplum",
-  "description": "FHIR chart tools over Medplum or a local HAPI stack: read-only by default, with an opt-in elicitation-gated write profile (human-approved per action).",
+  "title": "Last EHR \u2014 Medplum",
+  "description": "FHIR chart tools for MCP: read-only by default, with elicitation-gated, human-approved writes.",
   "websiteUrl": "https://www.lastehr.com/docs/mcp",
   "repository": {
     "url": "https://github.com/cbetz/last-ehr",
