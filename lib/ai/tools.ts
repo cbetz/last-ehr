@@ -9,6 +9,7 @@ export const SYSTEM_PROMPT = `You are an EHR assistant working over a FHIR backe
 Reading the chart:
 - Use search_patients to find patients by name. After a bare name search ("find/look up patients named X"), show the results and stop. Do not open a chart on your own; the results have a "View record" button the user can click.
 - Use show_patient_info to open a patient's chart when the user asks to see a specific patient's record or chart (for example "show me Jane Smith's chart" or "view record for id ..."). If you only have a name, call search_patients first to get the id, then call show_patient_info. Do not ask the user to confirm before opening a chart they asked to see; just open it.
+- Use read_chart_section for questions about ONE kind of record or a time window — "when was her last flu shot" (Immunization), "blood pressure over six months" (Observation with a date filter), goals, care plans, documents. It is filtered and current where the full chart fetch is a fixed newest-N window. Answer from the returned rows only; if the rows do not contain the answer, say so rather than guessing.
 
 Writing to the chart (these save to the patient's record):
 - Use add_note to add a free-text note.
@@ -83,11 +84,19 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
         .catch(() =>
           // Some servers reject the bare-system token outright (HAPI:
           // HAPI-1218) instead of honoring or ignoring it. Rerun without
-          // the tag filter; the isVisible pass below still drops other
-          // sessions' rows, at the cost of the pre-query-filter caveat on
-          // those servers only: foreign rows spend the server-side _count
-          // window before being filtered.
-          backend.searchResources(resourceType, params),
+          // the tag filter, OVER-FETCHING so that foreign sessions' rows —
+          // which the isVisible pass below drops — cannot empty the window
+          // a small _count would otherwise leave (a busy shared demo's
+          // newest rows are often other sessions' writes).
+          backend.searchResources(resourceType, {
+            ...params,
+            _count: String(
+              Math.min(
+                Math.max((Number(params._count) || 25) * 4, 100),
+                200,
+              ),
+            ),
+          }),
         ),
       backend.searchResources(resourceType, {
         ...params,
@@ -111,6 +120,120 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
       .slice(0, Number(params._count) || undefined);
   };
 
+  // read_chart_section's per-type query recipe. The TOOL builds the query —
+  // the model chooses a section and filters, never raw search params — so
+  // every request stays patient-scoped, capped, and inside this allowlist.
+  // Date params are standard R4 search parameters, verified against the
+  // repository's HAPI stack; free-text fields are wrapped in the
+  // <chart_text> boundary before they reach the model.
+  const CHART_SECTIONS = {
+    Observation: {
+      patientParam: "patient",
+      dateParam: "date",
+      codeParam: "code",
+      sort: "-date",
+      toRow: (r: ExtractResource<"Observation">) => ({
+        id: r.id ?? "",
+        text: `${r.code?.text ?? r.code?.coding?.[0]?.display ?? "Observation"}: ${
+          r.valueQuantity
+            ? `${r.valueQuantity.value ?? ""} ${r.valueQuantity.unit ?? ""}`.trim()
+            : (r.valueString ?? "")
+        }`,
+        date: r.effectiveDateTime?.slice(0, 10) ?? "",
+      }),
+    },
+    Communication: {
+      patientParam: "subject",
+      patientRef: true,
+      dateParam: "sent",
+      sort: "-sent",
+      toRow: (r: ExtractResource<"Communication">) => ({
+        id: r.id ?? "",
+        text: asChartText(
+          r.payload?.find((p) => p.contentString)?.contentString ?? "",
+        ),
+        date: r.sent?.slice(0, 10) ?? "",
+      }),
+    },
+    Condition: {
+      patientParam: "patient",
+      dateParam: "recorded-date",
+      toRow: (r: ExtractResource<"Condition">) => ({
+        id: r.id ?? "",
+        text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Condition",
+        date: r.recordedDate?.slice(0, 10) ?? "",
+      }),
+    },
+    AllergyIntolerance: {
+      patientParam: "patient",
+      toRow: (r: ExtractResource<"AllergyIntolerance">) => ({
+        id: r.id ?? "",
+        text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Allergy",
+        date: r.recordedDate?.slice(0, 10) ?? "",
+      }),
+    },
+    MedicationRequest: {
+      patientParam: "patient",
+      dateParam: "authoredon",
+      toRow: (r: ExtractResource<"MedicationRequest">) => ({
+        id: r.id ?? "",
+        text: `${
+          r.medicationCodeableConcept?.text ??
+          r.medicationCodeableConcept?.coding?.[0]?.display ??
+          "Medication"
+        }${r.status ? ` (${r.status})` : ""}`,
+        date: r.authoredOn?.slice(0, 10) ?? "",
+      }),
+    },
+    Immunization: {
+      patientParam: "patient",
+      dateParam: "date",
+      sort: "-date",
+      toRow: (r: ExtractResource<"Immunization">) => ({
+        id: r.id ?? "",
+        text:
+          r.vaccineCode?.text ??
+          r.vaccineCode?.coding?.[0]?.display ??
+          "Immunization",
+        date: r.occurrenceDateTime?.slice(0, 10) ?? "",
+      }),
+    },
+    DocumentReference: {
+      patientParam: "patient",
+      dateParam: "date",
+      sort: "-date",
+      toRow: (r: ExtractResource<"DocumentReference">) => ({
+        id: r.id ?? "",
+        text: asChartText(
+          r.description ?? r.type?.text ?? r.type?.coding?.[0]?.display ?? "Document",
+        ),
+        date: r.date?.slice(0, 10) ?? "",
+      }),
+    },
+    Goal: {
+      patientParam: "patient",
+      toRow: (r: ExtractResource<"Goal">) => ({
+        id: r.id ?? "",
+        text: asChartText(r.description?.text ?? "Goal"),
+        date: r.startDate ?? "",
+      }),
+    },
+    CarePlan: {
+      patientParam: "patient",
+      dateParam: "date",
+      toRow: (r: ExtractResource<"CarePlan">) => ({
+        id: r.id ?? "",
+        text: asChartText(r.title ?? r.description ?? "Care plan"),
+        date: r.period?.start?.slice(0, 10) ?? "",
+      }),
+    },
+  } as const;
+  type ChartSectionType = keyof typeof CHART_SECTIONS;
+  const CHART_SECTION_TYPES = Object.keys(CHART_SECTIONS) as [
+    ChartSectionType,
+    ...ChartSectionType[],
+  ];
+
   return {
     search_patients: tool({
       description:
@@ -130,6 +253,88 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
           _count: "20",
         });
         return { patients: bundle.entry ?? [] };
+      },
+    }),
+    read_chart_section: tool({
+      description:
+        "Read one section of a patient's chart, with optional code and date filters. Use for questions about a specific kind of record or time window — like a last immunization, blood pressure over six months, current goals or care plans, or documents — instead of fetching the whole chart.",
+      inputSchema: z.object({
+        patientId: z.string().min(1).max(64).describe("The patient resource id."),
+        resourceType: z
+          .enum(CHART_SECTION_TYPES)
+          .describe("Which chart section to read."),
+        code: z
+          .string()
+          .min(1)
+          .max(120)
+          .optional()
+          .describe(
+            "Observation only: a code token filter, e.g. a LOINC code like 8867-4 or system|code. Not free text.",
+          ),
+        dateFrom: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .describe("Earliest date, YYYY-MM-DD."),
+        dateTo: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .describe("Latest date, YYYY-MM-DD."),
+        count: z.number().int().min(1).max(100).optional(),
+      }),
+      execute: async ({
+        patientId,
+        resourceType,
+        code,
+        dateFrom,
+        dateTo,
+        count,
+      }) => {
+        const section = CHART_SECTIONS[resourceType];
+        const params: Record<string, string> = {
+          [section.patientParam]:
+            "patientRef" in section && section.patientRef
+              ? `Patient/${patientId}`
+              : patientId,
+          _count: String(count ?? 25),
+        };
+        if ("sort" in section && section.sort) params._sort = section.sort;
+        if (code && "codeParam" in section && section.codeParam) {
+          params[section.codeParam] = code;
+        }
+        const dateParam =
+          "dateParam" in section ? section.dateParam : undefined;
+        // A full range needs the same search param twice (ge + le), which
+        // the structured-params contract cannot express; single bounds go
+        // to the server, and only the both-bounds case filters the upper
+        // bound from the fetched rows below.
+        let clientDateTo: string | undefined;
+        if (dateParam && dateFrom) {
+          params[dateParam] = `ge${dateFrom}`;
+          clientDateTo = dateTo;
+        } else if (dateParam && dateTo) {
+          params[dateParam] = `le${dateTo}`;
+        }
+
+        const toRow = section.toRow as (resource: unknown) => {
+          id: string;
+          text: string;
+          date: string;
+        };
+        // searchVisible keeps per-session isolation on every section and
+        // degrades safely on backends without :not support.
+        const resources = await searchVisible(
+          resourceType,
+          params,
+          (resource) => toRow(resource).date,
+        );
+        const entries = resources
+          .map((resource) => toRow(resource))
+          .filter(
+            (row) => !clientDateTo || !row.date || row.date <= clientDateTo,
+          );
+        return { resourceType, entries };
       },
     }),
     show_patient_info: tool({

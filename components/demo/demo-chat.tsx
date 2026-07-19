@@ -430,6 +430,59 @@ export function DemoChat() {
                         }
                         return pendingSkeleton(part.toolCallId);
 
+                      case "tool-read_chart_section":
+                        if (part.state === "output-available") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <div className="rounded-lg border bg-background p-4">
+                                <p className="text-sm font-medium">
+                                  {part.output.resourceType}
+                                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                    {part.output.entries.length} record
+                                    {part.output.entries.length === 1 ? "" : "s"}
+                                  </span>
+                                </p>
+                                {part.output.entries.length > 0 ? (
+                                  <ul className="mt-3 space-y-2">
+                                    {part.output.entries.map((entry) => (
+                                      <li
+                                        key={entry.id}
+                                        className="flex items-baseline justify-between gap-3 text-sm"
+                                      >
+                                        {/* The tool wraps free text in the
+                                            untrusted-content boundary for
+                                            the model; the reader gets just
+                                            the text. */}
+                                        <span className="min-w-0">
+                                          {entry.text.replace(/<\/?chart_text>/g, "")}
+                                        </span>
+                                        {entry.date && (
+                                          <span className="shrink-0 text-xs text-muted-foreground">
+                                            {entry.date}
+                                          </span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p className="mt-2 text-sm text-muted-foreground">
+                                    No matching records in this section.
+                                  </p>
+                                )}
+                              </div>
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, that chart section couldn&apos;t be read:{" "}
+                              {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return pendingSkeleton(part.toolCallId);
+
                       case "tool-add_note":
                         if (part.state === "approval-requested") {
                           return (

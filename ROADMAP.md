@@ -75,11 +75,15 @@ The default agent should remain narrow, but the tool catalog should grow in
 well-reviewed steps:
 
 - Task creation and assignment
-- DocumentReference read support
 - Encounter-scoped notes
-- Goal and CarePlan read support
 - Better Observation coding and unit normalization
 - Condition/MedicationRequest write experiments behind stricter gates
+
+Shipped: `read_chart_section`, one policy-checked bounded read tool
+(allowlisted resource types, forced patient scoping, code/date filters,
+capped counts — the tool builds the query, never the model), covering the
+DocumentReference, Goal, and CarePlan read items above plus temporal
+queries like "blood pressure over six months".
 
 High-risk writes should not be added as a casual demo feature.
 
