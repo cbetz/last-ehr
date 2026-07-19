@@ -25,10 +25,12 @@ export default function AISection() {
           </div>
           <div className="max-w-2xl lg:justify-self-end">
             <p className="text-lg leading-8 text-muted-foreground">
-              The published package is Medplum-only and read-only. The
-              checkout Local Lab lets a developer inspect the same bounded
-              surface against four synthetic HAPI charts before connecting a
-              real project.
+              The published package is read-only by default — bounded chart
+              reads over Medplum or the local HAPI stack — and its only write
+              mode is proposal-shaped: the client renders the exact fields
+              and a human approves each write. The checkout Local Lab lets a
+              developer inspect the bounded read surface against four
+              synthetic HAPI charts before connecting a real project.
             </p>
             <div className="mt-6 grid divide-y divide-border border-y border-border text-sm text-muted-foreground sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               <p className="flex gap-2 py-3.5 sm:px-4 sm:first:pl-0">
@@ -60,7 +62,7 @@ export default function AISection() {
               <Terminal className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
               MCP access paths
             </span>
-            <span className="text-primary">read-only</span>
+            <span className="text-primary">read-only by default</span>
           </div>
           <div className="grid divide-y divide-border sm:grid-cols-[minmax(0,0.96fr)_minmax(0,1.04fr)] sm:divide-x sm:divide-y-0">
             <div className="p-5 sm:p-6">
@@ -70,7 +72,7 @@ export default function AISection() {
               </pre>
               <p className="mt-4 text-xs leading-5 text-muted-foreground">
                 Prints a client registration command for a least-privilege
-                Medplum token. The published package exposes only reads.
+                Medplum token. By default the package exposes only reads.
               </p>
             </div>
             <div className="p-5 sm:p-6">
@@ -88,11 +90,11 @@ export default function AISection() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-[0.67rem] uppercase tracking-[0.13em] text-muted-foreground">Tool manifest</p>
-                <p className="mt-2 text-sm text-muted-foreground">The same two inspectable read tools, with no write flag or arbitrary endpoint.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Two inspectable read tools by default; writes exist only as human-approved proposals behind an explicit opt-in — never an arbitrary endpoint.</p>
               </div>
               <div className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                 <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                Published 0.1.x stays read-only.
+                Read-only stays the default; every write needs a human approval.
               </div>
             </div>
             <ul className="mt-4 grid divide-y divide-border border-y border-border sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:divide-x sm:divide-y-0">
