@@ -15,7 +15,12 @@ import {
   toSafeChatErrorMessage,
 } from "@/lib/ai/chat-errors";
 import { parseDemoModels, resolveDemoModel } from "@/lib/ai/demo-models";
-import { buildTools, SYSTEM_PROMPT } from "@/lib/ai/tools";
+import { buildSystemPrompt, buildTools } from "@/lib/ai/tools";
+import {
+  resolveDisabledWriteTools,
+  WRITE_TOOL_NAMES,
+} from "@/lib/ai/write-policy";
+
 import { findDeniedProposals, recordRejectedProposal } from "@/lib/fhir/audit";
 import { createFhirBackend, hasFhirBackendConfig } from "@/lib/fhir/backend";
 import {
@@ -158,6 +163,23 @@ export async function POST(req: Request) {
   // bedrock without MODEL_ID) fails the request loudly instead of streaming
   // a 200 with an error part.
   const model = getChatModel(demoModel);
+  // Resolved once per request and threaded to the prompt, the tool
+  // guards, AND activeTools, so the model is never told about a write it
+  // cannot make. A typo'd name fails CLOSED but keeps reads alive: all
+  // write tools are disabled (the maximum tightening) and the real error
+  // goes to the server log, instead of 500ing the whole chat route.
+  let disabledWriteTools: ReadonlySet<string>;
+  try {
+    disabledWriteTools = resolveDisabledWriteTools();
+  } catch (error) {
+    console.error(
+      "Invalid LASTEHR_WRITE_TOOLS_DISABLED; disabling all write tools:",
+      error instanceof Error ? error.message : String(error),
+    );
+    disabledWriteTools = new Set(WRITE_TOOL_NAMES);
+  }
+  const system = buildSystemPrompt(disabledWriteTools);
+  const writeToolsDisabled = [...disabledWriteTools];
 
   if (!devOutput) {
     // Byte-identical response tail to the pre-dev-output route. This is
@@ -165,19 +187,29 @@ export async function POST(req: Request) {
     // server-generated messageId onto the 'start' chunk, which the approval
     // auto-resend turn must NOT carry unless it continues the last
     // assistant message — see the originalMessages note below.
+    const tools = buildTools(
+      isScriptedDemoEnabled()
+        ? new ScriptedDemoBackend(backend, sessionId)
+        : backend,
+      sessionId,
+      // The scripted wrapper's fixed write surface has no Provenance, so
+      // the opt-in emission is pinned off rather than logging a spurious
+      // failure per approved write.
+      {
+        ...(isScriptedDemoEnabled() ? { writeProvenance: false } : {}),
+        writeToolsDisabled,
+      },
+    );
     const result = streamText({
       model,
-      system: SYSTEM_PROMPT,
+      system,
       messages: modelMessages,
-      tools: buildTools(
-        isScriptedDemoEnabled()
-          ? new ScriptedDemoBackend(backend, sessionId)
-          : backend,
-        sessionId,
-        // The scripted wrapper's fixed write surface has no Provenance, so
-        // the opt-in emission is pinned off rather than logging a spurious
-        // failure per approved write.
-        isScriptedDemoEnabled() ? { writeProvenance: false } : {},
+      tools,
+      // Disabled write tools stay registered (a stale approval card must
+      // resolve to a policy denial, not a dangling tool call) but are
+      // never offered to the model.
+      activeTools: (Object.keys(tools) as (keyof typeof tools)[]).filter(
+        (name) => !disabledWriteTools.has(name),
       ),
       stopWhen: stepCountIs(5),
       // Client disconnect / Stop aborts the model call and the tool loop
@@ -219,14 +251,19 @@ export async function POST(req: Request) {
         transient: true,
       });
 
+      const tools = buildTools(toolBackend, sessionId, {
+        ...(isScriptedDemoEnabled() ? { writeProvenance: false } : {}),
+        provenanceBackend: backend,
+        writeToolsDisabled,
+      });
       const result = streamText({
         model,
-        system: SYSTEM_PROMPT,
+        system,
         messages: modelMessages,
-        tools: buildTools(toolBackend, sessionId, {
-          ...(isScriptedDemoEnabled() ? { writeProvenance: false } : {}),
-          provenanceBackend: backend,
-        }),
+        tools,
+        activeTools: (Object.keys(tools) as (keyof typeof tools)[]).filter(
+          (name) => !disabledWriteTools.has(name),
+        ),
         stopWhen: stepCountIs(5),
         // createUIMessageStream's outer stream does not propagate the
         // response cancellation into merged streams, so the request signal

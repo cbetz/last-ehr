@@ -56,6 +56,26 @@ becomes a second, unreviewed home for rejected text. On the shared demo the
 events carry the same session tag as other writes. Audit failures are logged
 and never block the chat turn.
 
+## Write policy (optional tightening)
+
+The approval gate can be narrowed, never widened. A deployment can
+statically disable write tools with `LASTEHR_WRITE_TOOLS_DISABLED`
+(comma-separated tool names): the model is never offered a disabled write
+(it is hidden from the tool list and the system prompt), and anything that
+still reaches it — a stale approval card from before a config flip — is
+denied at commit and attributed to configuration. Embedders can also pass
+a dynamic, deny-only policy hook (`writePolicy` in the web agent's
+`BuildToolsOptions`, `policy` in the MCP package's `WriteToolOptions`): it
+fails closed on any error or malformed result, and its only power is to
+veto — a policy outcome is never an approval, and a policy denial is never
+attributed to the reviewer. The MCP binding evaluates the hook before the
+reviewer is asked and re-checks at commit; the web binding evaluates it at
+commit only (the AI SDK offers no safe pre-card veto point today), so a
+dynamically denied web proposal renders a card whose approval then fails
+with the policy message. The
+[protocol's Decision section](./agent-write-protocol.md#2-decision)
+specifies these rules.
+
 Approved writes are attributable too: every one carries the standard
 **AIAST** security label ("Artificial Intelligence asserted") in
 `meta.security`, and setting `LASTEHR_WRITE_PROVENANCE=true` additionally

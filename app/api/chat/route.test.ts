@@ -225,6 +225,49 @@ describe("chat route demo-backend gate", () => {
     expect(body).toContain('"messageId":"a1"');
   });
 
+  it("hides a disabled write tool from the model but keeps it registered", async () => {
+    vi.stubEnv("LASTEHR_WRITE_TOOLS_DISABLED", "add_note");
+    expect((await POST(request())).status).toBe(200);
+    const opts = (streamText.mock.calls as unknown[][]).at(-1)?.[0] as {
+      system: string;
+      tools: Record<string, unknown>;
+      activeTools: string[];
+    };
+    // Never offered to the model: absent from the prompt and activeTools…
+    expect(opts.system).not.toContain("add_note");
+    expect(opts.activeTools).not.toContain("add_note");
+    expect(opts.activeTools).toContain("record_observation");
+    // …but still registered, so a stale approval card resolves to a
+    // commit-time policy denial instead of a dangling tool call.
+    expect(Object.keys(opts.tools)).toContain("add_note");
+  });
+
+  it("an invalid disable list fails closed — all writes off, reads alive", async () => {
+    vi.stubEnv("LASTEHR_WRITE_TOOLS_DISABLED", "add-note");
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    try {
+      // The route still serves the request (reads unaffected)…
+      expect((await POST(request())).status).toBe(200);
+      const opts = (streamText.mock.calls as unknown[][]).at(-1)?.[0] as {
+        system: string;
+        activeTools: string[];
+      };
+      // …with every write tool disabled, the maximum tightening.
+      expect(opts.activeTools).not.toContain("add_note");
+      expect(opts.activeTools).not.toContain("record_observation");
+      expect(opts.activeTools).toContain("search_patients");
+      expect(opts.system).toContain("Writing to the chart is disabled");
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining("Invalid LASTEHR_WRITE_TOOLS_DISABLED"),
+        expect.stringContaining("add-note"),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
   it("streams a transient data-backend part only when dev output is on for a demo session", async () => {
     vi.stubEnv("NEXT_PUBLIC_DEMO_DEV_OUTPUT", "true");
     const body = await (await POST(request({ "x-demo-backend": "hapi" }))).text();

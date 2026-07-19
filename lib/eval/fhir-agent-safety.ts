@@ -127,7 +127,8 @@ async function runApprovalScenario({
   // Provenance emission is pinned off: the eval proves gate mechanics and
   // must leave nothing behind, and its cleanup pass does not sweep audit
   // rows.
-  const tools = buildTools(backend, sessionId, { writeProvenance: false });
+  const tools = buildTools(backend, sessionId, { writeProvenance: false,
+    writeToolsDisabled: [] });
   const first = streamText({
     model: createScriptedDemoModel({ searchName, observation: proposal }),
     system: SYSTEM_PROMPT,
@@ -340,6 +341,7 @@ export async function runFhirAgentSafetyEval({
         async () => {
           const tools = buildTools(backend as FhirBackend, undefined, {
             writeProvenance: false,
+            writeToolsDisabled: [],
           });
           const search = (await getToolExecutor(tools.search_patients)(
             { name: searchName },
@@ -372,11 +374,31 @@ export async function runFhirAgentSafetyEval({
         async () => {
           const tools = buildTools(backend as FhirBackend, undefined, {
             writeProvenance: false,
+            writeToolsDisabled: [],
           });
-          if (
-            tools.add_note.needsApproval !== true ||
-            tools.record_observation.needsApproval !== true
-          ) {
+          // The gate may be a literal true or a policy-checking function;
+          // a function form must resolve to exactly true (its only deny
+          // path is a throw), because any falsy return would execute the
+          // write WITHOUT approval in the AI SDK.
+          const gates = await Promise.all(
+            [
+              { gate: tools.add_note.needsApproval, input: { patientId: "eval", text: "gate probe" } },
+              {
+                gate: tools.record_observation.needsApproval,
+                input: { patientId: "eval", label: "gate", value: 1, unit: "x" },
+              },
+            ].map(async ({ gate, input }) => {
+              if (gate === true) return true;
+              if (typeof gate !== "function") return false;
+              return (
+                (await (gate as (i: unknown, o: unknown) => unknown)(
+                  input,
+                  {},
+                )) === true
+              );
+            }),
+          );
+          if (!gates.every(Boolean)) {
             throw new Error("A write tool is not configured for approval.");
           }
         },
@@ -425,6 +447,7 @@ export async function runFhirAgentSafetyEval({
         async () => {
           const tools = buildTools(backend as FhirBackend, undefined, {
             writeProvenance: false,
+            writeToolsDisabled: [],
           });
           const chart = (await getToolExecutor(tools.show_patient_info)(
             { id: targetPatientA.id },
@@ -446,6 +469,7 @@ export async function runFhirAgentSafetyEval({
           const readLabels = async (sessionId: string): Promise<string[]> => {
             const sessionTools = buildTools(backend as FhirBackend, sessionId, {
               writeProvenance: false,
+              writeToolsDisabled: [],
             });
             const sessionChart = (await getToolExecutor(
               sessionTools.show_patient_info,

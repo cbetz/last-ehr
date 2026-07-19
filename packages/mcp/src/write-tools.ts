@@ -39,6 +39,33 @@ export const AIAST_LABEL = {
 const PROVENANCE_PARTICIPANT_TYPE =
   "http://terminology.hl7.org/CodeSystem/provenance-participant-type";
 
+export type WriteProposalContext = {
+  toolName: string;
+  resourceType: string;
+  patientId: string;
+};
+
+export type WritePolicyDecision =
+  | {
+      deny: true;
+      /**
+       * Static, operator-authored text only. The reason enters model
+       * context, so interpolating patient or chart data would turn policy
+       * denials into a probing oracle for facts the agent cannot read.
+       */
+      reason?: string;
+    }
+  | { deny: false };
+
+/**
+ * Deny-only write policy: a host-side tightening layer over the approval
+ * gate. It can block a proposal (checked before the reviewer is asked,
+ * re-checked before commit); it can never approve one.
+ */
+export type WritePolicy = (
+  proposal: WriteProposalContext,
+) => WritePolicyDecision | Promise<WritePolicyDecision>;
+
 export type WriteToolOptions = {
   /**
    * Emit a Provenance resource per approved write (author = the agent,
@@ -47,6 +74,14 @@ export type WriteToolOptions = {
    * fails a write the reviewer already approved.
    */
   emitProvenance?: boolean;
+  /** Deny-only dynamic policy; affirmative-permit, fail-closed. */
+  policy?: WritePolicy;
+  /**
+   * Statically disabled tools, unregistered entirely (never listed, never
+   * callable) per the protocol's capability-gating rule. Validated
+   * upstream in loadMcpConfig.
+   */
+  disabledTools?: readonly string[];
 };
 
 // Mirrors lib/ai/tools.ts input caps (note ≤1000, label ≤120, value within
@@ -89,18 +124,78 @@ const UNAVAILABLE_RESULT = {
     "The approval prompt could not be presented to a human reviewer; nothing was saved to the chart.",
 };
 
+// Distinct from DENIED_RESULT: a policy denial is configuration, and must
+// never be attributed to a human reviewer (no reviewer was asked).
+const policyDeniedResult = (reason?: string) => ({
+  saved: false,
+  outcome: reason
+    ? `This write is blocked by deployment policy. ${reason} Nothing was saved to the chart.`
+    : "This write is blocked by deployment policy; nothing was saved to the chart.",
+});
+
 export type McpWriteTool = Omit<McpReadTool, "name"> & {
   name: "add_note" | "record_observation";
   /** Marks the tool as a proposal-shaped write for annotations/docs. */
   proposesWrite: true;
 };
 
+export const WRITE_TOOL_NAMES = ["add_note", "record_observation"] as const;
+
+/**
+ * The one place runtime config becomes write-tool options, exported so
+ * the threading is unit-testable (a dropped field here would silently
+ * disable a documented flag while every direct-options test still passes).
+ */
+export function writeToolOptionsFromConfig(config: {
+  writeProvenance: boolean;
+  disabledWriteTools: string[];
+}): WriteToolOptions {
+  return {
+    emitProvenance: config.writeProvenance,
+    disabledTools: config.disabledWriteTools,
+  };
+}
+
 export function createWriteTools(
   client: FhirWriteClient,
   requestApproval: RequestApproval,
   options: WriteToolOptions = {},
 ): McpWriteTool[] {
+  // Same loud rejection as the env path: a typo'd name in a tightening
+  // control must not silently disable nothing. Embedders calling this API
+  // directly get the same guarantee loadMcpConfig gives the env.
+  const unknownDisables = (options.disabledTools ?? []).filter(
+    (name) => !(WRITE_TOOL_NAMES as readonly string[]).includes(name),
+  );
+  if (unknownDisables.length > 0) {
+    throw new Error(
+      `Unknown write tool name(s) in disabledTools: ` +
+        `${unknownDisables.join(", ")}. Valid names: ${WRITE_TOOL_NAMES.join(", ")}.`,
+    );
+  }
+
   const decide = (request: ApprovalRequest) => requestApproval(request);
+
+  // Affirmative-permit: only an explicit deny:false allows. A throwing or
+  // malformed policy denies — a tightening layer fails closed, never open.
+  const checkWritePolicy = async (
+    proposal: WriteProposalContext,
+  ): Promise<WritePolicyDecision> => {
+    if (!options.policy) return { deny: false };
+    try {
+      const decision = await options.policy(proposal);
+      if (decision && decision.deny === false) return { deny: false };
+      return {
+        deny: true,
+        ...(decision && decision.deny === true &&
+        typeof decision.reason === "string"
+          ? { reason: decision.reason }
+          : {}),
+      };
+    } catch {
+      return { deny: true };
+    }
+  };
 
   const emitWriteProvenance = async (
     resourceType: string,
@@ -141,7 +236,9 @@ export function createWriteTools(
     }
   };
 
-  return [
+  const disabled = new Set(options.disabledTools ?? []);
+
+  const tools: McpWriteTool[] = [
     {
       name: "add_note",
       proposesWrite: true,
@@ -150,6 +247,15 @@ export function createWriteTools(
       inputSchema: addNoteSchema,
       async execute(input: unknown) {
         const { patientId, text } = addNoteSchema.parse(input);
+        const proposal = {
+          toolName: "add_note",
+          resourceType: "Communication",
+          patientId,
+        };
+        // Policy runs before elicitation: a reviewer is never asked to
+        // approve a write that cannot commit.
+        const policyBefore = await checkWritePolicy(proposal);
+        if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
         const decision = await decide({
           title: "Add this note to the chart?",
           summary: [
@@ -160,6 +266,12 @@ export function createWriteTools(
         });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
+        }
+        // Deny-only re-check at commit time: closes the window where
+        // policy tightened while the reviewer deliberated.
+        const policyAtCommit = await checkWritePolicy(proposal);
+        if (policyAtCommit.deny) {
+          return policyDeniedResult(policyAtCommit.reason);
         }
         // Built AFTER the approval so the timestamp is the moment of the
         // approved save, matching the web demo; every field the human saw
@@ -186,6 +298,13 @@ export function createWriteTools(
       async execute(input: unknown) {
         const { patientId, label, value, unit } =
           recordObservationSchema.parse(input);
+        const proposal = {
+          toolName: "record_observation",
+          resourceType: "Observation",
+          patientId,
+        };
+        const policyBefore = await checkWritePolicy(proposal);
+        if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
         const decision = await decide({
           title: "Record this observation?",
           summary: [
@@ -197,6 +316,10 @@ export function createWriteTools(
         });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
+        }
+        const policyAtCommit = await checkWritePolicy(proposal);
+        if (policyAtCommit.deny) {
+          return policyDeniedResult(policyAtCommit.reason);
         }
         // Built AFTER the approval; see the note on add_note above.
         const resource: Observation = {
@@ -219,4 +342,9 @@ export function createWriteTools(
       },
     },
   ];
+  // Statically disabled tools are unregistered — never listed, never
+  // callable (a call falls into the server's Unknown-tool branch) — rather
+  // than listed-but-denied, which would invite proposals that can never
+  // commit. Dynamic per-call decisions belong in `policy`.
+  return tools.filter((tool) => !disabled.has(tool.name));
 }
