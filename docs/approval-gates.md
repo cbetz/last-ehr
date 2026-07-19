@@ -15,6 +15,7 @@ Write tools in `lib/ai/tools.ts` set `needsApproval: true`:
 
 - `add_note`
 - `record_observation`
+- `create_task`
 
 When the model calls one of those tools:
 

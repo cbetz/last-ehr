@@ -86,7 +86,11 @@ export async function evaluateWritePolicy(
   }
 }
 
-export const WRITE_TOOL_NAMES = ["add_note", "record_observation"] as const;
+export const WRITE_TOOL_NAMES = [
+  "add_note",
+  "record_observation",
+  "create_task",
+] as const;
 
 export type WriteToolName = (typeof WRITE_TOOL_NAMES)[number];
 

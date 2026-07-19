@@ -17,6 +17,8 @@ const WRITE_TOOL_PROMPT_LINES: Record<WriteToolName, string> = {
   add_note: "- Use add_note to add a free-text note.",
   record_observation:
     "- Use record_observation to record a vital sign or lab value (a label, a numeric value, and a unit).",
+  create_task:
+    '- Use create_task to create a follow-up task on a patient\'s chart (a short description of what needs to happen, and an optional due date). Use it when the user asks to schedule, remind, or follow up on something ("create a task to call her about the results", "follow up in two weeks").',
 };
 
 const WRITE_SECTION_HEADER =
@@ -25,6 +27,7 @@ const WRITE_SECTION_HEADER =
 const WRITE_ACTION_PHRASES: Record<WriteToolName, string> = {
   add_note: "add a note",
   record_observation: "record an observation",
+  create_task: "create a task",
 };
 
 const writeSectionFooter = (enabled: readonly WriteToolName[]): string =>
@@ -86,6 +89,19 @@ export const SYSTEM_PROMPT = buildSystemPrompt();
 // the system prompt's chart-content-is-data rule.
 const asChartText = (text: string): string =>
   text ? `<chart_text>${text}</chart_text>` : text;
+
+// The date regex alone admits 2026-02-31; round-trip through UTC Date parts
+// so an impossible date is rejected at proposal time, not by (or worse,
+// past) the FHIR server after the reviewer approved it.
+const isRealCalendarDate = (value: string): boolean => {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+};
 
 export { AIAST_LABEL };
 
@@ -374,6 +390,22 @@ export function buildTools(
         date: r.period?.start?.slice(0, 10) ?? "",
       }),
     },
+    Task: {
+      patientParam: "patient",
+      dateParam: "authored-on",
+      sort: "-authored-on",
+      toRow: (r: ExtractResource<"Task">) => ({
+        id: r.id ?? "",
+        text: `${asChartText(r.description ?? "Task")}${
+          r.status ? ` (${r.status})` : ""
+        }${
+          r.restriction?.period?.end
+            ? ` — due ${r.restriction.period.end.slice(0, 10)}`
+            : ""
+        }`,
+        date: r.authoredOn?.slice(0, 10) ?? "",
+      }),
+    },
   } as const;
   type ChartSectionType = keyof typeof CHART_SECTIONS;
   const CHART_SECTION_TYPES = Object.keys(CHART_SECTIONS) as [
@@ -623,7 +655,11 @@ export function buildTools(
       description:
         "Add a free-text clinical note to a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search.",
       inputSchema: z.object({
-        patientId: z.string().describe("The patient resource id."),
+        patientId: z
+          .string()
+          .min(1)
+          .max(64)
+          .describe("The patient resource id."),
         text: z
           .string()
           .min(1)
@@ -663,7 +699,11 @@ export function buildTools(
       description:
         "Record a clinical observation (a vital sign or lab value) on a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search.",
       inputSchema: z.object({
-        patientId: z.string().describe("The patient resource id."),
+        patientId: z
+          .string()
+          .min(1)
+          .max(64)
+          .describe("The patient resource id."),
         label: z
           .string()
           .min(1)
@@ -708,6 +748,54 @@ export function buildTools(
           id: created.id,
           resourceType: "Observation",
           summary: `${label}: ${value} ${unit}`,
+        };
+      },
+    }),
+    create_task: tool({
+      description:
+        "Create a follow-up task on a patient's chart (what needs to happen, optionally by when). Requires user approval before saving. Use the patient's resource id from a prior search.",
+      inputSchema: z.object({
+        patientId: z
+          .string()
+          .min(1)
+          .max(64)
+          .describe("The patient resource id."),
+        description: z
+          .string()
+          .min(1)
+          .max(500)
+          .describe("What needs to happen, e.g. 'Call about lab results'."),
+        dueDate: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .refine(isRealCalendarDate, "Not a real calendar date.")
+          .optional()
+          .describe("Optional due date, YYYY-MM-DD."),
+      }),
+      needsApproval: true,
+      execute: async ({ patientId, description, dueDate }) => {
+        await guardWritePolicy({
+          toolName: "create_task",
+          resourceType: "Task",
+          patientId,
+        });
+        const created = await backend.createResource({
+          resourceType: "Task",
+          status: "requested",
+          intent: "order",
+          description,
+          for: { reference: `Patient/${patientId}` },
+          authoredOn: new Date().toISOString(),
+          ...(dueDate
+            ? { restriction: { period: { end: `${dueDate}T23:59:59Z` } } }
+            : {}),
+          meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
+        });
+        await emitWriteProvenance("Task", created.id);
+        return {
+          id: created.id,
+          resourceType: "Task",
+          summary: dueDate ? `${description} (due ${dueDate})` : description,
         };
       },
     }),

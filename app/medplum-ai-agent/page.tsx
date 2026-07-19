@@ -213,13 +213,14 @@ export default function MedplumAiAgentPage() {
                 The approval gate is a UI control, not a permission control.
                 When you approve a write, it still goes through Medplum&apos;s
                 AccessPolicy. If your policy says the signed-in user cannot
-                create Communications or Observations, Medplum rejects the
-                write even after approval.
+                create Communications, Observations, or Tasks, Medplum
+                rejects the write even after approval.
               </p>
               <ol className="list-decimal space-y-2 pl-6">
                 <li>
-                  The agent calls add_note or record_observation (defined with
-                  needsApproval: true in the Vercel AI SDK).
+                  The agent calls add_note, record_observation, or
+                  create_task (defined with needsApproval: true in the Vercel
+                  AI SDK).
                 </li>
                 <li>
                   The SDK pauses before the tool&apos;s execute function runs.

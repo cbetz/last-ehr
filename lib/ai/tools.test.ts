@@ -308,10 +308,67 @@ describe("agent FHIR tools", () => {
     expect(prompt).not.toContain("add a note or record an observation");
     expect(prompt).toContain("asks to record an observation");
     const allOff = buildSystemPrompt(
-      new Set(["add_note", "record_observation"]),
+      new Set(["add_note", "record_observation", "create_task"]),
     );
     expect(allOff).toContain("Writing to the chart is disabled");
     expect(allOff).not.toContain("confirmation card");
+  });
+
+  it("create_task writes an approval-gated Task with session tag, AIAST label, and due date", async () => {
+    createResource.mockResolvedValue({ id: "task-1" });
+    const tools = buildTools(backend, "A");
+
+    expect(tools.create_task.needsApproval).toBe(true);
+
+    const out = await (
+      tools.create_task.execute as (
+        input: unknown,
+        opts: unknown,
+      ) => Promise<{ id: string; resourceType: string; summary: string }>
+    )(
+      {
+        patientId: "p3",
+        description: "Call about lab results",
+        dueDate: "2026-08-01",
+      },
+      {},
+    );
+
+    expect(createResource).toHaveBeenCalledTimes(1);
+    expect(createResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resourceType: "Task",
+        status: "requested",
+        intent: "order",
+        description: "Call about lab results",
+        for: { reference: "Patient/p3" },
+        restriction: { period: { end: "2026-08-01T23:59:59Z" } },
+        meta: {
+          tag: [{ system: "http://lastehr.demo", code: "session-A" }],
+          security: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+              code: "AIAST",
+              display: "Artificial Intelligence asserted",
+            },
+          ],
+        },
+      }),
+    );
+    expect(out).toMatchObject({ id: "task-1", resourceType: "Task" });
+
+    // Policy and static disables cover the new tool too.
+    const disabled = buildTools(backend, "A", {
+      writeToolsDisabled: ["create_task"],
+    });
+    await expect(
+      (
+        disabled.create_task.execute as (
+          input: unknown,
+          opts: unknown,
+        ) => unknown
+      )({ patientId: "p3", description: "x" }, {}),
+    ).rejects.toThrow(WritePolicyDeniedError);
   });
 
   it("emits opt-in Provenance on approved writes, non-blocking on failure", async () => {
@@ -617,6 +674,37 @@ describe("read_chart_section", () => {
       subject: "Patient/p1",
       _count: "25",
       _sort: "-sent",
+    });
+
+    searchResources.mockClear();
+    await exec(tools)({ patientId: "p1", resourceType: "Task" }, {});
+    expect(searchResources).toHaveBeenCalledWith("Task", {
+      patient: "p1",
+      _count: "25",
+      _sort: "-authored-on",
+    });
+  });
+
+  it("wraps Task descriptions in the untrusted-content boundary with status and due date", async () => {
+    searchResources.mockResolvedValue([
+      {
+        id: "t1",
+        resourceType: "Task",
+        description: "Call about lab results",
+        status: "requested",
+        authoredOn: "2026-07-19T10:00:00Z",
+        restriction: { period: { end: "2026-08-01T23:59:59Z" } },
+      },
+    ]);
+    const tools = buildTools(backend);
+    const out = await exec(tools)(
+      { patientId: "p1", resourceType: "Task" },
+      {},
+    );
+    expect(out.entries[0]).toEqual({
+      id: "t1",
+      text: "<chart_text>Call about lab results</chart_text> (requested) — due 2026-08-01",
+      date: "2026-07-19",
     });
   });
 

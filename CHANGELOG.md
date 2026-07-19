@@ -5,6 +5,15 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- New gated write `create_task` in both bindings: propose a follow-up
+  task (description, optional due date) that a human approves before a
+  FHIR `Task` is created — the same proposal/decision/commit pipeline as
+  the existing writes, with the AIAST label, optional Provenance, session
+  tagging, policy hooks, and SMART scope (`patient/Task.crs`) wired
+  through. `read_chart_section` gains a `Task` section (a tenth allowlisted
+  type) so created tasks are answerable, and the seed wipe now clears
+  `Task` rows.
+
 - Write policy hooks: the approval gate can now be narrowed, never
   widened. `LASTEHR_WRITE_TOOLS_DISABLED` statically disables write tools
   in both bindings — never offered to the model (web: activeTools + prompt

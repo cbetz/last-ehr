@@ -168,9 +168,9 @@ describe("MCP write policy", () => {
     expect(
       loadMcpConfig({
         ...base,
-        LASTEHR_WRITE_TOOLS_DISABLED: " add_note , record_observation ",
+        LASTEHR_WRITE_TOOLS_DISABLED: " add_note , record_observation ,create_task",
       }).disabledWriteTools,
-    ).toEqual(["add_note", "record_observation"]);
+    ).toEqual(["add_note", "record_observation", "create_task"]);
     // A typo'd tightening control must not silently disable nothing.
     expect(() =>
       loadMcpConfig({ ...base, LASTEHR_WRITE_TOOLS_DISABLED: "add-note" }),

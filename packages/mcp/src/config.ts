@@ -57,7 +57,7 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
 
   // Static write-tool disables. Unknown names are rejected loudly: a typo
   // in a tightening control would otherwise silently disable nothing.
-  const KNOWN_WRITE_TOOLS = ["add_note", "record_observation"];
+  const KNOWN_WRITE_TOOLS = ["add_note", "record_observation", "create_task"];
   const disabledWriteTools = (value(env, "LASTEHR_WRITE_TOOLS_DISABLED") ?? "")
     .split(",")
     .map((name) => name.trim())
