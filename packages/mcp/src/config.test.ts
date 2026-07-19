@@ -40,7 +40,7 @@ describe("MCP runtime configuration", () => {
         MEDPLUM_ACCESS_TOKEN: "token-value",
         LASTEHR_MCP_WRITES: "true",
       }),
-    ).toThrow("intentionally read-only");
+    ).toThrow("read-only by default");
   });
 });
 
@@ -105,6 +105,41 @@ describe("MCP FHIR_BACKEND selection", () => {
         FHIR_BASE_URL: "http://localhost:8080/fhir",
         LASTEHR_MCP_WRITES: "true",
       }),
-    ).toThrow("intentionally read-only");
+    ).toThrow("read-only by default");
+  });
+});
+
+describe("MCP write policy", () => {
+  it("defaults to read-only", () => {
+    expect(
+      loadMcpConfig({ MEDPLUM_ACCESS_TOKEN: "token-value" }),
+    ).toMatchObject({ writePolicy: "read-only" });
+  });
+
+  it('accepts exactly "proposal" as the opt-in, in both backend modes', () => {
+    expect(
+      loadMcpConfig({
+        MEDPLUM_ACCESS_TOKEN: "token-value",
+        LASTEHR_MCP_WRITES: "proposal",
+      }),
+    ).toMatchObject({ writePolicy: "proposal" });
+    expect(
+      loadMcpConfig({
+        FHIR_BACKEND: "hapi",
+        FHIR_BASE_URL: "http://localhost:8080/fhir",
+        LASTEHR_MCP_WRITES: "proposal",
+      }),
+    ).toMatchObject({ writePolicy: "proposal" });
+  });
+
+  it("keeps rejecting every other write flag value loudly", () => {
+    for (const bad of ["true", "1", "yes", "unsafe", "PROPOSAL "]) {
+      expect(() =>
+        loadMcpConfig({
+          MEDPLUM_ACCESS_TOKEN: "token-value",
+          LASTEHR_MCP_WRITES: bad,
+        }),
+      ).toThrow("read-only by default");
+    }
   });
 });

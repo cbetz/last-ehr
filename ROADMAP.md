@@ -85,14 +85,16 @@ High-risk writes should not be added as a casual demo feature.
 
 ### 5. MCP as a serious interface
 
-`@lastehr/mcp` is permanently read-only in the initial `0.1.x` line because
-there is no Last EHR approval card in an MCP host. Planned work:
+`@lastehr/mcp` was permanently read-only in the `0.1.x` line because there
+was no Last EHR approval card in an MCP host. MCP's elicitation feature is
+that reviewable confirmation protocol, and `0.2.0` ships proposal-shaped
+writes behind it: opt-in (`LASTEHR_MCP_WRITES=proposal`), capability-gated
+fail-closed, human-approved per action, tagged for audit. Read-only remains
+the default forever. Next:
 
 - Better bounded read coverage for Medplum projects.
-- Tool annotations that help clients distinguish chart reads from future,
-  proposal-shaped operations.
-- A reviewable confirmation protocol before any direct-write surface is
-  considered.
+- Provenance/AuditEvent emission aligned with HL7's AI Transparency IG.
+- A framework-neutral write-profile spec extracted from this implementation.
 
 ## Stability
 

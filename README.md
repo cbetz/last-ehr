@@ -37,9 +37,11 @@ start with the zero-key local synthetic walkthrough.
 4. Inspect the proposed write, then approve it. The data is synthetic and the
    approval card shows exactly what will be saved.
 
-For MCP, `@lastehr/mcp` is deliberately a separate **read-only** surface:
-`search_patients` and `show_patient_info` only. Configure a least-privilege
-Medplum token before connecting it to a real project; full setup is in the
+For MCP, `@lastehr/mcp` is deliberately a separate surface that is
+**read-only by default** (`search_patients` and `show_patient_info`), with
+one opt-in: elicitation-gated write proposals a human approves per action.
+Configure a least-privilege Medplum token before connecting it to a real
+project; full setup is in the
 [MCP guide](./docs/mcp.md) and the [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr).
 
 Want to inspect those two MCP tools before configuring Medplum? From a
@@ -170,7 +172,7 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 - [Backend adapters](./docs/adapters.md): the adapter contract, harnesses, checklist, and contribution path.
 - [Adapter starter](./examples/fhir-adapter-starter): an executable bearer-token FHIR REST baseline with a contract suite.
 - [Approval-gated writes](./docs/approval-gates.md): what the gate protects and what it does not.
-- [MCP server](./docs/mcp.md): published, read-only chart tools (Medplum, or the local HAPI stack) plus the checkout-only synthetic Local Lab.
+- [MCP server](./docs/mcp.md): published chart tools (Medplum, or the local HAPI stack) — read-only by default with an opt-in human-approved write profile — plus the checkout-only synthetic Local Lab.
 - [FHIR Agent Safety Eval](./docs/evals.md): a disposable synthetic workflow report for proposal, approval, denial, association, and cleanup mechanics.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
 - [Threat model](./docs/threat-model.md): trust boundaries and known limitations.
@@ -194,9 +196,11 @@ still stop at the approval card.
 ## Use chart reads over MCP
 
 [`@lastehr/mcp`](./packages/mcp) is a small, standalone MCP server for
-Medplum. It gives Claude Code, Cursor, and other MCP clients two bounded chart
-read tools, `search_patients` and `show_patient_info`, with no write tools in
-the `0.1.x` line.
+Medplum (or the local HAPI stack). It gives Claude Code, Cursor, and other
+MCP clients two bounded chart read tools, `search_patients` and
+`show_patient_info`; writes exist only as an explicit opt-in where a human
+approves each proposed write through the client's approval prompt
+([details](./docs/mcp.md)).
 
 ```bash
 npx -y @lastehr/mcp init --client claude-code

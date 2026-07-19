@@ -3,6 +3,18 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- `@lastehr/mcp` 0.2.0 ships the MCP write profile: `add_note` and
+  `record_observation` as elicitation-gated, proposal-shaped writes behind
+  the explicit `LASTEHR_MCP_WRITES=proposal` opt-in. The write tools are
+  offered only to clients that declared the elicitation capability (fail
+  closed), the human sees the exact proposed fields and must approve each
+  action, every non-approval outcome saves nothing, and approved writes are
+  tagged (`https://lastehr.com/mcp|approved-proposal`). Read-only remains
+  the default forever; the retired `0.1.x` line never contained write code.
+  Design record: issue #129.
+
 ## 0.2.6 — 2026-07-18
 
 Aidbox joins the demo backend picker (operator-owned boxes), the MCP

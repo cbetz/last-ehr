@@ -6,7 +6,15 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
-import { loadMcpConfig, type McpRuntimeConfig } from "./config.js";
+import {
+  clientSupportsApproval,
+  createElicitationApproval,
+} from "./approval.js";
+import {
+  loadMcpConfig,
+  McpConfigurationError,
+  type McpRuntimeConfig,
+} from "./config.js";
 import { HapiReadClient } from "./hapi.js";
 import { createMedplumClient } from "./medplum.js";
 import {
@@ -14,8 +22,13 @@ import {
   type McpReadTool,
   type FhirReadClient,
 } from "./read-tools.js";
+import {
+  createWriteTools,
+  type FhirWriteClient,
+  type McpWriteTool,
+} from "./write-tools.js";
 
-export const MCP_SERVER_VERSION = "0.1.1";
+export const MCP_SERVER_VERSION = "0.2.0";
 
 export type McpServerOptions = {
   /**
@@ -26,6 +39,13 @@ export type McpServerOptions = {
   name?: string;
   version?: string;
   instructions?: string;
+  /**
+   * Proposal-shaped write tools, built lazily against the live server so
+   * they can ride its approval transport. They are offered ONLY when the
+   * connected client declared the elicitation capability — a host that
+   * cannot render the approval never sees a write tool (fail closed).
+   */
+  writeTools?: (server: Server) => McpWriteTool[];
 };
 
 type McpCallResult = {
@@ -33,7 +53,8 @@ type McpCallResult = {
   content: Array<{ type: "text"; text: string }>;
 };
 
-function toToolDefinition(tool: McpReadTool) {
+function toToolDefinition(tool: McpReadTool | McpWriteTool) {
+  const proposesWrite = "proposesWrite" in tool && tool.proposesWrite;
   return {
     name: tool.name,
     description: tool.description,
@@ -41,16 +62,20 @@ function toToolDefinition(tool: McpReadTool) {
       [key: string]: unknown;
       type: "object";
     },
-    annotations: { readOnlyHint: true },
+    // Write proposals are not destructive (create-only, human-approved) but
+    // must never carry the read-only hint.
+    annotations: proposesWrite
+      ? { readOnlyHint: false, destructiveHint: false }
+      : { readOnlyHint: true },
   };
 }
 
-export function listMcpTools(tools: McpReadTool[]) {
+export function listMcpTools(tools: Array<McpReadTool | McpWriteTool>) {
   return tools.map(toToolDefinition);
 }
 
 export async function callMcpTool(
-  tools: McpReadTool[],
+  tools: Array<McpReadTool | McpWriteTool>,
   name: string,
   input: unknown,
 ): Promise<McpCallResult> {
@@ -114,12 +139,19 @@ export function createMcpServer(
     },
   );
 
+  // Resolved per request, after initialization, so the capability gate sees
+  // what the connected client actually declared.
+  const availableTools = (): Array<McpReadTool | McpWriteTool> =>
+    options.writeTools && clientSupportsApproval(server)
+      ? [...tools, ...options.writeTools(server)]
+      : tools;
+
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: listMcpTools(tools),
+    tools: listMcpTools(availableTools()),
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) =>
-    callMcpTool(tools, request.params.name, request.params.arguments),
+    callMcpTool(availableTools(), request.params.name, request.params.arguments),
   );
 
   return server;
@@ -131,9 +163,12 @@ export type StartedMcpServer = {
   tools: McpReadTool[];
 };
 
+// Returns the full write-capable surface; the read-only policy simply never
+// constructs write tools over it. Typed as FhirWriteClient so tsc enforces
+// that both built-in backends actually satisfy the create contract.
 async function createBackendClient(
   config: McpRuntimeConfig,
-): Promise<FhirReadClient> {
+): Promise<FhirWriteClient> {
   if (config.backend === "hapi") {
     // Local, no-auth synthetic evaluation stack; the URL was validated by
     // loadMcpConfig and the same local-only caveats as the web app apply.
@@ -151,13 +186,35 @@ export async function startMcpServer({
 } = {}): Promise<StartedMcpServer> {
   const config = loadMcpConfig(env);
   const backendClient = client ?? (await createBackendClient(config));
+  if (
+    config.writePolicy === "proposal" &&
+    typeof (backendClient as Partial<FhirWriteClient>).createResource !==
+      "function"
+  ) {
+    // Fail at startup, not after a human approves: an injected read-only
+    // client cannot serve proposal writes.
+    throw new McpConfigurationError(
+      "LASTEHR_MCP_WRITES=proposal requires a write-capable backend client (createResource).",
+    );
+  }
   const tools = createReadTools(backendClient);
-  const server = createMcpServer(tools);
+  const server = createMcpServer(tools, {
+    writeTools:
+      config.writePolicy === "proposal"
+        ? (liveServer) =>
+            createWriteTools(
+              backendClient as FhirWriteClient,
+              createElicitationApproval(liveServer),
+            )
+        : undefined,
+  });
 
   await server.connect(new StdioServerTransport());
   // stdout is reserved for JSON-RPC. Keep lifecycle messages on stderr.
   console.error(
-    `Last EHR MCP server ready: ${tools.length} read-only tools.`,
+    config.writePolicy === "proposal"
+      ? `Last EHR MCP server ready: ${tools.length} read-only tools, plus elicitation-gated write proposals when the client supports approvals.`
+      : `Last EHR MCP server ready: ${tools.length} read-only tools.`,
   );
 
   return { config, server, tools };

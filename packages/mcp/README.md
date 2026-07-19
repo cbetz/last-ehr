@@ -1,10 +1,13 @@
 # @lastehr/mcp
 
-Read-only FHIR chart tools for MCP clients, over a Medplum project or the
-Last EHR repository's local HAPI evaluation stack (`FHIR_BACKEND=hapi`,
-synthetic data only). This package is the smallest installable Last EHR
-surface: it can search patients and show a chart, but it does not include
-write tools in the `0.1.x` line.
+FHIR chart tools for MCP clients, over a Medplum project or the Last EHR
+repository's local HAPI evaluation stack (`FHIR_BACKEND=hapi`, synthetic
+data only). This package is the smallest installable Last EHR surface:
+read-only by default (search patients, show a chart), with one opt-in —
+`LASTEHR_MCP_WRITES=proposal` — that adds elicitation-gated write proposals
+a human approves per action. Nothing is ever saved without that explicit
+approval, and the write tools are hidden from clients that cannot render
+approvals.
 
 The registry metadata lives in [`server.json`](./server.json) and is published
 alongside each verified npm release.
@@ -51,11 +54,15 @@ MCP.
 
 ## Safety boundary
 
-The package exposes only `search_patients` and `show_patient_info`; both have
-the MCP `readOnlyHint`. Read-only access can still return PHI. Use a
-least-privilege Medplum identity, review the MCP client's data handling and
-model-provider agreements, and never treat this package as an authorization
-layer.
+By default the package exposes only `search_patients` and
+`show_patient_info`, both with the MCP `readOnlyHint`. With
+`LASTEHR_MCP_WRITES=proposal` it additionally offers `add_note` and
+`record_observation` as proposals: the exact fields are shown to the human
+through MCP elicitation and nothing is saved unless they approve; every
+approved write is tagged `https://lastehr.com/mcp|approved-proposal`.
+Read access can still return PHI. Use a least-privilege identity, review the
+MCP client's data handling and model-provider agreements, and never treat
+this package as an authorization layer.
 
 See https://www.lastehr.com/docs/mcp for the complete setup and support
 boundary.
