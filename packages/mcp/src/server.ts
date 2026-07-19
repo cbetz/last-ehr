@@ -24,6 +24,7 @@ import {
 } from "./read-tools.js";
 import {
   createWriteTools,
+  writeToolOptionsFromConfig,
   type FhirWriteClient,
   type McpWriteTool,
 } from "./write-tools.js";
@@ -205,7 +206,7 @@ export async function startMcpServer({
             createWriteTools(
               backendClient as FhirWriteClient,
               createElicitationApproval(liveServer),
-              { emitProvenance: config.writeProvenance },
+              writeToolOptionsFromConfig(config),
             )
         : undefined,
   });

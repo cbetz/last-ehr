@@ -5,6 +5,18 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Write policy hooks: the approval gate can now be narrowed, never
+  widened. `LASTEHR_WRITE_TOOLS_DISABLED` statically disables write tools
+  in both bindings — never offered to the model (web: activeTools + prompt
+  gating; MCP: unregistered from the tool list), commit-denied for any
+  straggler such as a stale approval card, and unknown names fail closed
+  loudly. A dynamic, deny-only policy hook (`writePolicy` in
+  `BuildToolsOptions`, `policy` in the MCP package's `WriteToolOptions`)
+  fails closed on error and is never attributed to the reviewer; the MCP
+  binding checks it before the reviewer is asked and again at commit, the
+  web binding at commit. The protocol doc's Decision/Commit/Conformance
+  sections now specify the policy rules.
+
 - Published the v0.1 draft of "Approval-Gated Agent Writes on FHIR"
   (docs/agent-write-protocol.md): a small, framework-neutral protocol —
   Proposal, Decision, Commit, Audit, optional Isolation — extracted from

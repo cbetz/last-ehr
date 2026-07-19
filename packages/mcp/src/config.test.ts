@@ -157,4 +157,23 @@ describe("MCP write policy", () => {
       ).toBe(false);
     }
   });
+
+  it("parses LASTEHR_WRITE_TOOLS_DISABLED and rejects unknown names loudly", () => {
+    const base = { MEDPLUM_ACCESS_TOKEN: "token-value" };
+    expect(loadMcpConfig(base).disabledWriteTools).toEqual([]);
+    expect(
+      loadMcpConfig({ ...base, LASTEHR_WRITE_TOOLS_DISABLED: "add_note" })
+        .disabledWriteTools,
+    ).toEqual(["add_note"]);
+    expect(
+      loadMcpConfig({
+        ...base,
+        LASTEHR_WRITE_TOOLS_DISABLED: " add_note , record_observation ",
+      }).disabledWriteTools,
+    ).toEqual(["add_note", "record_observation"]);
+    // A typo'd tightening control must not silently disable nothing.
+    expect(() =>
+      loadMcpConfig({ ...base, LASTEHR_WRITE_TOOLS_DISABLED: "add-note" }),
+    ).toThrow(McpConfigurationError);
+  });
 });

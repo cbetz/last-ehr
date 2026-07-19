@@ -11,6 +11,7 @@ import {
   AIAST_LABEL,
   createWriteTools,
   MCP_WRITE_TAG,
+  writeToolOptionsFromConfig,
   type FhirWriteClient,
   type WriteToolOptions,
 } from "./write-tools.js";
@@ -52,7 +53,7 @@ async function connect({
   failProvenance,
 }: {
   elicitation: boolean;
-  answer?: ElicitAnswer | (() => Promise<ElicitAnswer>);
+  answer?: ElicitAnswer | (() => Promise<ElicitAnswer>) | undefined;
   writeOptions?: WriteToolOptions;
   failProvenance?: boolean;
 }) {
@@ -249,6 +250,123 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
       target?: Array<{ reference?: string }>;
     };
     expect(provenance.target?.[0]?.reference).toBe("Observation/created-1");
+  });
+
+  it("policy denies before elicitation: the reviewer is never asked", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      writeOptions: {
+        policy: ({ toolName }) =>
+          toolName === "add_note"
+            ? { deny: true, reason: "Notes are disabled here." }
+            : { deny: false },
+      },
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: NOTE_ARGS,
+    })) as { content: Array<{ text: string }> };
+
+    expect(created).toHaveLength(0);
+    expect(prompts).toHaveLength(0);
+    const parsed = JSON.parse(result.content[0].text);
+    expect(parsed).toMatchObject({ saved: false });
+    // Attributed to configuration, never to a human reviewer.
+    expect(parsed.outcome).toContain("deployment policy");
+    expect(parsed.outcome).toContain("Notes are disabled here.");
+    expect(parsed.outcome).not.toContain("reviewer");
+
+    // The other tool still works end to end: policy tightens per proposal.
+    await mcpClient.callTool({
+      name: "record_observation",
+      arguments: { patientId: "p1", label: "Heart rate", value: 72, unit: "bpm" },
+    });
+    expect(created).toHaveLength(1);
+  });
+
+  it("policy re-checks at commit: a tightening mid-deliberation blocks the approved write", async () => {
+    let approvalsRequested = 0;
+    let policyDenies = false;
+    const { mcpClient, created } = await connect({
+      elicitation: true,
+      answer: async () => {
+        approvalsRequested += 1;
+        // Policy tightens WHILE the reviewer deliberates.
+        policyDenies = true;
+        return { action: "accept", content: { approve: true } };
+      },
+      writeOptions: {
+        policy: () => (policyDenies ? { deny: true } : { deny: false }),
+      },
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: NOTE_ARGS,
+    })) as { content: Array<{ text: string }> };
+
+    expect(approvalsRequested).toBe(1);
+    expect(created).toHaveLength(0);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ saved: false });
+  });
+
+  it("a throwing policy denies (fail closed) with no diagnostics in the result", async () => {
+    const { mcpClient, created } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      writeOptions: {
+        policy: () => {
+          throw new Error("secret diagnostic");
+        },
+      },
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: NOTE_ARGS,
+    })) as { content: Array<{ text: string }> };
+
+    expect(created).toHaveLength(0);
+    const text = result.content[0].text;
+    expect(text).not.toContain("secret diagnostic");
+    expect(JSON.parse(text)).toMatchObject({ saved: false });
+  });
+
+  it("statically disabled tools are unregistered: unlisted and uncallable", async () => {
+    const { mcpClient, created } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      writeOptions: { disabledTools: ["add_note"] },
+    });
+    const names = (await mcpClient.listTools()).tools.map((tool) => tool.name);
+    expect(names).not.toContain("add_note");
+    expect(names).toContain("record_observation");
+
+    const call = await mcpClient.callTool({
+      name: "add_note",
+      arguments: NOTE_ARGS,
+    });
+    expect(call.isError).toBe(true);
+    expect(created).toHaveLength(0);
+  });
+
+  it("threads runtime config into write-tool options field-for-field", () => {
+    // A dropped field here would silently disable a documented flag while
+    // every direct-options test still passes.
+    expect(
+      writeToolOptionsFromConfig({
+        writeProvenance: true,
+        disabledWriteTools: ["add_note"],
+      }),
+    ).toEqual({ emitProvenance: true, disabledTools: ["add_note"] });
+  });
+
+  it("rejects unknown disabledTools names on the programmatic path too", () => {
+    const { client } = fakeWriteClient();
+    expect(() =>
+      createWriteTools(client, async () => "denied", {
+        disabledTools: ["add-note"],
+      }),
+    ).toThrow(/Unknown write tool name/);
   });
 
   it("never fails an approved write because Provenance emission failed", async () => {

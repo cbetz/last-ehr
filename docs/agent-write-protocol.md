@@ -79,13 +79,30 @@ Requirements:
   attributes a decision to a human; unavailability must not.
 - The decision exchange requests a *decision*, never data.
 
+Implementations MAY apply automated **policy** that narrows what may
+commit. Policy can only deny: a policy outcome is never an approval, MUST
+NOT substitute for the reviewer's decision, and MUST NOT cause any write to
+proceed without one. Policy SHOULD be evaluated before a proposal is
+presented, so reviewers are never asked to decide writes that cannot
+commit, and MAY be re-evaluated at any point up to commit; a proposal
+denied by policy MUST NOT commit even if the reviewer approved it. A policy
+denial fails closed — nothing is written and the agent-visible result says
+so — and MUST be distinguishable from both a reviewer's denial and
+unavailability: it attributes the outcome to configuration, never to a
+human. Policy evaluation failure MUST deny. Statically disabled write
+capability SHOULD be unregistered (per the capability-gating rule above)
+rather than offered and always denied; reason text accompanying a policy
+denial MUST be static configuration text, never interpolated with patient
+or chart data.
+
 *Vocabulary note:* approved/denied map to CDS Hooks feedback's
 `accepted`/`overridden` outcomes.
 
 ### 3. Commit
 
-On approval, the implementation MUST create **exactly the proposed resource**
-— every field the reviewer saw, unaltered. Fields the reviewer did not see
+On approval — and, where the implementation applies policy (section 2),
+only when policy permits — the implementation MUST create **exactly the
+proposed resource** — every field the reviewer saw, unaltered. Fields the reviewer did not see
 MUST be limited to mechanical metadata (server-assigned id and version,
 commit-time timestamps, and the audit markers below), and implementations
 SHOULD stamp clinically meaningful timestamps at commit time so they reflect
@@ -135,7 +152,11 @@ this protocol. Its deterministic checks map to the requirements above:
 | Approval commits exactly once | `approved-write` |
 | Denial commits nothing | `denied-write` |
 | Session isolation (optional profile) | `chart-association-isolation` |
-| Synthetic-target hygiene | `disposable-synthetic-target`, `cleanup` |
+| Synthetic-target hygiene | `synthetic-target`, `cleanup` |
+
+The approved-write check runs with any configured policy permitting the
+tested write; policy denial paths are exercised separately and are not
+exempt from proposal-gate or denied-write mechanics.
 
 An implementation that cannot pass these mechanics is not implementing this
 protocol, whatever its UI shows. The suite is deliberately narrow: passing it

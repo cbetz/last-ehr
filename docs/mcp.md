@@ -177,6 +177,14 @@ The profile is a binding of the repository's framework-neutral
   `LASTEHR_WRITE_PROVENANCE=true` to also emit a `Provenance` resource per
   approved write naming the agent as author and the reviewer as verifier —
   see the [protocol's Audit section](./agent-write-protocol.md#4-audit).
+- **Narrowable, never widenable.** `LASTEHR_WRITE_TOOLS_DISABLED`
+  (comma-separated: `add_note`, `record_observation`) unregisters write
+  tools entirely — unlisted and uncallable, with unknown names refusing
+  startup. Embedders can pass a deny-only `policy` hook in
+  `WriteToolOptions`: checked before the reviewer is asked, re-checked at
+  commit, fail-closed, and its denials are attributed to configuration,
+  never to a human (see the
+  [protocol's Decision section](./agent-write-protocol.md#2-decision)).
 - **Transport-adaptable.** The approval exchange lives behind one function
   (`createElicitationApproval`); the MCP 2026-07-28 release candidate
   replaces server-initiated elicitation with Multi Round-Trip Requests, and

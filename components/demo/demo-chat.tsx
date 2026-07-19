@@ -64,6 +64,7 @@ const FRIENDLY_ERROR_PREFIXES = [
   "Your demo session expired",
   "The model call failed",
   "A chart request failed",
+  "This write is blocked by deployment policy",
 ];
 
 function errorText(error: Error): string {

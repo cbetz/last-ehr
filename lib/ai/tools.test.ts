@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-import { buildTools } from "@/lib/ai/tools";
+import { buildSystemPrompt, buildTools } from "@/lib/ai/tools";
+import { WritePolicyDeniedError } from "@/lib/ai/write-policy";
 import type { FhirBackend } from "@/lib/fhir/backend";
 
 // buildTools takes the backend as a plain object, so tests inject a fake
@@ -24,11 +25,26 @@ describe("agent FHIR tools", () => {
     searchResources.mockReset();
   });
 
-  it("gates writes behind approval, but never reads", () => {
+  it("gates writes behind approval, but never reads", async () => {
     const tools = buildTools(backend);
     // The core safety property: writes require explicit approval.
-    expect(tools.add_note.needsApproval).toBe(true);
-    expect(tools.record_observation.needsApproval).toBe(true);
+    // The gate is a policy-checking function whose ONLY return value is
+    // true (deny throws): in the AI SDK a falsy return would execute the
+    // write WITHOUT approval, so this pins the no-policy resolution.
+    const approvalGate = async (gate: unknown, input: unknown) =>
+      gate === true ||
+      (typeof gate === "function" && (await gate(input, {})) === true);
+    await expect(
+      approvalGate(tools.add_note.needsApproval, { patientId: "p", text: "t" }),
+    ).resolves.toBe(true);
+    await expect(
+      approvalGate(tools.record_observation.needsApproval, {
+        patientId: "p",
+        label: "l",
+        value: 1,
+        unit: "u",
+      }),
+    ).resolves.toBe(true);
     // Reads execute freely.
     expect(tools.search_patients.needsApproval).toBeFalsy();
     expect(tools.show_patient_info.needsApproval).toBeFalsy();
@@ -212,6 +228,90 @@ describe("agent FHIR tools", () => {
         },
       }),
     );
+  });
+
+  it("write policy vetoes at commit, after the human gate, never writing", async () => {
+    const tools = buildTools(backend, "A", {
+      writePolicy: ({ toolName }) =>
+        toolName === "add_note"
+          ? { deny: true, reason: "Notes are disabled here." }
+          : { deny: false },
+    });
+
+    // The gate stays a literal true: a needsApproval function that throws
+    // would leave a dangling tool call that poisons the conversation, and
+    // a falsy return would run the write WITHOUT approval.
+    expect(tools.add_note.needsApproval).toBe(true);
+
+    // Commit-time veto: even a proposal the reviewer approved cannot
+    // commit once policy denies it, and the denial is a thrown error (an
+    // error-shaped return would render as a false success).
+    await expect(
+      (
+        tools.add_note.execute as (input: unknown, opts: unknown) => unknown
+      )({ patientId: "p1", text: "hi" }, {}),
+    ).rejects.toThrow("This write is blocked by deployment policy. Notes are disabled here.");
+    expect(createResource).not.toHaveBeenCalled();
+
+    // The other tool is untouched: policy tightens per proposal.
+    createResource.mockResolvedValue({ id: "obs-1" });
+    await (
+      tools.record_observation.execute as (
+        input: unknown,
+        opts: unknown,
+      ) => unknown
+    )({ patientId: "p1", label: "HR", value: 72, unit: "bpm" }, {});
+    expect(createResource).toHaveBeenCalledTimes(1);
+  });
+
+  it("a throwing policy denies (fail closed), and no policy allows", async () => {
+    const tools = buildTools(backend, "A", {
+      writePolicy: () => {
+        throw new Error("policy backend down");
+      },
+    });
+    await expect(
+      (
+        tools.record_observation.execute as (
+          input: unknown,
+          opts: unknown,
+        ) => unknown
+      )({ patientId: "p1", label: "HR", value: 72, unit: "bpm" }, {}),
+    ).rejects.toThrow(WritePolicyDeniedError);
+    expect(createResource).not.toHaveBeenCalled();
+  });
+
+  it("statically disabled write tools stay registered but commit-deny, and the prompt follows", async () => {
+    const tools = buildTools(backend, "A", {
+      writeToolsDisabled: ["add_note"],
+    });
+    // Registered, so a stale approval card resolves to a policy denial
+    // instead of a dangling tool call (hiding from the model is the chat
+    // route's job via activeTools); invoking it fails closed, attributed
+    // to configuration.
+    expect(tools.add_note).toBeDefined();
+    await expect(
+      (
+        tools.add_note.execute as (input: unknown, opts: unknown) => unknown
+      )({ patientId: "p1", text: "hi" }, {}),
+    ).rejects.toThrow(WritePolicyDeniedError);
+    expect(createResource).not.toHaveBeenCalled();
+
+    expect(() =>
+      buildTools(backend, "A", { writeToolsDisabled: ["add-note"] }),
+    ).toThrow(/Unknown write tool name/);
+
+    const prompt = buildSystemPrompt(new Set(["add_note"]));
+    expect(prompt).not.toContain("add_note");
+    expect(prompt).toContain("record_observation");
+    // The footer names only the remaining capability.
+    expect(prompt).not.toContain("add a note or record an observation");
+    expect(prompt).toContain("asks to record an observation");
+    const allOff = buildSystemPrompt(
+      new Set(["add_note", "record_observation"]),
+    );
+    expect(allOff).toContain("Writing to the chart is disabled");
+    expect(allOff).not.toContain("confirmation card");
   });
 
   it("emits opt-in Provenance on approved writes, non-blocking on failure", async () => {

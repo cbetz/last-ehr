@@ -1,3 +1,5 @@
+import { WRITE_POLICY_DENIED_PREFIX } from "@/lib/ai/write-policy";
+
 const MODEL_ERROR_NAMES = new Set(["AI_APICallError", "AI_RetryError"]);
 
 /**
@@ -8,6 +10,18 @@ const MODEL_ERROR_NAMES = new Set(["AI_APICallError", "AI_RetryError"]);
  */
 export function toSafeChatErrorMessage(error: unknown): string {
   const name = error instanceof Error ? error.name : "";
+  // Operator-safe by construction (fixed prefix + static operator-authored
+  // reason, no chart data or diagnostics), so the message passes through:
+  // a policy denial must read as configuration, not as a backend failure
+  // or a human decision. Both the name AND the prefix are required, so a
+  // foreign error sharing the name cannot smuggle an arbitrary message.
+  if (
+    name === "WritePolicyDeniedError" &&
+    error instanceof Error &&
+    error.message.startsWith(WRITE_POLICY_DENIED_PREFIX)
+  ) {
+    return error.message;
+  }
   if (MODEL_ERROR_NAMES.has(name)) {
     return (
       "The model call failed. The demo may be over capacity right now; " +

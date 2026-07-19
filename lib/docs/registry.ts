@@ -72,7 +72,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 20,
     audience: "Clinical, product, and security reviewers",
-    lastModified: "2026-07-18",
+    lastModified: "2026-07-19",
     keywords: ["approval", "writes", "human review", "safety", "Observation"],
   },
   {
@@ -84,7 +84,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 25,
     audience: "Implementers, standards folks, and safety reviewers",
-    lastModified: "2026-07-18",
+    lastModified: "2026-07-19",
     keywords: ["protocol", "spec", "approval", "agent", "MCP", "CDS Hooks", "Provenance", "AIAST"],
   },
   {
@@ -120,7 +120,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 20,
     audience: "Agent and MCP builders",
-    lastModified: "2026-07-18",
+    lastModified: "2026-07-19",
     keywords: ["MCP", "Claude", "Medplum", "read only", "approval", "tools"],
   },
   {

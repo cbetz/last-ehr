@@ -16,6 +16,8 @@ export type McpRuntimeConfig = {
   writePolicy: McpWritePolicy;
   /** Emit Provenance per approved write (LASTEHR_WRITE_PROVENANCE=true). */
   writeProvenance: boolean;
+  /** Write tools unregistered by LASTEHR_WRITE_TOOLS_DISABLED. */
+  disabledWriteTools: string[];
 };
 
 export class McpConfigurationError extends Error {
@@ -53,6 +55,23 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
   }
   const writeProvenance = value(env, "LASTEHR_WRITE_PROVENANCE") === "true";
 
+  // Static write-tool disables. Unknown names are rejected loudly: a typo
+  // in a tightening control would otherwise silently disable nothing.
+  const KNOWN_WRITE_TOOLS = ["add_note", "record_observation"];
+  const disabledWriteTools = (value(env, "LASTEHR_WRITE_TOOLS_DISABLED") ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const unknownDisables = disabledWriteTools.filter(
+    (name) => !KNOWN_WRITE_TOOLS.includes(name),
+  );
+  if (unknownDisables.length > 0) {
+    throw new McpConfigurationError(
+      `Unknown write tool name(s) in LASTEHR_WRITE_TOOLS_DISABLED: ` +
+        `${unknownDisables.join(", ")}. Valid names: ${KNOWN_WRITE_TOOLS.join(", ")}.`,
+    );
+  }
+
   const backend = value(env, "FHIR_BACKEND") ?? "medplum";
   if (backend !== "medplum" && backend !== "hapi") {
     throw new McpConfigurationError(
@@ -79,7 +98,13 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
         "The HAPI base URL must be a complete URL, for example http://localhost:8080/fhir.",
       );
     }
-    return { backend, baseUrl: hapiBaseUrl, writePolicy, writeProvenance };
+    return {
+      backend,
+      baseUrl: hapiBaseUrl,
+      writePolicy,
+      writeProvenance,
+      disabledWriteTools,
+    };
   }
 
   const accessToken = value(env, "MEDPLUM_ACCESS_TOKEN");
@@ -123,5 +148,6 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     clientSecret,
     writePolicy,
     writeProvenance,
+    disabledWriteTools,
   };
 }
