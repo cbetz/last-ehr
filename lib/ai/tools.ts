@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ExtractResource, ResourceType } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "@/lib/fhir/backend";
+import { AIAST_LABEL, PROVENANCE_PARTICIPANT_TYPE } from "@/lib/fhir/labels";
 
 export const SYSTEM_PROMPT = `You are an EHR assistant working over a FHIR backend.
 
@@ -28,6 +29,9 @@ Always reference a patient by the resource id from a prior search. The UI render
 const asChartText = (text: string): string =>
   text ? `<chart_text>${text}</chart_text>` : text;
 
+export { AIAST_LABEL };
+
+
 // Demo writes are tagged with this system + a per-session code so that on the
 // shared public demo a visitor only ever sees seed data plus their own edits.
 // Exported for the optional rejected-proposal audit trail (lib/fhir/audit.ts),
@@ -40,7 +44,29 @@ export const DEMO_TAG_SYSTEM = "http://lastehr.demo";
 // record_observation) set needsApproval so the SDK gates them behind explicit
 // user approval before execute runs. When a sessionId is given (the public
 // demo), writes are tagged with it and reads are filtered to that session.
-export function buildTools(backend: FhirBackend, sessionId?: string) {
+export type BuildToolsOptions = {
+  /**
+   * Emit a Provenance resource per approved write (author = agent,
+   * verifier = human reviewer). Defaults to the LASTEHR_WRITE_PROVENANCE
+   * env flag; the safety eval pins it off so cleanup stays exhaustive,
+   * and the scripted no-key demo pins it off because its fixed write
+   * surface does not include Provenance.
+   */
+  writeProvenance?: boolean;
+  /**
+   * Where Provenance audit rows are written. Defaults to the tools
+   * backend; the dev-output chat route passes the unobserved backend so
+   * the "under the hood" panel keeps showing only the agent-reachable
+   * surface, matching the rejected-proposal audit writer.
+   */
+  provenanceBackend?: FhirBackend;
+};
+
+export function buildTools(
+  backend: FhirBackend,
+  sessionId?: string,
+  options: BuildToolsOptions = {},
+) {
   // meta.tag applied to demo-written resources, scoped to this visitor's
   // session. Undefined when there's no session (e.g. single-tenant self-host).
   const demoTag = sessionId
@@ -118,6 +144,54 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
       .filter(isVisible)
       .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
       .slice(0, Number(params._count) || undefined);
+  };
+
+  // Opt-in Provenance on approved writes (LASTEHR_WRITE_PROVENANCE=true),
+  // aligning with the AI Transparency IG's pattern: the agent software as
+  // an author agent, the approving human as a verifier. Non-blocking by the
+  // same rule as the rejected-proposal trail: an audit failure is logged
+  // and never fails a write the reviewer already approved. The seed wipe
+  // sweeps these rows before deleting the resources they target, so
+  // reseeding stays safe under referential integrity.
+  const emitWriteProvenance = async (
+    resourceType: string,
+    id: string,
+  ): Promise<void> => {
+    const enabled =
+      options.writeProvenance ??
+      process.env.LASTEHR_WRITE_PROVENANCE === "true";
+    if (!enabled) return;
+    try {
+      await (options.provenanceBackend ?? backend).createResource({
+        resourceType: "Provenance",
+        target: [{ reference: `${resourceType}/${id}` }],
+        recorded: new Date().toISOString(),
+        agent: [
+          {
+            type: {
+              coding: [
+                { system: PROVENANCE_PARTICIPANT_TYPE, code: "author" },
+              ],
+            },
+            who: { display: "Last EHR agent (model-proposed)" },
+          },
+          {
+            type: {
+              coding: [
+                { system: PROVENANCE_PARTICIPANT_TYPE, code: "verifier" },
+              ],
+            },
+            who: { display: "Human reviewer (approval gate)" },
+          },
+        ],
+        ...(demoTag ? { meta: { tag: demoTag } } : {}),
+      });
+    } catch (error) {
+      console.error(
+        "Write-provenance emission failed:",
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+      );
+    }
   };
 
   // read_chart_section's per-type query recipe. The TOOL builds the query —
@@ -460,8 +534,9 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
           subject: { reference: `Patient/${patientId}` },
           sent: new Date().toISOString(),
           payload: [{ contentString: text }],
-          meta: demoTag ? { tag: demoTag } : undefined,
+          meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
         });
+        await emitWriteProvenance("Communication", created.id);
         return {
           id: created.id,
           resourceType: "Communication",
@@ -506,8 +581,9 @@ export function buildTools(backend: FhirBackend, sessionId?: string) {
             system: "http://unitsofmeasure.org",
             code: unit,
           },
-          meta: demoTag ? { tag: demoTag } : undefined,
+          meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
         });
+        await emitWriteProvenance("Observation", created.id);
         return {
           id: created.id,
           resourceType: "Observation",

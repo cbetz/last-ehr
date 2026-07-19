@@ -25,6 +25,30 @@ export const MCP_WRITE_TAG = {
   code: "approved-proposal",
 } as const;
 
+/**
+ * Standard first-level AI-transparency label (HL7 AI Transparency on FHIR
+ * IG): agent-written resources are marked "Artificial Intelligence
+ * asserted" in meta.security.
+ */
+export const AIAST_LABEL = {
+  system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+  code: "AIAST",
+  display: "Artificial Intelligence asserted",
+} as const;
+
+const PROVENANCE_PARTICIPANT_TYPE =
+  "http://terminology.hl7.org/CodeSystem/provenance-participant-type";
+
+export type WriteToolOptions = {
+  /**
+   * Emit a Provenance resource per approved write (author = the agent,
+   * verifier = the approving human), per the AI Transparency IG pattern.
+   * Non-blocking: an emission failure is reported on stderr and never
+   * fails a write the reviewer already approved.
+   */
+  emitProvenance?: boolean;
+};
+
 // Mirrors lib/ai/tools.ts input caps (note ≤1000, label ≤120, value within
 // ±100000, unit ≤20); patientId is additionally capped at 64 characters
 // here, stricter than the web tool.
@@ -74,8 +98,48 @@ export type McpWriteTool = Omit<McpReadTool, "name"> & {
 export function createWriteTools(
   client: FhirWriteClient,
   requestApproval: RequestApproval,
+  options: WriteToolOptions = {},
 ): McpWriteTool[] {
   const decide = (request: ApprovalRequest) => requestApproval(request);
+
+  const emitWriteProvenance = async (
+    resourceType: string,
+    id: string,
+  ): Promise<void> => {
+    if (!options.emitProvenance) return;
+    try {
+      await client.createResource({
+        resourceType: "Provenance",
+        target: [{ reference: `${resourceType}/${id}` }],
+        recorded: new Date().toISOString(),
+        agent: [
+          {
+            type: {
+              coding: [
+                { system: PROVENANCE_PARTICIPANT_TYPE, code: "author" },
+              ],
+            },
+            who: { display: "Last EHR MCP agent (model-proposed)" },
+          },
+          {
+            type: {
+              coding: [
+                { system: PROVENANCE_PARTICIPANT_TYPE, code: "verifier" },
+              ],
+            },
+            who: { display: "Human reviewer (elicitation approval)" },
+          },
+        ],
+        meta: { tag: [MCP_WRITE_TAG] },
+      });
+    } catch (error) {
+      // stderr only; stdout is reserved for JSON-RPC.
+      console.error(
+        "Write-provenance emission failed:",
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+      );
+    }
+  };
 
   return [
     {
@@ -106,9 +170,10 @@ export function createWriteTools(
           subject: { reference: `Patient/${patientId}` },
           sent: new Date().toISOString(),
           payload: [{ contentString: text }],
-          meta: { tag: [MCP_WRITE_TAG] },
+          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
         };
         const created = await client.createResource(resource);
+        await emitWriteProvenance("Communication", created.id);
         return { saved: true, resourceType: "Communication", id: created.id };
       },
     },
@@ -146,9 +211,10 @@ export function createWriteTools(
             system: "http://unitsofmeasure.org",
             code: unit,
           },
-          meta: { tag: [MCP_WRITE_TAG] },
+          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
         };
         const created = await client.createResource(resource);
+        await emitWriteProvenance("Observation", created.id);
         return { saved: true, resourceType: "Observation", id: created.id };
       },
     },

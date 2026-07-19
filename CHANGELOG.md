@@ -14,6 +14,19 @@ self-hosters can tell what moved between pulls.
   layer. The FHIR Agent Safety Eval maps to it as the seed conformance
   suite.
 
+- Approved agent writes now implement the protocol's Audit section in both
+  bindings (web agent and `@lastehr/mcp`): every created resource carries
+  the standard AIAST security label ("Artificial Intelligence asserted")
+  in `meta.security`, and opt-in `LASTEHR_WRITE_PROVENANCE=true` emits a
+  `Provenance` resource per approved write naming the agent as author and
+  the reviewing human as verifier, per the HL7 AI Transparency on FHIR IG.
+  Provenance emission is non-blocking — a failed audit write never fails a
+  write the reviewer already approved. The scripted no-key demo stamps the
+  same AIAST label on its fixed write (the provenance flag is a no-op
+  there), and the seed wipe now sweeps audit Provenance before deleting
+  the resources it targets, so reseeding stays safe under referential
+  integrity.
+
 - New read tool `read_chart_section`: one policy-checked bounded read over
   nine allowlisted chart sections (Observation, Communication, Condition,
   AllergyIntolerance, MedicationRequest, Immunization, DocumentReference,

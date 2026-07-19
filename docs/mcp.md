@@ -171,7 +171,12 @@ The profile is a binding of the repository's framework-neutral
   input, with the same caps as the web demo's tools.
 - **Tagged for audit.** Approved writes carry
   `meta.tag {https://lastehr.com/mcp | approved-proposal}` so operators can
-  find every agent-written record with one `_tag` search.
+  find every agent-written record with one `_tag` search, plus the standard
+  **AIAST** security label ("Artificial Intelligence asserted") in
+  `meta.security` per the HL7 AI Transparency on FHIR IG. Set
+  `LASTEHR_WRITE_PROVENANCE=true` to also emit a `Provenance` resource per
+  approved write naming the agent as author and the reviewer as verifier —
+  see the [protocol's Audit section](./agent-write-protocol.md#4-audit).
 - **Transport-adaptable.** The approval exchange lives behind one function
   (`createElicitationApproval`); the MCP 2026-07-28 release candidate
   replaces server-initiated elicitation with Multi Round-Trip Requests, and
@@ -210,5 +215,5 @@ variables — including `LASTEHR_MCP_WRITES` if you have opted in.
 - Better read-tool coverage where it can stay bounded and auditable.
 - Proposal-shaped writes shipped in `0.2.0` behind `LASTEHR_MCP_WRITES=proposal`
   (see above), riding MCP's reviewable confirmation protocol (elicitation).
-- Provenance/AuditEvent emission aligned with HL7's AI Transparency IG on
-  approved writes.
+  AIAST labeling and opt-in Provenance emission aligned with HL7's AI
+  Transparency IG shipped with it (see "Tagged for audit" above).

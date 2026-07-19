@@ -26,6 +26,13 @@ export const CHILD_TYPES: ResourceType[] = [
  * Children are deleted before the patient, and each child search loops until
  * it comes back empty: servers clamp _count (HAPI caps pages around 200), so
  * a single page is not a guarantee that everything was seen.
+ *
+ * Provenance rows emitted by the opt-in write-audit trail
+ * (LASTEHR_WRITE_PROVENANCE) target child resources, so on servers that
+ * enforce referential integrity on delete they would block the child
+ * deletes; each page sweeps them first. Results are re-checked against the
+ * ids being wiped so a server that ignores the target parameter can never
+ * cause a foreign Provenance to be deleted.
  */
 export async function wipePatient(
   backend: FhirBackend,
@@ -44,6 +51,28 @@ export async function wipePatient(
             : { patient: patient.id, _count: "200" };
         const children = await backend.searchResources(type, query);
         if (children.length === 0) break;
+        const childRefs = children
+          .filter((child) => child.id)
+          .map((child) => `${type}/${child.id}`);
+        const wipeSet = new Set(childRefs);
+        for (let i = 0; i < childRefs.length; i += 40) {
+          const chunk = childRefs.slice(i, i + 40);
+          const provenances = await backend.searchResources("Provenance", {
+            target: chunk.join(","),
+            _count: "200",
+          });
+          for (const provenance of provenances) {
+            const targets = provenance.target ?? [];
+            if (
+              provenance.id &&
+              targets.some(
+                (target) => target.reference && wipeSet.has(target.reference),
+              )
+            ) {
+              await backend.deleteResource("Provenance", provenance.id);
+            }
+          }
+        }
         let deleted = 0;
         for (const child of children) {
           if (child.id) {

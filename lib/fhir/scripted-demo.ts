@@ -8,6 +8,7 @@ import type {
 } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "./backend";
+import { AIAST_LABEL } from "./labels";
 import {
   SCRIPTED_DEMO_PATIENT_KEY,
   SYNTHETIC_SYSTEM,
@@ -126,9 +127,12 @@ export class ScriptedDemoBackend implements FhirBackend {
       },
       // Recreate the browser session tag instead of accepting arbitrary meta
       // from the tool input, preserving local-demo isolation without widening
-      // this wrapper's write surface.
-      meta:
-        this.sessionId && /^[A-Za-z0-9-]{1,64}$/.test(this.sessionId)
+      // this wrapper's write surface. The AIAST security label is stamped
+      // here too: it is constant mechanical metadata, so approved writes
+      // stay AI-labeled even on this narrowed path.
+      meta: {
+        security: [AIAST_LABEL],
+        ...(this.sessionId && /^[A-Za-z0-9-]{1,64}$/.test(this.sessionId)
           ? {
               tag: [
                 {
@@ -137,7 +141,8 @@ export class ScriptedDemoBackend implements FhirBackend {
                 },
               ],
             }
-          : undefined,
+          : {}),
+      },
     });
     return created as unknown as T & { id: string };
   }

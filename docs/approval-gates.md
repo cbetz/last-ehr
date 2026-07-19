@@ -56,6 +56,13 @@ becomes a second, unreviewed home for rejected text. On the shared demo the
 events carry the same session tag as other writes. Audit failures are logged
 and never block the chat turn.
 
+Approved writes are attributable too: every one carries the standard
+**AIAST** security label ("Artificial Intelligence asserted") in
+`meta.security`, and setting `LASTEHR_WRITE_PROVENANCE=true` additionally
+emits a `Provenance` resource naming the agent as author and the reviewing
+human as verifier, following the HL7 AI Transparency on FHIR IG. The
+[protocol's Audit section](./agent-write-protocol.md#4-audit) specifies both.
+
 ## Product backlog
 
 The approval experience should become more inspectable without becoming noisy:

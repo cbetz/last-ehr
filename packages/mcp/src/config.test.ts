@@ -142,4 +142,19 @@ describe("MCP write policy", () => {
       ).toThrow("read-only by default");
     }
   });
+
+  it("parses LASTEHR_WRITE_PROVENANCE strictly: only the string 'true' enables it", () => {
+    const base = { MEDPLUM_ACCESS_TOKEN: "token-value" };
+    expect(loadMcpConfig(base).writeProvenance).toBe(false);
+    expect(
+      loadMcpConfig({ ...base, LASTEHR_WRITE_PROVENANCE: "true" })
+        .writeProvenance,
+    ).toBe(true);
+    for (const value of ["TRUE", "1", "yes", ""]) {
+      expect(
+        loadMcpConfig({ ...base, LASTEHR_WRITE_PROVENANCE: value })
+          .writeProvenance,
+      ).toBe(false);
+    }
+  });
 });

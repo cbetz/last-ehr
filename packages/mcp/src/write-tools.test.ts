@@ -8,9 +8,11 @@ import { createElicitationApproval } from "./approval.js";
 import { createReadTools } from "./read-tools.js";
 import { createMcpServer } from "./server.js";
 import {
+  AIAST_LABEL,
   createWriteTools,
   MCP_WRITE_TAG,
   type FhirWriteClient,
+  type WriteToolOptions,
 } from "./write-tools.js";
 
 // Full protocol round-trips over a real (in-memory) MCP client/server pair:
@@ -23,7 +25,7 @@ type ElicitAnswer =
   | { action: "decline" }
   | { action: "cancel" };
 
-function fakeWriteClient() {
+function fakeWriteClient({ failProvenance = false } = {}) {
   const created: Resource[] = [];
   const client: FhirWriteClient = {
     async search() {
@@ -33,6 +35,9 @@ function fakeWriteClient() {
       return [] as never;
     },
     async createResource(resource) {
+      if (failProvenance && resource.resourceType === "Provenance") {
+        throw new Error("audit backend down");
+      }
       created.push(resource);
       return { ...resource, id: `created-${created.length}` };
     },
@@ -43,14 +48,18 @@ function fakeWriteClient() {
 async function connect({
   elicitation,
   answer,
+  writeOptions,
+  failProvenance,
 }: {
   elicitation: boolean;
   answer?: ElicitAnswer | (() => Promise<ElicitAnswer>);
+  writeOptions?: WriteToolOptions;
+  failProvenance?: boolean;
 }) {
-  const { client: fhir, created } = fakeWriteClient();
+  const { client: fhir, created } = fakeWriteClient({ failProvenance });
   const server = createMcpServer(createReadTools(fhir), {
     writeTools: (liveServer) =>
-      createWriteTools(fhir, createElicitationApproval(liveServer)),
+      createWriteTools(fhir, createElicitationApproval(liveServer), writeOptions),
   });
 
   const mcpClient = new Client(
@@ -133,10 +142,17 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     expect(created).toHaveLength(1);
     const note = created[0] as {
       payload?: Array<{ contentString?: string }>;
-      meta?: { tag?: Array<{ system?: string; code?: string }> };
+      meta?: {
+        tag?: Array<{ system?: string; code?: string }>;
+        security?: Array<{ system?: string; code?: string }>;
+      };
     };
     expect(note.payload?.[0]?.contentString).toBe(NOTE_ARGS.text);
     expect(note.meta?.tag).toEqual([MCP_WRITE_TAG]);
+    // Standard AI-transparency label: agent-written data is marked AIAST.
+    expect(note.meta?.security).toEqual([AIAST_LABEL]);
+    // Provenance is opt-in; off by default.
+    expect(created).toHaveLength(1);
 
     // The human saw the exact fields that saved.
     expect(prompts[0]).toContain(NOTE_ARGS.text);
@@ -185,5 +201,73 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     })) as { content: Array<{ text: string }> };
     expect(created).toHaveLength(0);
     expect(JSON.parse(result.content[0].text)).toMatchObject({ saved: false });
+  });
+
+  it("emits opt-in Provenance binding the agent author and human verifier", async () => {
+    const { mcpClient, created } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      writeOptions: { emitProvenance: true },
+    });
+    await mcpClient.callTool({ name: "add_note", arguments: NOTE_ARGS });
+
+    expect(created).toHaveLength(2);
+    const provenance = created[1] as {
+      resourceType: string;
+      target?: Array<{ reference?: string }>;
+      agent?: Array<{ type?: { coding?: Array<{ code?: string }> } }>;
+      meta?: { tag?: unknown[] };
+    };
+    expect(provenance.resourceType).toBe("Provenance");
+    expect(provenance.target?.[0]?.reference).toBe("Communication/created-1");
+    expect(
+      provenance.agent?.map((agent) => agent.type?.coding?.[0]?.code),
+    ).toEqual(["author", "verifier"]);
+    expect(provenance.meta?.tag).toEqual([MCP_WRITE_TAG]);
+  });
+
+  it("record_observation carries the AIAST label and its Provenance targets the Observation", async () => {
+    const { mcpClient, created } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      writeOptions: { emitProvenance: true },
+    });
+    await mcpClient.callTool({
+      name: "record_observation",
+      arguments: { patientId: "p1", label: "Heart rate", value: 72, unit: "bpm" },
+    });
+
+    expect(created).toHaveLength(2);
+    const observation = created[0] as {
+      resourceType: string;
+      meta?: { security?: unknown[] };
+    };
+    expect(observation.resourceType).toBe("Observation");
+    expect(observation.meta?.security).toEqual([AIAST_LABEL]);
+    const provenance = created[1] as {
+      resourceType: string;
+      target?: Array<{ reference?: string }>;
+    };
+    expect(provenance.target?.[0]?.reference).toBe("Observation/created-1");
+  });
+
+  it("never fails an approved write because Provenance emission failed", async () => {
+    const { mcpClient, created } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      writeOptions: { emitProvenance: true },
+      failProvenance: true,
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: NOTE_ARGS,
+    })) as { content: Array<{ text: string }>; isError?: boolean };
+
+    expect(result.isError).toBeFalsy();
+    expect(created).toHaveLength(1);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      saved: true,
+      resourceType: "Communication",
+    });
   });
 });

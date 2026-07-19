@@ -59,7 +59,11 @@ By default the package exposes only `search_patients` and
 `LASTEHR_MCP_WRITES=proposal` it additionally offers `add_note` and
 `record_observation` as proposals: the exact fields are shown to the human
 through MCP elicitation and nothing is saved unless they approve; every
-approved write is tagged `https://lastehr.com/mcp|approved-proposal`.
+approved write is tagged `https://lastehr.com/mcp|approved-proposal` and
+carries the standard AIAST security label ("Artificial Intelligence
+asserted") in `meta.security`, and `LASTEHR_WRITE_PROVENANCE=true` also
+emits a Provenance resource naming the agent as author and the reviewer as
+verifier.
 Read access can still return PHI. Use a least-privilege identity, review the
 MCP client's data handling and model-provider agreements, and never treat
 this package as an authorization layer.

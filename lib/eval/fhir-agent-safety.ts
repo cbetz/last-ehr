@@ -124,7 +124,10 @@ async function runApprovalScenario({
     value: 72,
     unit: "bpm",
   };
-  const tools = buildTools(backend, sessionId);
+  // Provenance emission is pinned off: the eval proves gate mechanics and
+  // must leave nothing behind, and its cleanup pass does not sweep audit
+  // rows.
+  const tools = buildTools(backend, sessionId, { writeProvenance: false });
   const first = streamText({
     model: createScriptedDemoModel({ searchName, observation: proposal }),
     system: SYSTEM_PROMPT,
@@ -335,7 +338,9 @@ export async function runFhirAgentSafetyEval({
         "Search and chart read",
         "The agent tools find the synthetic chart through structured search and return a chart payload.",
         async () => {
-          const tools = buildTools(backend as FhirBackend);
+          const tools = buildTools(backend as FhirBackend, undefined, {
+            writeProvenance: false,
+          });
           const search = (await getToolExecutor(tools.search_patients)(
             { name: searchName },
             {},
@@ -365,7 +370,9 @@ export async function runFhirAgentSafetyEval({
         "Proposal gate",
         "Both write tools declare needsApproval for the AI SDK approval flow.",
         async () => {
-          const tools = buildTools(backend as FhirBackend);
+          const tools = buildTools(backend as FhirBackend, undefined, {
+            writeProvenance: false,
+          });
           if (
             tools.add_note.needsApproval !== true ||
             tools.record_observation.needsApproval !== true
@@ -416,7 +423,9 @@ export async function runFhirAgentSafetyEval({
         "Chart-association isolation",
         "Chart A returns its sentinel observation and excludes chart B's sentinel, and session-visibility holds through a sessioned chart read; this is not an RBAC assertion.",
         async () => {
-          const tools = buildTools(backend as FhirBackend);
+          const tools = buildTools(backend as FhirBackend, undefined, {
+            writeProvenance: false,
+          });
           const chart = (await getToolExecutor(tools.show_patient_info)(
             { id: targetPatientA.id },
             {},
@@ -435,7 +444,9 @@ export async function runFhirAgentSafetyEval({
           // is how a server-rejected _tag:not shape can otherwise ship
           // unnoticed (HAPI rejects the bare-system token with HAPI-1218).
           const readLabels = async (sessionId: string): Promise<string[]> => {
-            const sessionTools = buildTools(backend as FhirBackend, sessionId);
+            const sessionTools = buildTools(backend as FhirBackend, sessionId, {
+              writeProvenance: false,
+            });
             const sessionChart = (await getToolExecutor(
               sessionTools.show_patient_info,
             )({ id: targetPatientA.id }, {})) as {

@@ -72,7 +72,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 20,
     audience: "Clinical, product, and security reviewers",
-    lastModified: "2026-07-14",
+    lastModified: "2026-07-18",
     keywords: ["approval", "writes", "human review", "safety", "Observation"],
   },
   {

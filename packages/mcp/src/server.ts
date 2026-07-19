@@ -205,6 +205,7 @@ export async function startMcpServer({
             createWriteTools(
               backendClient as FhirWriteClient,
               createElicitationApproval(liveServer),
+              { emitProvenance: config.writeProvenance },
             )
         : undefined,
   });
