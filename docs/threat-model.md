@@ -34,8 +34,10 @@ do not mistake the approval card for a full security system.
 - Write tools in the web app use `needsApproval: true`.
 - Demo writes are tagged per browser session.
 - Public demo has per-IP and global rate limits.
-- The published MCP package contains only two read tools; no write tool is
-  compiled or registered in the `0.1.x` line.
+- The published MCP package is read-only by default; the only write opt-in
+  (`LASTEHR_MCP_WRITES=proposal`) is elicitation-gated per-action human
+  approval, and write tools are hidden from clients that cannot render the
+  approval.
 
 ## Dev output (synthetic demo only)
 
@@ -73,8 +75,9 @@ first, and treat them as safety-boundary tests.
   is synthetic-only; it is not an authenticated or PHI-ready MCP deployment.
 - Session filtering on the shared public demo is not a security boundary for
   real data.
-- MCP clients do not render Last EHR's approval card, so the public package
-  remains read-only.
+- MCP clients do not render Last EHR's approval card; the MCP write profile
+  substitutes MCP elicitation as the reviewable confirmation, and read-only
+  remains the default for hosts and operators that opt out.
 
 ## Contributor rules
 

@@ -60,7 +60,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 10,
     audience: "Developers reviewing the implementation",
-    lastModified: "2026-07-09",
+    lastModified: "2026-07-18",
     keywords: ["architecture", "FHIR", "tools", "backend", "data boundary"],
   },
   {
@@ -84,7 +84,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 30,
     audience: "Security and privacy reviewers",
-    lastModified: "2026-07-09",
+    lastModified: "2026-07-18",
     keywords: ["threat model", "security", "privacy", "PHI", "boundaries"],
   },
   {

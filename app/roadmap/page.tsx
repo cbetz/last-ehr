@@ -55,7 +55,7 @@ const tracks = [
   {
     title: "MCP Safety",
     description:
-      "Keep the standalone read-only package auditable; the shipped Local Lab evaluates the bounded surface on fixture data.",
+      "Keep the standalone package auditable: read-only by default, with the opt-in write profile human-approved per action; the shipped Local Lab evaluates the bounded surface on fixture data.",
     icon: <LockKeyhole className="h-5 w-5" aria-hidden="true" />,
   },
   {

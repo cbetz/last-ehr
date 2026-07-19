@@ -1,4 +1,4 @@
-export type McpWritePolicy = "read-only";
+export type McpWritePolicy = "read-only" | "proposal";
 
 export type McpBackend = "medplum" | "hapi";
 
@@ -35,10 +35,19 @@ function value(env: EnvValues, key: string): string | undefined {
 }
 
 export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
-  if (value(env, "LASTEHR_MCP_WRITES")) {
-    throw new McpConfigurationError(
-      "@lastehr/mcp 0.1 is intentionally read-only. Remove LASTEHR_MCP_WRITES from this server configuration.",
-    );
+  // Read-only is the permanent default. The single accepted opt-in value is
+  // "proposal": elicitation-gated, human-approved writes (see docs/mcp.md).
+  // Anything else stays rejected loudly, exactly as the 0.1.x line rejected
+  // every value.
+  const writesFlag = value(env, "LASTEHR_MCP_WRITES");
+  let writePolicy: McpWritePolicy = "read-only";
+  if (writesFlag) {
+    if (writesFlag !== "proposal") {
+      throw new McpConfigurationError(
+        '@lastehr/mcp is read-only by default. The only accepted LASTEHR_MCP_WRITES value is "proposal" (elicitation-gated writes that a human approves per action); remove the flag or set it to that.',
+      );
+    }
+    writePolicy = "proposal";
   }
 
   const backend = value(env, "FHIR_BACKEND") ?? "medplum";
@@ -67,7 +76,7 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
         "The HAPI base URL must be a complete URL, for example http://localhost:8080/fhir.",
       );
     }
-    return { backend, baseUrl: hapiBaseUrl, writePolicy: "read-only" };
+    return { backend, baseUrl: hapiBaseUrl, writePolicy };
   }
 
   const accessToken = value(env, "MEDPLUM_ACCESS_TOKEN");
@@ -109,6 +118,6 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     accessToken,
     clientId,
     clientSecret,
-    writePolicy: "read-only",
+    writePolicy,
   };
 }

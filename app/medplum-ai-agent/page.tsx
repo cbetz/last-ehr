@@ -52,7 +52,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Can I use the tools from Claude Desktop or another MCP client?",
-    a: "Yes. @lastehr/mcp is an installable stdio server for Medplum. It exposes exactly two chart-reading tools, search_patients and show_patient_info, with no write tools or write-enable flag in the 0.1.x line. Read access can still return PHI, so use a least-privilege Medplum identity and review the MCP host's data handling.",
+    a: "Yes. @lastehr/mcp is an installable stdio server for Medplum. By default it exposes exactly two chart-reading tools, search_patients and show_patient_info. Writes exist only behind an explicit opt-in (LASTEHR_MCP_WRITES=proposal) where the client shows the exact proposed fields and a human approves each action. Read access can still return PHI, so use a least-privilege Medplum identity and review the MCP host's data handling.",
   },
 ];
 
@@ -155,7 +155,7 @@ export default function MedplumAiAgentPage() {
                 exposes Medplum data to MCP-compatible clients such as Claude.
                 That is lower-level infrastructure for wiring models to data;
                 it does not include a clinician-facing UI or an approval gate.
-                Last EHR ships a separate, read-only MCP package for two
+                Last EHR ships a separate MCP package, read-only by default, for two
                 bounded chart-reading tools; the difference in scope is
                 covered below.
               </p>
@@ -292,13 +292,14 @@ export default function MedplumAiAgentPage() {
                 client is configured to use.
               </p>
               <p>
-                There is no approval card over MCP, so the published package
-                is read-only only. It exposes exactly two tools:
+                The published package is read-only by default: two tools,
                 <code>search_patients</code> and <code>show_patient_info</code>.
-                It has no write-enable flag or direct chart-write surface. That
-                boundary is deliberate: the web app&apos;s approval card shows
-                exactly what will be saved, while an MCP host&apos;s generic tool
-                prompt is not an equivalent clinical review step.
+                Writes exist only behind an explicit opt-in
+                (<code>LASTEHR_MCP_WRITES=proposal</code>) that carries the
+                approval-card semantics onto MCP: the client renders the exact
+                proposed fields through MCP elicitation and nothing saves
+                without a human&apos;s approval, per action. Hosts that cannot
+                render that approval never see a write tool.
               </p>
               <p>
                 This is a different thing from Medplum&apos;s own MCP server:

@@ -52,7 +52,7 @@ jobs:
       - name: Verify zero-credential HAPI MCP Local Lab
         env:
           RUN_HAPI_E2E: "1"
-        run: npm test -- scripts/mcp-demo.hapi.integration.test.ts packages/mcp/src/hapi.integration.test.ts
+        run: npm test -- scripts/mcp-demo.hapi.integration.test.ts packages/mcp/src/hapi.integration.test.ts packages/mcp/src/write-tools.hapi.integration.test.ts
       - name: Run FHIR Agent Safety Eval
         run: >-
           npm run eval -- --no-prepare

@@ -1,9 +1,9 @@
 # MCP Server
 
-`@lastehr/mcp` is the smallest installable Last EHR surface: a
-read-only MCP server for searching patients and opening a chart. It is
-deliberately separate from the web app, where writes are proposal-shaped and
-approval-gated.
+`@lastehr/mcp` is the smallest installable Last EHR surface: an MCP server
+that is read-only by default (search patients, open a chart), with one
+opt-in write profile that carries the web app's proposal/approval semantics
+onto MCP (below). It is deliberately separate from the web app.
 
 ## Zero-credential Local Lab (checkout only)
 
@@ -123,7 +123,8 @@ which is exactly why the same caveats apply as in the web app — local,
 single-tenant, synthetic data only; never point it at an exposed server or
 treat it as an authorization layer. Any configured `MEDPLUM_*` values are
 unused in this mode (a checkout's `.env` commonly carries both). The tools
-and the read-only boundary are identical to the Medplum mode.
+and the write-policy boundary (read-only by default, the same opt-in write
+profile) are identical to the Medplum mode.
 
 This is distinct from `npm run mcp:demo` (the checkout-only Local Lab), which
 remains fixture-restricted and needs no configuration at all.
@@ -136,15 +137,48 @@ Maintainers publish that immutable record through the manual `Publish MCP Regist
 
 ## Tool surface
 
-The published `0.1.x` package exposes exactly two tools, both marked with MCP's
+By default the package exposes exactly two tools, both marked with MCP's
 `readOnlyHint`:
 
 - `search_patients`
 - `show_patient_info`
 
-There is no environment switch that exposes write tools. A write-capable MCP
-surface would need a proposal protocol and a separate safety review before it
-is considered for a future release.
+The retired `0.1.x` line was permanently read-only, and read-only remains the
+default forever. As of `0.2.0` there is exactly one opt-in beyond it, the
+proposal-shaped write profile below.
+
+## Proposal-shaped writes (0.2.0, opt-in)
+
+`LASTEHR_MCP_WRITES=proposal` adds the web demo's two write actions —
+`add_note` (Communication) and `record_observation` (Observation) — as
+**elicitation-gated proposals**: the tool builds the exact FHIR resource it
+would create, presents those fields to the human through MCP elicitation
+(client-rendered accept/decline/cancel with a single "Approve and save?"
+boolean), and commits only on an explicit approval. A decline, cancel,
+unapproved accept, or any approval-transport failure saves nothing and the
+tool result says so. Every value the flag accepts other than `proposal` is
+rejected loudly.
+
+The gate is structural, not advisory:
+
+- **Capability-gated, fail closed.** The write tools are offered only to
+  clients that declared the `elicitation` capability at initialization; a
+  host that cannot render the approval never sees a write tool.
+- **What you see is what saves.** The elicitation message contains the exact
+  proposed fields; the committed resource is built from the same parsed
+  input, with the same caps as the web demo's tools.
+- **Tagged for audit.** Approved writes carry
+  `meta.tag {https://lastehr.com/mcp | approved-proposal}` so operators can
+  find every agent-written record with one `_tag` search.
+- **Transport-adaptable.** The approval exchange lives behind one function
+  (`createElicitationApproval`); the MCP 2026-07-28 release candidate
+  replaces server-initiated elicitation with Multi Round-Trip Requests, and
+  only that adapter changes when it lands.
+
+The same data caveats as reads apply, doubled: only enable writes against a
+project whose access policy you have scoped, and never against real data you
+are not authorized to modify. The elicitation exchange requests a decision,
+never data.
 
 ## Data and support boundary
 
@@ -166,11 +200,13 @@ The repository includes the same **Medplum** package for contributors:
 npm run mcp
 ```
 
-This builds `@lastehr/mcp` and starts the two read-only tools using your local
-Medplum environment variables.
+This builds `@lastehr/mcp` and starts it with your local Medplum environment
+variables — including `LASTEHR_MCP_WRITES` if you have opted in.
 
 ## Roadmap
 
 - Better read-tool coverage where it can stay bounded and auditable.
-- Proposal-shaped writes only if MCP clients support a reviewable confirmation
-  protocol.
+- Proposal-shaped writes shipped in `0.2.0` behind `LASTEHR_MCP_WRITES=proposal`
+  (see above), riding MCP's reviewable confirmation protocol (elicitation).
+- Provenance/AuditEvent emission aligned with HL7's AI Transparency IG on
+  approved writes.

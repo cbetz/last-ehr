@@ -1,8 +1,8 @@
 {
   "name": "@lastehr/mcp",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "mcpName": "io.github.cbetz/last-ehr",
-  "description": "Read-only Medplum FHIR tools for MCP clients.",
+  "description": "FHIR chart tools for MCP clients: read-only by default, with an opt-in elicitation-gated write profile where a human approves each proposed write.",
   "license": "Apache-2.0",
   "author": "Chris Betz",
   "homepage": "https://www.lastehr.com/docs/mcp",

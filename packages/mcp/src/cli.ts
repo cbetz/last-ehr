@@ -84,7 +84,7 @@ export async function runCli(
           ? "access token"
           : "client credentials";
     console.error(
-      `Last EHR MCP configuration is valid (${config.backend}; ${authSummary}; read-only).`,
+      `Last EHR MCP configuration is valid (${config.backend}; ${authSummary}; ${config.writePolicy === "proposal" ? "proposal-gated writes" : "read-only"}).`,
     );
     return;
   }

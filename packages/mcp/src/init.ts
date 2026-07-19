@@ -16,7 +16,8 @@ export function renderInit(client: McpClient = "json"): string {
   if (client === "claude-code") {
     return [
       "# The process inherits MEDPLUM_* variables from your shell or MCP client configuration.",
-      "# @lastehr/mcp is read-only in 0.1.x.",
+      "# @lastehr/mcp is read-only unless LASTEHR_MCP_WRITES=proposal is set",
+      "# (writes are then elicitation-gated and human-approved per action).",
       "claude mcp add lastehr -- npx -y @lastehr/mcp",
       "",
     ].join("\n");

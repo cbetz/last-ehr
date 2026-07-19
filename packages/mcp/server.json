@@ -2,44 +2,44 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.cbetz/last-ehr",
   "title": "Last EHR — Medplum",
-  "description": "Read-only Medplum chart search and patient context for MCP clients.",
+  "description": "FHIR chart tools over Medplum or a local HAPI stack: read-only by default, with an opt-in elicitation-gated write profile (human-approved per action).",
   "websiteUrl": "https://www.lastehr.com/docs/mcp",
   "repository": {
     "url": "https://github.com/cbetz/last-ehr",
     "source": "github",
     "subfolder": "packages/mcp"
   },
-  "version": "0.1.1",
+  "version": "0.2.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@lastehr/mcp",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "MEDPLUM_ACCESS_TOKEN",
-          "description": "A least-privilege Medplum access token. Set this or the client credentials below.",
+          "description": "FHIR chart tools over Medplum or a local HAPI stack: read-only by default, with an opt-in elicitation-gated write profile (human-approved per action).",
           "isRequired": false,
           "isSecret": true
         },
         {
           "name": "MEDPLUM_CLIENT_ID",
-          "description": "Medplum ClientApplication ID. Set with MEDPLUM_CLIENT_SECRET when not using an access token.",
+          "description": "FHIR chart tools over Medplum or a local HAPI stack: read-only by default, with an opt-in elicitation-gated write profile (human-approved per action).",
           "isRequired": false,
           "isSecret": false
         },
         {
           "name": "MEDPLUM_CLIENT_SECRET",
-          "description": "Medplum ClientApplication secret. Set with MEDPLUM_CLIENT_ID when not using an access token.",
+          "description": "FHIR chart tools over Medplum or a local HAPI stack: read-only by default, with an opt-in elicitation-gated write profile (human-approved per action).",
           "isRequired": false,
           "isSecret": true
         },
         {
           "name": "MEDPLUM_BASE_URL",
-          "description": "Optional base URL for a self-hosted Medplum deployment.",
+          "description": "FHIR chart tools over Medplum or a local HAPI stack: read-only by default, with an opt-in elicitation-gated write profile (human-approved per action).",
           "isRequired": false,
           "isSecret": false
         }

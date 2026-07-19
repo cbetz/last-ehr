@@ -12,9 +12,17 @@ describe("MCP setup output", () => {
     );
   });
 
-  it("generates the Claude Code registration command without write flags", () => {
+  it("generates the Claude Code registration command without enabling writes", () => {
     const command = renderInit("claude-code");
     expect(command).toContain("claude mcp add lastehr -- npx -y @lastehr/mcp");
-    expect(command).not.toContain("WRITE");
+    // The registration command itself must never carry a write flag; the
+    // accompanying comment describes the opt-in without setting it.
+    const commandLine = command
+      .split("\n")
+      .find((line) => line.startsWith("claude mcp add"));
+    expect(commandLine).not.toContain("LASTEHR_MCP_WRITES");
+    expect(command).toContain(
+      "read-only unless LASTEHR_MCP_WRITES=proposal is set",
+    );
   });
 });
