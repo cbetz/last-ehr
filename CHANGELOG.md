@@ -5,6 +5,18 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- New read tool `read_chart_section`: one policy-checked bounded read over
+  nine allowlisted chart sections (Observation, Communication, Condition,
+  AllergyIntolerance, MedicationRequest, Immunization, DocumentReference,
+  Goal, CarePlan) with forced patient scoping, optional code and date
+  filters, and capped counts — the tool builds every query, the model only
+  picks a section and filters. Unlocks temporal questions ("last flu shot",
+  "blood pressure over six months") the fixed chart fetch could not answer,
+  keeps per-session isolation on every section, and wraps free-text fields
+  in the untrusted-content boundary. The session-visibility fallback for
+  servers that reject `_tag:not` now over-fetches before filtering, so
+  foreign sessions' rows can no longer empty a small result window.
+
 - `@lastehr/mcp` 0.2.0 ships the MCP write profile: `add_note` and
   `record_observation` as elicitation-gated, proposal-shaped writes behind
   the explicit `LASTEHR_MCP_WRITES=proposal` opt-in. The write tools are
