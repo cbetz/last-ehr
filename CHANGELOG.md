@@ -3,7 +3,7 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.2.7 — 2026-07-19
 
 - New gated write `create_task` in both bindings: propose a follow-up
   task (description, optional due date) that a human approves before a
