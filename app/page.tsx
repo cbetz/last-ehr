@@ -51,7 +51,7 @@ const entryPoints = [
 ];
 
 const evidenceRows = [
-  ["Web agent", "Two write tools are proposal-shaped and approval-gated."],
+  ["Web agent", "Three write tools are proposal-shaped and approval-gated."],
   ["MCP Local Lab", "A real stdio handshake reads only fixture-restricted HAPI charts."],
   ["Adapter seam", "A reusable FHIR REST baseline and contract harness make the next backend testable."],
   ["Safety Eval", "A disposable synthetic workflow report proves approval, denial, chart association, and cleanup mechanics."],

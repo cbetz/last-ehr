@@ -1,14 +1,10 @@
-import type {
-  Communication,
-  Observation,
-  Resource,
-} from "@medplum/fhirtypes";
+import type { Communication, Observation, Resource, Task } from "@medplum/fhirtypes";
 import { z } from "zod";
 
 import type { ApprovalRequest, RequestApproval } from "./approval.js";
 import type { FhirReadClient, McpReadTool } from "./read-tools.js";
 
-// Proposal-shaped writes: the same two write actions as the web demo
+// Proposal-shaped writes: the same write actions as the web demo
 // (Communication note, Observation vital), with matching input caps,
 // paused on a human approval before anything executes. The tool builds the
 // EXACT resource it would create, renders those fields for the approval,
@@ -96,6 +92,34 @@ const addNoteSchema = z.object({
     .describe("The note text to add to the chart."),
 });
 
+// The regex alone admits 2026-02-31; round-trip through UTC Date parts so
+// an impossible date is rejected at proposal time, not by (or worse, past)
+// the FHIR server after the reviewer approved it.
+function isRealCalendarDate(value: string): boolean {
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+const createTaskSchema = z.object({
+  patientId: z.string().min(1).max(64).describe("The patient resource id."),
+  description: z
+    .string()
+    .min(1)
+    .max(500)
+    .describe("What needs to happen, e.g. Call about lab results."),
+  dueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isRealCalendarDate, "Not a real calendar date.")
+    .optional()
+    .describe("Optional due date, YYYY-MM-DD."),
+});
+
 const recordObservationSchema = z.object({
   patientId: z.string().min(1).max(64).describe("The patient resource id."),
   label: z
@@ -134,12 +158,16 @@ const policyDeniedResult = (reason?: string) => ({
 });
 
 export type McpWriteTool = Omit<McpReadTool, "name"> & {
-  name: "add_note" | "record_observation";
+  name: "add_note" | "record_observation" | "create_task";
   /** Marks the tool as a proposal-shaped write for annotations/docs. */
   proposesWrite: true;
 };
 
-export const WRITE_TOOL_NAMES = ["add_note", "record_observation"] as const;
+export const WRITE_TOOL_NAMES = [
+  "add_note",
+  "record_observation",
+  "create_task",
+] as const;
 
 /**
  * The one place runtime config becomes write-tool options, exported so
@@ -258,10 +286,12 @@ export function createWriteTools(
         if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
         const decision = await decide({
           title: "Add this note to the chart?",
+          // Free text is JSON-quoted so an embedded newline cannot forge a
+          // summary line the reviewer misreads as a separate field.
           summary: [
             `Patient: Patient/${patientId}`,
             `Resource: Communication`,
-            `Note: ${text}`,
+            `Note: ${JSON.stringify(text)}`,
           ].join("\n"),
         });
         if (decision !== "approved") {
@@ -310,8 +340,8 @@ export function createWriteTools(
           summary: [
             `Patient: Patient/${patientId}`,
             `Resource: Observation`,
-            `Label: ${label}`,
-            `Value: ${value} ${unit}`,
+            `Label: ${JSON.stringify(label)}`,
+            `Value: ${value} ${JSON.stringify(unit)}`,
           ].join("\n"),
         });
         if (decision !== "approved") {
@@ -339,6 +369,58 @@ export function createWriteTools(
         const created = await client.createResource(resource);
         await emitWriteProvenance("Observation", created.id);
         return { saved: true, resourceType: "Observation", id: created.id };
+      },
+    },
+    {
+      name: "create_task",
+      proposesWrite: true,
+      description:
+        "Propose creating a follow-up task on a patient's chart (what needs to happen, optionally by when). The human operator reviews the exact task in an approval prompt; nothing is saved unless they approve.",
+      inputSchema: createTaskSchema,
+      async execute(input: unknown) {
+        const { patientId, description, dueDate } =
+          createTaskSchema.parse(input);
+        const proposal = {
+          toolName: "create_task",
+          resourceType: "Task",
+          patientId,
+        };
+        const policyBefore = await checkWritePolicy(proposal);
+        if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
+        const decision = await decide({
+          title: "Create this task?",
+          summary: [
+            `Patient: Patient/${patientId}`,
+            `Resource: Task`,
+            `Task: ${JSON.stringify(description)}`,
+            // The exact stored value, so the reviewer sees the end-of-day
+            // UTC normalization rather than discovering it on the chart.
+            ...(dueDate ? [`Due: ${dueDate} (saves as ${dueDate}T23:59:59Z)`] : []),
+          ].join("\n"),
+        });
+        if (decision !== "approved") {
+          return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
+        }
+        const policyAtCommit = await checkWritePolicy(proposal);
+        if (policyAtCommit.deny) {
+          return policyDeniedResult(policyAtCommit.reason);
+        }
+        // Built AFTER the approval; see the note on add_note above.
+        const resource: Task = {
+          resourceType: "Task",
+          status: "requested",
+          intent: "order",
+          description,
+          for: { reference: `Patient/${patientId}` },
+          authoredOn: new Date().toISOString(),
+          ...(dueDate
+            ? { restriction: { period: { end: `${dueDate}T23:59:59Z` } } }
+            : {}),
+          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
+        };
+        const created = await client.createResource(resource);
+        await emitWriteProvenance("Task", created.id);
+        return { saved: true, resourceType: "Task", id: created.id };
       },
     },
   ];

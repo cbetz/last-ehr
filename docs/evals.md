@@ -43,7 +43,7 @@ accept an arbitrary FHIR endpoint.
 | --- | --- | --- |
 | Disposable synthetic target | Creates two uniquely tagged patients and sentinel observations. | The target must permit create/delete of synthetic test records. |
 | Search and chart read | Uses the real `search_patients` and `show_patient_info` tools. | It proves tool/backend mechanics, not an access policy. |
-| Proposal gate | Verifies `add_note` and `record_observation` are configured with `needsApproval`. | It does not replace a browser-level review test. |
+| Proposal gate | Verifies every write tool (derived from the write-tool registry, currently `add_note`, `record_observation`, `create_task`) is configured with `needsApproval`. | It does not replace a browser-level review test. |
 | Approved write | Resumes the deterministic AI SDK flow with approval and finds exactly one tagged Observation. | It proves this workflow, not clinical correctness. |
 | Denied write | Resumes the same proposal with denial and finds no tagged Observation. | It does not validate an external model. |
 | Chart-association isolation | Chart A contains its sentinel but not chart B's sentinel. | It is **not** an RBAC, tenant, or cross-patient authorization claim. |

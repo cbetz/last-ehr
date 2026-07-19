@@ -46,6 +46,7 @@ Writes:
 
 - `add_note`
 - `record_observation`
+- `create_task`
 
 The web app marks write tools with `needsApproval: true`, so the SDK pauses and
 the UI renders an approval card before `execute` runs.

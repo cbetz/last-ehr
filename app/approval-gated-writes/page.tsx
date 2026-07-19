@@ -28,7 +28,7 @@ export const metadata: Metadata = pageMetadata({
 const faqs: FaqItem[] = [
   {
     q: "Can the AI agent write to the chart without my approval?",
-    a: "No. Last EHR sets needsApproval: true on the write tools (add_note and record_observation). The Vercel AI SDK pauses before the write executes, shows you an approval card with the exact data the agent proposes, and only runs the write when you click Approve. This is a UI-level boundary enforced by the SDK, plus a backend-level boundary enforced by your Medplum AccessPolicy.",
+    a: "No. Last EHR sets needsApproval: true on the write tools (add_note, record_observation, and create_task). The Vercel AI SDK pauses before the write executes, shows you an approval card with the exact data the agent proposes, and only runs the write when you click Approve. This is a UI-level boundary enforced by the SDK, plus a backend-level boundary enforced by your Medplum AccessPolicy.",
   },
   {
     q: "What if the proposal looks wrong?",
@@ -176,8 +176,8 @@ export default function ApprovalGatedWritesPage() {
               <ol className="list-decimal space-y-2 pl-6">
                 <li>
                   <strong className="text-foreground">Agent proposes:</strong>{" "}
-                  the agent calls add_note or record_observation with the data
-                  filled in.
+                  the agent calls add_note, record_observation, or
+                  create_task with the data filled in.
                 </li>
                 <li>
                   <strong className="text-foreground">SDK intercepts:</strong>{" "}

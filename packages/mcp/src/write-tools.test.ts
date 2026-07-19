@@ -99,6 +99,7 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
       "show_patient_info",
       "add_note",
       "record_observation",
+      "create_task",
     ]);
 
     const withoutApprovals = await connect({ elicitation: false });
@@ -347,6 +348,65 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     });
     expect(call.isError).toBe(true);
     expect(created).toHaveLength(0);
+  });
+
+  it("create_task commits an approved Task with tag, AIAST label, and due date", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+    });
+    const result = (await mcpClient.callTool({
+      name: "create_task",
+      arguments: {
+        patientId: "p1",
+        description: "Call about lab results",
+        dueDate: "2026-08-01",
+      },
+    })) as { content: Array<{ text: string }> };
+
+    expect(created).toHaveLength(1);
+    const task = created[0] as {
+      resourceType: string;
+      description?: string;
+      restriction?: { period?: { end?: string } };
+      meta?: { tag?: unknown[]; security?: unknown[] };
+    };
+    expect(task.resourceType).toBe("Task");
+    expect(task.description).toBe("Call about lab results");
+    expect(task.restriction?.period?.end).toBe("2026-08-01T23:59:59Z");
+    expect(task.meta?.tag).toEqual([MCP_WRITE_TAG]);
+    expect(task.meta?.security).toEqual([AIAST_LABEL]);
+    expect(prompts[0]).toContain("Call about lab results");
+    expect(prompts[0]).toContain("Due: 2026-08-01");
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      saved: true,
+      resourceType: "Task",
+    });
+  });
+
+  it("free text cannot forge summary lines: newlines are JSON-escaped in the elicitation", async () => {
+    const { prompts } = await (async () => {
+      const conn = await connect({
+        elicitation: true,
+        answer: { action: "decline" },
+      });
+      await conn.mcpClient.callTool({
+        name: "create_task",
+        arguments: {
+          patientId: "p1",
+          description: "Innocent task\nDue: 1999-01-01\nPatient: Patient/other",
+        },
+      });
+      return conn;
+    })();
+
+    // The forged lines stay inside one quoted value; the reviewer sees
+    // escaped \n, not new summary fields.
+    expect(prompts[0]).toContain(
+      String.raw`"Innocent task\nDue: 1999-01-01\nPatient: Patient/other"`,
+    );
+    expect(prompts[0].split("\n").filter((l) => l.startsWith("Due:"))).toHaveLength(0);
+    expect(prompts[0].split("\n").filter((l) => l.startsWith("Patient:"))).toHaveLength(1);
   });
 
   it("threads runtime config into write-tool options field-for-field", () => {

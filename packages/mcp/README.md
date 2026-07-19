@@ -56,8 +56,8 @@ MCP.
 
 By default the package exposes only `search_patients` and
 `show_patient_info`, both with the MCP `readOnlyHint`. With
-`LASTEHR_MCP_WRITES=proposal` it additionally offers `add_note` and
-`record_observation` as proposals: the exact fields are shown to the human
+`LASTEHR_MCP_WRITES=proposal` it additionally offers `add_note`,
+`record_observation`, and `create_task` as proposals: the exact fields are shown to the human
 through MCP elicitation and nothing is saved unless they approve; every
 approved write is tagged `https://lastehr.com/mcp|approved-proposal` and
 carries the standard AIAST security label ("Artificial Intelligence

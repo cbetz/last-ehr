@@ -149,8 +149,9 @@ proposal-shaped write profile below.
 
 ## Proposal-shaped writes (0.2.0, opt-in)
 
-`LASTEHR_MCP_WRITES=proposal` adds the web demo's two write actions —
-`add_note` (Communication) and `record_observation` (Observation) — as
+`LASTEHR_MCP_WRITES=proposal` adds the web demo's write actions —
+`add_note` (Communication), `record_observation` (Observation), and
+`create_task` (Task) — as
 **elicitation-gated proposals**: the tool builds the exact FHIR resource it
 would create, presents those fields to the human through MCP elicitation
 (client-rendered accept/decline/cancel with a single "Approve and save?"
@@ -178,8 +179,8 @@ The profile is a binding of the repository's framework-neutral
   approved write naming the agent as author and the reviewer as verifier —
   see the [protocol's Audit section](./agent-write-protocol.md#4-audit).
 - **Narrowable, never widenable.** `LASTEHR_WRITE_TOOLS_DISABLED`
-  (comma-separated: `add_note`, `record_observation`) unregisters write
-  tools entirely — unlisted and uncallable, with unknown names refusing
+  (comma-separated: `add_note`, `record_observation`, `create_task`)
+  unregisters write tools entirely — unlisted and uncallable, with unknown names refusing
   startup. Embedders can pass a deny-only `policy` hook in
   `WriteToolOptions`: checked before the reviewer is asked, re-checked at
   commit, fail-closed, and its denials are attributed to configuration,

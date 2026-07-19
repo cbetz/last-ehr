@@ -91,9 +91,9 @@ Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (
 
 ```mermaid
 flowchart LR
-    B["Browser chat"] --> A["/api/chat<br/>streamText + 4 FHIR tools"]
-    A -- "reads<br/>search_patients, show_patient_info" --> M[("Your FHIR backend<br/>(Medplum, HAPI, Firely, Aidbox)")]
-    A -- "writes<br/>add_note, record_observation" --> C{"Approval card"}
+    B["Browser chat"] --> A["/api/chat<br/>streamText + FHIR tools"]
+    A -- "reads<br/>search_patients, show_patient_info, read_chart_section" --> M[("Your FHIR backend<br/>(Medplum, HAPI, Firely, Aidbox)")]
+    A -- "writes<br/>add_note, record_observation, create_task" --> C{"Approval card"}
     C -- "Approve & save" --> M
     C -- "Cancel" --> N["Nothing saved"]
     M -. "Every call runs as the signed-in user,<br/>bounded by your AccessPolicy.<br/>The layer stores no PHI." .-> A

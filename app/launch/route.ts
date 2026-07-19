@@ -65,7 +65,7 @@ export async function GET(req: Request) {
   const state = randomState();
   const redirectUri = `${requestOrigin(req)}/launch/callback`;
   // Least-privilege default: read+search on what the chart shows, create only
-  // for the two write tools. patient/ scopes also compartment the session to
+  // for the write tools. patient/ scopes also compartment the session to
   // the launched patient (Medplum appends _compartment=Patient/<id>), so a
   // SMART session sees that patient's data, which is the point of a launch.
   const scope =
@@ -74,7 +74,7 @@ export async function GET(req: Request) {
       "patient/Patient.rs patient/Condition.rs " +
       "patient/AllergyIntolerance.rs patient/MedicationRequest.rs " +
       "patient/Immunization.rs patient/Observation.crs " +
-      "patient/Communication.crs";
+      "patient/Communication.crs patient/Task.crs";
 
   const authorize = new URL(config.authorization_endpoint);
   authorize.searchParams.set("response_type", "code");

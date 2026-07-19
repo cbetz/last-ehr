@@ -60,7 +60,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 10,
     audience: "Developers reviewing the implementation",
-    lastModified: "2026-07-18",
+    lastModified: "2026-07-19",
     keywords: ["architecture", "FHIR", "tools", "backend", "data boundary"],
   },
   {
@@ -132,7 +132,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 30,
     audience: "Adapter contributors and technical evaluators",
-    lastModified: "2026-07-14",
+    lastModified: "2026-07-19",
     keywords: ["eval", "safety", "approval", "synthetic", "HAPI", "adapter"],
   },
   {

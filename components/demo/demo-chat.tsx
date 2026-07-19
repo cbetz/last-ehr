@@ -613,6 +613,85 @@ export function DemoChat() {
                         }
                         return pendingSkeleton(part.toolCallId);
 
+                      case "tool-create_task":
+                        if (part.state === "approval-requested") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <ConfirmWrite
+                                title="Create this task?"
+                                resourceType="Task"
+                                fields={[
+                                  {
+                                    label: "Patient",
+                                    value: `Patient/${part.input.patientId}`,
+                                  },
+                                  {
+                                    label: "Task",
+                                    value: part.input.description,
+                                  },
+                                  ...(part.input.dueDate
+                                    ? [
+                                        {
+                                          label: "Due",
+                                          value: part.input.dueDate,
+                                        },
+                                      ]
+                                    : []),
+                                ]}
+                                preview={{
+                                  resourceType: "Task",
+                                  status: "requested",
+                                  intent: "order",
+                                  description: part.input.description,
+                                  for: {
+                                    reference: `Patient/${part.input.patientId}`,
+                                  },
+                                  authoredOn: "<server time when approved>",
+                                  ...(part.input.dueDate
+                                    ? {
+                                        restriction: {
+                                          period: {
+                                            end: `${part.input.dueDate}T23:59:59Z`,
+                                          },
+                                        },
+                                      }
+                                    : {}),
+                                }}
+                                onApprove={() =>
+                                  respondToApproval(
+                                    "create_task",
+                                    part.approval.id,
+                                    true,
+                                  )
+                                }
+                                onCancel={() =>
+                                  respondToApproval(
+                                    "create_task",
+                                    part.approval.id,
+                                    false,
+                                  )
+                                }
+                              />
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-available") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              ✓ Task created.
+                            </BotMessage>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, I couldn&apos;t create that task:{" "}
+                              {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return pendingSkeleton(part.toolCallId);
+
                       default:
                         return null;
                     }

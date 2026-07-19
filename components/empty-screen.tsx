@@ -25,6 +25,11 @@ const exampleMessages = [
     message:
       "Add a note to Maria Garcia's chart that she reports feeling well with no complaints",
   },
+  {
+    heading: "Create a follow-up task (with approval)",
+    message:
+      "Create a task on Maria Garcia's chart to call her about lab results next week",
+  },
 ];
 
 const scriptedExampleMessages = [
