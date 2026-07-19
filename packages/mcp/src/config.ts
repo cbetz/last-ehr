@@ -14,6 +14,8 @@ export type McpRuntimeConfig = {
   clientId?: string;
   clientSecret?: string;
   writePolicy: McpWritePolicy;
+  /** Emit Provenance per approved write (LASTEHR_WRITE_PROVENANCE=true). */
+  writeProvenance: boolean;
 };
 
 export class McpConfigurationError extends Error {
@@ -49,6 +51,7 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     }
     writePolicy = "proposal";
   }
+  const writeProvenance = value(env, "LASTEHR_WRITE_PROVENANCE") === "true";
 
   const backend = value(env, "FHIR_BACKEND") ?? "medplum";
   if (backend !== "medplum" && backend !== "hapi") {
@@ -76,7 +79,7 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
         "The HAPI base URL must be a complete URL, for example http://localhost:8080/fhir.",
       );
     }
-    return { backend, baseUrl: hapiBaseUrl, writePolicy };
+    return { backend, baseUrl: hapiBaseUrl, writePolicy, writeProvenance };
   }
 
   const accessToken = value(env, "MEDPLUM_ACCESS_TOKEN");
@@ -119,5 +122,6 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     clientId,
     clientSecret,
     writePolicy,
+    writeProvenance,
   };
 }

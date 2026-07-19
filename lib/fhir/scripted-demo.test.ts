@@ -86,6 +86,15 @@ describe("ScriptedDemoBackend", () => {
     expect(backend.createResource).toHaveBeenCalledWith(
       expect.objectContaining({
         meta: {
+          // The wrapper rebuilds meta from scratch, so the AIAST label must
+          // be stamped here or scripted-mode writes lose their AI marking.
+          security: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+              code: "AIAST",
+              display: "Artificial Intelligence asserted",
+            },
+          ],
           tag: [{ system: "http://lastehr.demo", code: "session-session-A" }],
         },
       }),

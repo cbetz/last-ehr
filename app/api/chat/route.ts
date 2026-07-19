@@ -174,6 +174,10 @@ export async function POST(req: Request) {
           ? new ScriptedDemoBackend(backend, sessionId)
           : backend,
         sessionId,
+        // The scripted wrapper's fixed write surface has no Provenance, so
+        // the opt-in emission is pinned off rather than logging a spurious
+        // failure per approved write.
+        isScriptedDemoEnabled() ? { writeProvenance: false } : {},
       ),
       stopWhen: stepCountIs(5),
       // Client disconnect / Stop aborts the model call and the tool loop
@@ -195,8 +199,10 @@ export async function POST(req: Request) {
     execute: ({ writer }) => {
       // The observer wraps the RAW backend, inside the scripted wrapper, so
       // in scripted mode the panel shows the calls actually forwarded to the
-      // chart. The audit writer above stays unobserved: system writes are
-      // not part of the agent-reachable surface the panel documents.
+      // chart. The audit writer above stays unobserved — and so does the
+      // opt-in write-Provenance emitter (provenanceBackend below): system
+      // writes are not part of the agent-reachable surface the panel
+      // documents.
       const observed = new ObservedFhirBackend(
         backend,
         (event) =>
@@ -217,7 +223,10 @@ export async function POST(req: Request) {
         model,
         system: SYSTEM_PROMPT,
         messages: modelMessages,
-        tools: buildTools(toolBackend, sessionId),
+        tools: buildTools(toolBackend, sessionId, {
+          ...(isScriptedDemoEnabled() ? { writeProvenance: false } : {}),
+          provenanceBackend: backend,
+        }),
         stopWhen: stepCountIs(5),
         // createUIMessageStream's outer stream does not propagate the
         // response cancellation into merged streams, so the request signal

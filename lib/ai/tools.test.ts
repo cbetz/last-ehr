@@ -63,6 +63,17 @@ describe("agent FHIR tools", () => {
         resourceType: "Communication",
         subject: { reference: "Patient/p1" },
         payload: [{ contentString: "follow up in two weeks" }],
+        // The AIAST label is stamped per-tool, so each write tool needs its
+        // own assertion — a shared-path test would let one tool regress.
+        meta: expect.objectContaining({
+          security: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+              code: "AIAST",
+              display: "Artificial Intelligence asserted",
+            },
+          ],
+        }),
       }),
     );
   });
@@ -174,7 +185,7 @@ describe("agent FHIR tools", () => {
     ]);
   });
 
-  it("record_observation tags the write with the session id", async () => {
+  it("record_observation tags the write with the session id and the AIAST label", async () => {
     createResource.mockResolvedValue({ id: "obs-1" });
     const tools = buildTools(backend, "A");
 
@@ -187,9 +198,66 @@ describe("agent FHIR tools", () => {
 
     expect(createResource).toHaveBeenCalledWith(
       expect.objectContaining({
-        meta: { tag: [{ system: "http://lastehr.demo", code: "session-A" }] },
+        meta: {
+          tag: [{ system: "http://lastehr.demo", code: "session-A" }],
+          // Standard AI-transparency label: agent-written, per the HL7 AI
+          // Transparency IG's first-level tagging.
+          security: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+              code: "AIAST",
+              display: "Artificial Intelligence asserted",
+            },
+          ],
+        },
       }),
     );
+  });
+
+  it("emits opt-in Provenance on approved writes, non-blocking on failure", async () => {
+    vi.stubEnv("LASTEHR_WRITE_PROVENANCE", "true");
+    try {
+      createResource.mockResolvedValueOnce({ id: "obs-2" });
+      createResource.mockResolvedValueOnce({ id: "prov-1" });
+      const tools = buildTools(backend, "A");
+      const run = async () =>
+        (await (
+          tools.record_observation.execute as unknown as (
+            input: unknown,
+            opts: unknown,
+          ) => unknown
+        )({ patientId: "p2", label: "Heart rate", value: 72, unit: "bpm" }, {})) as {
+          id: string;
+        };
+
+      const out = await run();
+      expect(out.id).toBe("obs-2");
+      const provenance = createResource.mock.calls[1][0] as {
+        resourceType: string;
+        target: Array<{ reference: string }>;
+        agent: Array<{ type: { coding: Array<{ code: string }> } }>;
+        meta?: { tag?: unknown[] };
+      };
+      expect(provenance.resourceType).toBe("Provenance");
+      expect(provenance.target[0].reference).toBe("Observation/obs-2");
+      expect(provenance.agent.map((a) => a.type.coding[0].code)).toEqual([
+        "author",
+        "verifier",
+      ]);
+      // Session-tagged so demo isolation applies to the audit record too.
+      expect(provenance.meta?.tag).toEqual([
+        { system: "http://lastehr.demo", code: "session-A" },
+      ]);
+
+      // A Provenance failure never fails the approved write.
+      createResource.mockReset();
+      createResource.mockResolvedValueOnce({ id: "obs-3" });
+      createResource.mockRejectedValueOnce(new Error("audit backend down"));
+      const stillSaved = await run();
+      expect(stillSaved.id).toBe("obs-3");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("show_patient_info scopes Observation/Communication queries to visible rows and keeps seed data and its own", async () => {
