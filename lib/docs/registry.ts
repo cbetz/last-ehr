@@ -76,6 +76,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["approval", "writes", "human review", "safety", "Observation"],
   },
   {
+    slug: "agent-write-protocol",
+    file: "docs/agent-write-protocol.md",
+    title: "Approval-Gated Agent Writes on FHIR",
+    description:
+      "A small, framework-neutral protocol for agent-initiated, human-approved FHIR writes — v0.1 draft, extracted from this repository's two running implementations.",
+    group: "Understand",
+    order: 25,
+    audience: "Implementers, standards folks, and safety reviewers",
+    lastModified: "2026-07-18",
+    keywords: ["protocol", "spec", "approval", "agent", "MCP", "CDS Hooks", "Provenance", "AIAST"],
+  },
+  {
     slug: "threat-model",
     file: "docs/threat-model.md",
     title: "Threat Model",

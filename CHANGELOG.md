@@ -5,6 +5,15 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Published the v0.1 draft of "Approval-Gated Agent Writes on FHIR"
+  (docs/agent-write-protocol.md): a small, framework-neutral protocol —
+  Proposal, Decision, Commit, Audit, optional Isolation — extracted from
+  the web approval card and the MCP write profile, expressed in CDS Hooks
+  vocabulary where it fits and aligned with HL7's AI Transparency IG (the
+  standard AIAST label plus author/verifier Provenance) for the audit
+  layer. The FHIR Agent Safety Eval maps to it as the seed conformance
+  suite.
+
 - New read tool `read_chart_section`: one policy-checked bounded read over
   nine allowlisted chart sections (Observation, Communication, Condition,
   AllergyIntolerance, MedicationRequest, Immunization, DocumentReference,

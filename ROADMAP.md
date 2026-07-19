@@ -98,7 +98,9 @@ the default forever. Next:
 
 - Better bounded read coverage for Medplum projects.
 - Provenance/AuditEvent emission aligned with HL7's AI Transparency IG.
-- A framework-neutral write-profile spec extracted from this implementation.
+- The framework-neutral spec now exists as a v0.1 draft:
+  [Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md).
+  Next: socialize it and recruit an independent implementation.
 
 ## Stability
 
