@@ -37,7 +37,7 @@ export function JsonLd() {
         license: "https://www.apache.org/licenses/LICENSE-2.0",
         isAccessibleForFree: true,
         description:
-          "Adds human-approved AI writeback to FHIR apps: bounded chart reads, structured write proposals, and a human approval gate on every write. Supports Medplum, with a read-only MCP Local Lab and a synthetic workflow evaluator against local HAPI. Stores no patient data of its own.",
+          "Adds human-approved AI writeback to FHIR apps: bounded chart reads, structured write proposals, and a human approval gate on every write, per the Approval-Gated Agent Writes on FHIR protocol (v0.1 draft). Supports Medplum, with an MCP package (read-only by default, opt-in elicitation-gated writes), a standalone conformance suite, and a synthetic workflow evaluator against local HAPI. Stores no patient data of its own.",
       },
     ],
   };

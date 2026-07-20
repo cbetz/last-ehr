@@ -5,10 +5,27 @@ const tools = [
   {
     name: "search_patients",
     detail: "Find a seeded synthetic patient by name.",
+    badge: "READ",
   },
   {
     name: "show_patient_info",
     detail: "Open one fixture-restricted chart by id.",
+    badge: "READ",
+  },
+  {
+    name: "add_note",
+    detail: "Propose a note; a human approves the exact text per action.",
+    badge: "PROPOSAL",
+  },
+  {
+    name: "record_observation",
+    detail: "Propose a vital or lab value behind the same elicitation gate.",
+    badge: "PROPOSAL",
+  },
+  {
+    name: "create_task",
+    detail: "Propose a follow-up task with an optional due date.",
+    badge: "PROPOSAL",
   },
 ];
 
@@ -90,22 +107,30 @@ export default function AISection() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="font-mono text-[0.67rem] uppercase tracking-[0.13em] text-muted-foreground">Tool manifest</p>
-                <p className="mt-2 text-sm text-muted-foreground">Two inspectable read tools by default; writes exist only as human-approved proposals behind an explicit opt-in — never an arbitrary endpoint.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Read tools ship by default. The write tools exist only behind LASTEHR_MCP_WRITES=proposal, are offered only to clients that can render the approval prompt, and every write is a human-approved proposal — never an arbitrary endpoint.</p>
               </div>
               <div className="flex items-center gap-2 text-xs leading-5 text-muted-foreground">
                 <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
                 Read-only stays the default; every write needs a human approval.
               </div>
             </div>
-            <ul className="mt-4 grid divide-y divide-border border-y border-border sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:divide-x sm:divide-y-0">
-              {tools.map(({ name, detail }) => (
-                <li key={name} className="py-3 sm:px-4 sm:first:pl-0 sm:last:pr-0">
+            <ul className="mt-4 grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-3">
+              {tools.map(({ name, detail, badge }) => (
+                <li key={name} className="py-3">
                   <span className="flex items-start justify-between gap-3">
                     <span>
                       <span className="block font-mono text-xs font-medium text-foreground">{name}</span>
                       <span className="mt-1 block text-xs leading-5 text-muted-foreground">{detail}</span>
                     </span>
-                    <span className="shrink-0 border border-primary/30 px-1.5 py-0.5 font-mono text-[0.6rem] text-primary">READ</span>
+                    <span
+                      className={
+                        badge === "READ"
+                          ? "shrink-0 border border-primary/30 px-1.5 py-0.5 font-mono text-[0.6rem] text-primary"
+                          : "shrink-0 border border-amber-500/40 px-1.5 py-0.5 font-mono text-[0.6rem] text-amber-600 dark:text-amber-400"
+                      }
+                    >
+                      {badge}
+                    </span>
                   </span>
                 </li>
               ))}

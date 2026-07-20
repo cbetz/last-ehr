@@ -11,7 +11,7 @@ import { IconGitHub } from "./ui/icons";
 
 const proofPoints = [
   "Apache-2.0 reference implementation",
-  "Read-only MCP surface",
+  "Human-approved writes over web and MCP",
   "Synthetic-first local evaluation",
 ];
 
