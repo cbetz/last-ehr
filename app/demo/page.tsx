@@ -46,7 +46,7 @@ export default function DemoPage() {
             </>
           ) : (
             <>
-              A live demo of Last EHR&apos;s four FHIR tools on synthetic patients.
+              A live demo of Last EHR&apos;s FHIR tools on synthetic patients.
               Writes stop at an approval card. Read{" "}
             </>
           )}

@@ -372,12 +372,14 @@ export default function ApprovalGatedWritesPage() {
                   <strong className="text-foreground">
                     Surfaces without a card.
                   </strong>{" "}
-                  Over MCP there is no approval card at all; the host&apos;s
+                  Over MCP there is no approval card, and the host&apos;s
                   generic tool prompt is not an equivalent gate. The public
-                  MCP package therefore exposes only read tools. If a future
-                  MCP write surface is considered, should it be
-                  proposal-shaped: a draft plus a separate explicit confirm
-                  call?
+                  MCP package answers this with proposal-shaped writes behind
+                  an explicit opt-in: each write pauses on an MCP elicitation
+                  that shows the exact fields with a single approve boolean,
+                  clients that cannot render the prompt are never offered
+                  write tools, and only an explicit approval commits.
+                  Read-only remains the default.
                 </li>
               </ul>
               <p>
