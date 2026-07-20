@@ -3,7 +3,16 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.2.8 — 2026-07-20
+
+- The site and README now lead with the protocol: "Make every AI chart
+  write a reviewable proposal," the Proposal → Decision → Commit → Audit
+  framing, a homepage section presenting both running implementations and
+  the conformance command, and Start-here placement for the protocol and
+  conformance docs. Every remaining stale public claim about the write
+  surface (read-only MCP, four tools, hypothetical writes) was corrected,
+  and copy that overstated what ships was tightened to exactly what the
+  code proves.
 
 - New package `@lastehr/agent-write-conformance` (0.1.0): the standalone
   conformance suite for the Approval-Gated Agent Writes on FHIR protocol
