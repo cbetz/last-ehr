@@ -3,13 +3,22 @@
 [![CI](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml/badge.svg)](https://github.com/cbetz/last-ehr/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![npm: @lastehr/mcp](https://img.shields.io/npm/v/%40lastehr%2Fmcp?label=%40lastehr%2Fmcp)](https://www.npmjs.com/package/@lastehr/mcp)
+[![npm: @lastehr/agent-write-conformance](https://img.shields.io/npm/v/%40lastehr%2Fagent-write-conformance?label=%40lastehr%2Fagent-write-conformance)](https://www.npmjs.com/package/@lastehr/agent-write-conformance)
 [![Official MCP Registry](https://img.shields.io/badge/Official%20MCP%20Registry-active-2563eb)](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr)
 
-**Add human-approved AI writeback to a FHIR app.** Last EHR is the
-open-source reference implementation for that boundary: the agent reads the
-chart and proposes writes, and nothing is saved until you approve. Bring your
-own Medplum project and your own model key when you want a real agent, or
-start with the zero-key local synthetic walkthrough.
+**Make every AI chart write a reviewable proposal.** Last EHR defines and
+tests **[Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md)**
+(v0.1 draft) — a small protocol for the step between "the agent wants to
+write" and "the chart changed": Proposal → Decision → Commit → Audit. Two
+implementations run here — a web approval card and MCP elicitation-gated
+write tools — plus a [conformance suite](./docs/conformance.md) that checks
+implementations with its own FHIR reads. Independent implementations and
+criticism are invited.
+
+This repository is the reference implementation: the agent reads the chart
+and proposes writes, and nothing is saved until you approve. Bring your own
+Medplum project and model key for a real agent, or start with the zero-key
+local synthetic walkthrough.
 
 > **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, or Aidbox for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
@@ -24,6 +33,8 @@ start with the zero-key local synthetic walkthrough.
 | Goal | Start here |
 | --- | --- |
 | See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo): no sign-up. |
+| Read the protocol | [Approval-Gated Agent Writes on FHIR, v0.1 draft](./docs/agent-write-protocol.md) |
+| Test an MCP (stdio) implementation of the protocol | `npx @lastehr/agent-write-conformance` — see the [conformance guide](./docs/conformance.md) |
 | Give an MCP client bounded chart reads (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
 | Prove the synthetic web-agent workflow locally | `npm run eval` |
@@ -60,8 +71,9 @@ authorization, or compliance certification; see the [evaluation guide](./docs/ev
 
 ## What it does
 
-- A chat agent (Vercel AI SDK) with FHIR tools. It **reads** the chart (search patients, view a patient chart) and **writes** to it (add a note, record an observation), streamed and rendered as structured cards.
-- **Writes are confirmation-gated**: the agent proposes a write, you approve it, and only then is it saved. Nothing touches the chart without your click.
+- A chat agent (Vercel AI SDK) with FHIR tools. It **reads** the chart (search patients, view a patient chart, read one filtered chart section) and **writes** to it (add a note, record an observation, create a follow-up task), streamed and rendered as structured cards.
+- **Writes are confirmation-gated**: the agent proposes a write, you approve it, and only then is it saved. Nothing touches the chart without your click. Approved writes carry the standard AIAST security label, with optional Provenance recording author-agent and human-verifier roles (role labels, not user identity).
+- **The gate is a specified protocol, not just app behavior**: [Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md) (v0.1 draft) names the rules — only an explicit approval commits, every ambiguous outcome fails closed, policy can only narrow the gate — and the [conformance suite](./docs/conformance.md) tests an implementing MCP stdio server's gate mechanics with independent FHIR reads. CI runs it against this repository's own server on every pull request and merge.
 - Authentication, multi-tenancy, and access control are delegated to your **Medplum** project (`Project` = tenant, `ProjectMembership` = user, `AccessPolicy` = RBAC). Last EHR doesn't reimplement any of that, and writes are bounded by your AccessPolicy.
 
 ## Support status
@@ -166,6 +178,8 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 
 ## Docs
 
+- [Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md): the v0.1 draft protocol — Proposal, Decision, Commit, Audit, and the policy rules.
+- [Protocol conformance suite](./docs/conformance.md): test an implementing MCP stdio server with a scripted reviewer and independent FHIR verification.
 - [Quickstart](./docs/quickstart.md): hosted demo, Medplum local run, and local HAPI evaluation.
 - [Support matrix](./docs/support.md): exactly which backends and interfaces work today.
 - [Architecture](./docs/architecture.md): the chat route, tools, backend adapters, and data boundary.

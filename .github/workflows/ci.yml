@@ -65,7 +65,7 @@ jobs:
           if-no-files-found: error
       # Dogfood: the reference implementation must pass its own protocol
       # conformance suite, strict mode (AIAST + Provenance included), on
-      # every commit.
+      # every pull request and merge.
       - name: Run agent-write conformance suite against @lastehr/mcp
         env:
           LASTEHR_MCP_WRITES: proposal

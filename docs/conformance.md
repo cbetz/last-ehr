@@ -31,7 +31,7 @@ a disposable synthetic store. The manifest declares each write tool's name,
 a valid argument template, what it creates, and where the patient reference
 lands; the [worked example](https://github.com/cbetz/last-ehr/blob/main/packages/conformance/examples/lastehr-mcp.awp-manifest.json)
 is the manifest this repository's own `@lastehr/mcp` write profile passes
-with — on every commit, in CI, in strict mode.
+with — on every pull request and merge, in CI, in strict mode.
 
 ## What it checks
 

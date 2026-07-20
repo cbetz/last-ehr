@@ -144,7 +144,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 35,
     audience: "Protocol implementers and safety reviewers",
-    lastModified: "2026-07-19",
+    lastModified: "2026-07-20",
     keywords: ["conformance", "protocol", "MCP", "approval", "AIAST", "suite"],
   },
   {
