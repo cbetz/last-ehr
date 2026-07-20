@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import AISection from "@/components/AI";
+import { ProtocolSection } from "@/components/Protocol";
 import Hero from "@/components/Hero";
 import { HowItWorks } from "@/components/HowItWorks";
 import Navbar from "@/components/Navbar";
@@ -30,13 +31,13 @@ const entryPoints = [
   },
   {
     number: "02",
-    title: "Inspect MCP locally",
+    title: "Test an implementation",
     description:
-      "Start loopback HAPI, reset four fixture charts, and connect Claude Code or Cursor to two read-only tools.",
-    command: "npm run mcp:demo",
-    href: "/docs/mcp#zero-credential-local-lab-checkout-only",
+      "Run the conformance suite against any MCP stdio server implementing the write profile: a scripted reviewer plus independent FHIR verification.",
+    command: "npx @lastehr/agent-write-conformance",
+    href: "/docs/conformance",
     icon: Terminal,
-    cta: "Run the Local Lab",
+    cta: "Read the conformance guide",
   },
   {
     number: "03",
@@ -52,16 +53,24 @@ const entryPoints = [
 
 const evidenceRows = [
   ["Web agent", "Three write tools are proposal-shaped and approval-gated."],
-  ["MCP Local Lab", "A real stdio handshake reads only fixture-restricted HAPI charts."],
+  [
+    "MCP write profile",
+    "Elicitation-gated proposals behind an explicit opt-in; write tools are offered only to approval-capable clients.",
+  ],
+  [
+    "Conformance suite",
+    "An independent client drives approve, deny, cancel, and failure paths, verifying the chart with its own reads — dogfooded in CI in strict mode.",
+  ],
   ["Adapter seam", "A reusable FHIR REST baseline and contract harness make the next backend testable."],
   ["Safety Eval", "A disposable synthetic workflow report proves approval, denial, chart association, and cleanup mechanics."],
 ];
 
 const docRoutes = [
-  ["01", "Evaluate", "Synthetic web demo and MCP Local Lab", "/docs/quickstart"],
-  ["02", "Understand", "Approval gates, threat model, support boundary", "/docs/approval-gates"],
-  ["03", "Integrate", "Medplum, MCP, and backend adapter paths", "/docs/mcp"],
-  ["04", "Contribute", "Executable starter, contracts, and open roadmap", "/docs/adapters"],
+  ["01", "Protocol", "Approval-Gated Agent Writes on FHIR — the v0.1 draft", "/docs/agent-write-protocol"],
+  ["02", "Evaluate", "Synthetic web demo and MCP Local Lab", "/docs/quickstart"],
+  ["03", "Understand", "Approval gates, threat model, support boundary", "/docs/approval-gates"],
+  ["04", "Integrate", "Medplum, MCP, conformance, and backend adapters", "/docs/mcp"],
+  ["05", "Contribute", "Executable starter, contracts, and open roadmap", "/docs/adapters"],
 ];
 
 export default function Home() {
@@ -71,6 +80,7 @@ export default function Home() {
       <main>
         <Hero />
         <HowItWorks />
+        <ProtocolSection />
         <AISection />
 
         <section id="start" className="border-b marketing-rule">

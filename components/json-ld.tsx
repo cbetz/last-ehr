@@ -15,7 +15,7 @@ export function JsonLd() {
         url: BASE_URL,
         logo: `${BASE_URL}/icon`,
         description:
-          "Last EHR adds human-approved AI writeback to FHIR apps: open-source infrastructure for approval-gated agents and bounded clinical context, where a person approves every write.",
+          "Last EHR makes every AI chart write a reviewable proposal: an open draft protocol for agent-initiated FHIR writes (Proposal, Decision, Commit, Audit) with web and MCP bindings, an independent conformance suite, and a person approving every write.",
         sameAs: ["https://github.com/cbetz/last-ehr", "https://x.com/lastehr"],
       },
       {

@@ -205,6 +205,38 @@ export default async function DocsPage() {
                 supported configurations, and the small adapter contract behind
                 Last EHR.
               </p>
+              <div className="mt-7 grid gap-px border border-border bg-border sm:grid-cols-2">
+                <Link
+                  href="/docs/agent-write-protocol"
+                  className="bg-card p-4 transition-colors hover:bg-muted/60 sm:p-5"
+                >
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-primary">
+                    Start here: the protocol
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    Approval-Gated Agent Writes on FHIR (v0.1 draft)
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Proposal → Decision → Commit → Audit, extracted from two
+                    running bindings.
+                  </p>
+                </Link>
+                <Link
+                  href="/docs/conformance"
+                  className="bg-card p-4 transition-colors hover:bg-muted/60 sm:p-5"
+                >
+                  <p className="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-primary">
+                    Test the claim
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">
+                    Protocol Conformance Suite
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Drive any implementing MCP server with a scripted reviewer
+                    and independent FHIR verification.
+                  </p>
+                </Link>
+              </div>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row">
                 <Link href="/docs/quickstart#zero-key-local-synthetic-demo-with-hapi-fhir" className={buttonVariants({ size: "lg", className: "h-12 rounded-sm px-5" })}>
                   Start locally

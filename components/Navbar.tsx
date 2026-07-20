@@ -22,9 +22,10 @@ type NavigationItem = {
 };
 
 const navigation: NavigationItem[] = [
-  { href: "/#start", label: "Start" },
   { href: "/#safety", label: "Safety" },
+  { href: "/#protocol", label: "Protocol" },
   { href: "/#mcp", label: "MCP" },
+  { href: "/#start", label: "Start" },
   { href: "/docs", label: "Docs" },
   { href: "/docs/adapters", label: "Integrations" },
 ];
@@ -76,14 +77,14 @@ export default function Navbar() {
           </Link>
           <ModeToggle />
           <Link
-            href="/docs/mcp#zero-credential-local-lab-checkout-only"
+            href="/docs/agent-write-protocol"
             className={buttonVariants({
               size: "sm",
               className:
                 "ml-2 rounded-sm px-4",
             })}
           >
-            Run Local Lab
+            Read the protocol
           </Link>
         </div>
 
@@ -133,11 +134,11 @@ export default function Navbar() {
                   View source on GitHub
                 </Link>
                 <Link
-                  href="/docs/mcp#zero-credential-local-lab-checkout-only"
+                  href="/docs/agent-write-protocol"
                   onClick={() => setIsOpen(false)}
                   className={buttonVariants({ className: "mt-4 rounded-sm" })}
                 >
-                  Run Local Lab
+                  Read the protocol
                 </Link>
               </div>
             </SheetContent>
