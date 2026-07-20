@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | Last EHR",
   },
   description:
-    "Add human-approved AI writeback to a FHIR app. Last EHR is the open-source reference implementation: the agent reads chart context and proposes structured writes, and a person approves every write before it is saved.",
+    "Make every AI chart write a reviewable proposal: an open draft protocol for agent-initiated FHIR writes, with web and MCP bindings and a conformance suite.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
@@ -27,6 +27,8 @@ export const metadata: Metadata = {
     "MCP FHIR",
     "FHIR agent safety eval",
     "approval gated AI",
+    "FHIR agent write protocol",
+    "agent conformance suite",
   ],
   alternates: {
     canonical: "/",
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
     siteName: "Last EHR",
     title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "Add human-approved AI writeback to a FHIR app. The agent reads bounded chart context and proposes structured writes, and a person approves every write before it is saved. Open source and synthetic-data-first.",
+      "An open draft protocol for agent-initiated FHIR writes, with web and MCP bindings and a conformance suite. Open source and synthetic-data-first.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
@@ -44,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Last EHR: Approval-gated FHIR agents",
     description:
-      "Add human-approved AI writeback to a FHIR app. The agent proposes structured writes and a person approves every write before it is saved.",
+      "Make every AI chart write a reviewable proposal. An open draft protocol for agent-initiated FHIR writes, with web and MCP bindings and a conformance suite.",
     site: "@lastehr",
     creator: "@lastehr",
   },

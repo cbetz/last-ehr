@@ -10,16 +10,16 @@ import { buttonVariants } from "./ui/button";
 import { IconGitHub } from "./ui/icons";
 
 const proofPoints = [
-  "Apache-2.0 reference implementation",
-  "Human-approved writes over web and MCP",
-  "Synthetic-first local evaluation",
+  "Open protocol, v0.1 draft — criticism invited",
+  "Two running bindings: web and MCP",
+  "Independent conformance suite, dogfooded in CI",
 ];
 
 const ledgerSteps = [
   ["01", "Intent", "Record heart rate: 72 bpm"],
   ["02", "Proposal", "FHIR Observation / not persisted"],
   ["03", "Decision", "Explicit reviewer approval required"],
-  ["04", "Write", "Backend policy is still enforced"],
+  ["04", "Commit + audit", "Backend policy enforced; AIAST-labeled"],
 ];
 
 export default function Hero() {
@@ -29,23 +29,28 @@ export default function Hero() {
         aria-hidden="true"
         className="marketing-grid pointer-events-none absolute inset-x-0 top-0 h-[29rem] opacity-45 [mask-image:linear-gradient(to_bottom,black,transparent)]"
       />
-      <div className="container relative grid gap-14 py-14 sm:py-20 lg:grid-cols-[0.91fr_1.09fr] lg:items-center lg:gap-16 lg:py-24">
+      <div className="container relative grid gap-10 py-10 sm:py-14 lg:grid-cols-[0.91fr_1.09fr] lg:items-center lg:gap-16 lg:py-16">
         <div className="max-w-2xl">
           <p className="section-kicker inline-flex items-center gap-2">
             <CircleDotDashed className="h-3.5 w-3.5" aria-hidden="true" />
             Open-source clinical agent infrastructure
           </p>
-          <h1 className="mt-6 max-w-3xl text-[clamp(3rem,5.4vw,5rem)] font-semibold leading-[0.96] tracking-[-0.07em] text-balance">
-            Add human-approved <span className="text-primary">AI writeback</span> to your FHIR app.
+          <h1 className="mt-5 max-w-3xl text-[clamp(2.7rem,5vw,4.6rem)] font-semibold leading-[0.96] tracking-[-0.07em] text-balance">
+            Make every AI chart write a <span className="text-primary">reviewable proposal</span>.
           </h1>
-          <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">
-            Last EHR is the open-source reference implementation for that
-            boundary: the agent reads chart context, makes structured
-            proposals, and stops until a person and the FHIR backend authorize
-            the write.
+          <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">
+            Last EHR defines and tests a small protocol for agent-initiated
+            FHIR writes: show the exact proposed resource, require an explicit
+            human decision, commit exactly what was reviewed, and record what
+            created it. The live demo is its reference implementation.
+          </p>
+          <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[0.72rem] tracking-[0.12em] text-muted-foreground">
+            <span className="uppercase text-primary">Proposal → Decision → Commit → Audit</span>
+            <span aria-hidden="true">·</span>
+            <span>Approval-Gated Agent Writes on FHIR, v0.1 draft</span>
           </p>
 
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link
               href="/demo"
               className={buttonVariants({
@@ -53,25 +58,25 @@ export default function Hero() {
                 className: "group h-12 rounded-sm px-5 text-[0.94rem]",
               })}
             >
-              Open the synthetic demo
+              See the approval loop
               <ArrowRight
                 className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5"
                 aria-hidden="true"
               />
             </Link>
             <Link
-              href="/docs/mcp#zero-credential-local-lab-checkout-only"
+              href="/docs/agent-write-protocol"
               className={buttonVariants({
                 variant: "outline",
                 size: "lg",
                 className: "h-12 rounded-sm px-5 text-[0.94rem]",
               })}
             >
-              Run the MCP Local Lab
+              Read the protocol
             </Link>
           </div>
 
-          <div className="mt-8 grid gap-2 border-y marketing-rule py-4 text-sm text-muted-foreground sm:grid-cols-3 sm:gap-4">
+          <div className="mt-7 grid gap-2 border-y marketing-rule py-4 text-sm text-muted-foreground sm:grid-cols-3 sm:gap-4">
             {proofPoints.map((point) => (
               <span key={point} className="inline-flex items-start gap-2 leading-5">
                 <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Database, Eye, ShieldCheck, Stethoscope } from "lucide-react";
+import { ArrowRight, Database, Eye, FileCheck2, ShieldCheck, Stethoscope } from "lucide-react";
 
 const steps = [
   {
@@ -14,14 +14,21 @@ const steps = [
     icon: Stethoscope,
     title: "Represent intent as a proposal",
     description:
-      "A note or observation is shown as a concrete FHIR-shaped change, not hidden as an agent side effect.",
+      "A note, observation, or follow-up task is shown as a concrete FHIR-shaped change, not hidden as an agent side effect.",
   },
   {
     number: "03",
     icon: ShieldCheck,
     title: "Require a human decision",
     description:
-      "The write tool pauses. A reviewer can inspect, approve, or cancel before anything reaches the chart.",
+      "The write tool pauses. A reviewer can inspect, approve, or cancel before anything reaches the chart — and every ambiguous outcome fails closed.",
+  },
+  {
+    number: "04",
+    icon: FileCheck2,
+    title: "Commit what was reviewed, attributably",
+    description:
+      "Nothing beyond the reviewed proposal saves except mechanical metadata. Every agent write carries the standard AIAST security label, with optional Provenance recording an author agent and a human verifier.",
   },
 ];
 
