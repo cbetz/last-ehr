@@ -33,7 +33,8 @@ export const KNOWN_FHIR_BACKENDS = [
  * so isolation runs on the client-side filter arm — safe, with the
  * window-crowding caveat under heavy concurrent load (docs/support.md).
  * Firely stays excluded: its public sandbox is shared and world-writable.
- * Oystehr stays excluded pending sandbox verification (#122).
+ * Oystehr is verified synthetic-eval (2026-07-21) but stays demo-excluded
+ * until an operator decides to seed and offer their own project.
  */
 export const DEMO_ELIGIBLE_BACKENDS = ["medplum", "hapi", "aidbox"] as const;
 
@@ -46,7 +47,7 @@ export const DEMO_BACKEND_TIERS: Record<
   hapi: "local-eval",
   firely: "synthetic-eval",
   aidbox: "synthetic-eval",
-  oystehr: "pending",
+  oystehr: "synthetic-eval",
 };
 
 export type DemoBackend = { id: string; label: string };

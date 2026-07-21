@@ -2,9 +2,9 @@
 
 Backend adapters are the most useful contribution path. Medplum is supported
 today; the local HAPI FHIR stack and the Firely Server and Aidbox adapters
-below are for synthetic evaluation only, and the Oystehr adapter is merged
-with its verification pending. The next valuable adapters are OpenEMR and
-other FHIR R4 backends with a clear auth story.
+below are for synthetic evaluation only. The next valuable adapters are
+FHIR R4 backends with a clear auth story (OpenEMR is a documented no-go
+for now — see issue #123).
 
 ## Start with the executable starter
 
@@ -247,14 +247,20 @@ knowing:
   before pointing a public demo at a box, scope the Client's AccessPolicy to
   the demo's resource types rather than the allow-all used for verification.
 
-## Oystehr (verification pending)
+## Oystehr (verified synthetic evaluation)
 
 [`lib/fhir/oystehr.ts`](../lib/fhir/oystehr.ts) is an adapter over the shared
 REST transport for [Oystehr](https://oystehr.com) (formerly ZapEHR), the
 hosted headless EHR behind the open-source Ottehr. It is registered as
-`FHIR_BACKEND=oystehr` but **not yet verified against a real sandbox** —
-the two verification layers below must pass and be recorded here before it
-is listed as a supported or synthetic-evaluation configuration.
+`FHIR_BACKEND=oystehr` and was **verified 2026-07-21** against a
+developer-tier sandbox: real-server contract 5/5 — including the
+`_tag`/`_tag:not` session-isolation clause; a direct probe additionally
+confirmed Oystehr honors the bare-system `_tag:not` token server-side
+(a tagged row was excluded), so isolation needs no client-side filter
+arm, unlike Aidbox — and the
+FHIR Agent Safety Eval 7/7, plus a persistence probe confirming
+`meta.security` and `meta.tag` survive create round-trips. The developer
+tier is non-production/no-PHI by contract — synthetic data only.
 
 Auth is an M2M client's OAuth2 client credentials: the adapter POSTs a JSON
 body to `https://auth.zapehr.com/oauth/token` (audience

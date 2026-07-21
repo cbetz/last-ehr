@@ -34,8 +34,8 @@ operations — both self-hosters-first and off by default; see the
 demo stays Medplum-only until a second operator-owned, seeded backend
 exists. Adapter status:
 
-- Oystehr — adapter built ([#122](https://github.com/cbetz/last-ehr/pull/122)),
-  sandbox verification in progress
+- Oystehr — verified synthetic-evaluation adapter (contract 5/5, safety
+  eval 7/7 against a developer sandbox, 2026-07-21; [#122](https://github.com/cbetz/last-ehr/pull/122))
 - OpenEMR FHIR API — no-go for now: the write surface cannot satisfy the
   tool contract (no Communication resource, no Observation create, no FHIR
   delete, meta.tag discarded on create). Evidence and reopen criteria in

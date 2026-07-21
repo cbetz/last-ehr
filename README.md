@@ -99,7 +99,7 @@ the eligibility rules and `npm run check:backends` for preflight.
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with five built-in adapters: Medplum (hosted or self-hosted, token-authenticated), local HAPI FHIR, Firely Server, and Aidbox for synthetic evaluation, plus an Oystehr adapter whose sandbox verification is pending ([docs/support.md](./docs/support.md)). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with five built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, Aidbox, and Oystehr for synthetic evaluation ([docs/support.md](./docs/support.md)). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
 
 ```mermaid
 flowchart LR

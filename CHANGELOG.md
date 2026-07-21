@@ -5,13 +5,16 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
-- Added an Oystehr adapter (`FHIR_BACKEND=oystehr`): OAuth2 M2M client
-  credentials against Oystehr's hosted FHIR R4 API, with lazy token minting,
-  exp-based caching, and single-flighted refresh. Registered with unit
-  contract coverage and eval/seed wiring; real-sandbox verification (the
-  backend contract run plus the FHIR Agent Safety Eval) is pending and
-  tracked in docs/support.md before the adapter is called verified.
-
+- New verified backend adapter: Oystehr (`FHIR_BACKEND=oystehr`) —
+  OAuth2 M2M client credentials against Oystehr's hosted FHIR R4 API,
+  with lazy token minting, exp-based caching, and single-flighted
+  refresh. Verified 2026-07-21 against a developer-tier sandbox:
+  real-server contract 5/5 (a direct probe confirmed Oystehr honors
+  bare-system `_tag:not` server-side, so session isolation needs no
+  client-side filter arm), FHIR Agent
+  Safety Eval 7/7, and `meta.security`/`meta.tag` persist on create.
+  Synthetic-evaluation tier: the developer tier is non-production/no-PHI
+  by contract.
 ## 0.2.8 — 2026-07-20
 
 - The site and README now lead with the protocol: "Make every AI chart
