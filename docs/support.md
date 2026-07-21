@@ -11,7 +11,7 @@ safe path and contributors know where an adapter is needed.
 | Firely Server (`FHIR_BACKEND=firely`) | Yes | No | No | Synthetic evaluation only | Verified against Firely's public synthetic sandbox (`https://server.fire.ly`) with both contract harnesses and the FHIR Agent Safety Eval. Anonymous or static bearer token (`FIRELY_ACCESS_TOKEN`); the adapter never runs an OAuth flow, and the sandbox enforces no access control, so synthetic data only. |
 | Another no-auth, standard FHIR R4 server | Evaluation only | No | No | Unverified | It may work through the HAPI REST transport, but is not supported until both contract harnesses and the four synthetic workflows pass. |
 | Aidbox (`FHIR_BACKEND=aidbox`) | Yes | No | No | Synthetic evaluation only | Verified against a local dev-licensed box (`aidboxone:edge`) with both contract harnesses and the FHIR Agent Safety Eval. HTTP Basic from an Aidbox Client at the `/fhir` endpoint (`AIDBOX_CLIENT_ID`/`AIDBOX_CLIENT_SECRET`); a dev license from the Aidbox portal is required, and the box's AccessPolicy remains the security boundary. |
-| Oystehr (`FHIR_BACKEND=oystehr`) | Synthetic evaluation | No | No | Verified 2026-07-21 | OAuth2 M2M client credentials against Oystehr's hosted FHIR R4 API. Verified against a developer-tier sandbox: real-server contract 5/5 (including the `_tag`/`_tag:not` session-isolation clause; a direct probe confirmed the bare-system `_tag:not` token is honored server-side) and the FHIR Agent Safety Eval 7/7, with `meta.security` and `meta.tag` persisting on create. Developer tier is non-production/no-PHI by contract — synthetic data only. Evidence in [docs/adapters.md](./adapters.md). |
+| Oystehr (`FHIR_BACKEND=oystehr`) | Synthetic evaluation | No | Yes (operator-owned project) | Verified 2026-07-21 | OAuth2 M2M client credentials against Oystehr's hosted FHIR R4 API. Verified against a developer-tier sandbox: real-server contract 5/5 (including the `_tag`/`_tag:not` session-isolation clause; a direct probe confirmed the bare-system `_tag:not` token is honored server-side) and the FHIR Agent Safety Eval 7/7, with `meta.security` and `meta.tag` persisting on create. Developer tier is non-production/no-PHI by contract — synthetic data only. Evidence in [docs/adapters.md](./adapters.md). |
 | FHIR R4 server with authentication or product-specific behavior | Not yet verified | Not yet verified | Not yet verified | Adapter wanted | Start from the adapter starter, then implement and verify the auth story and `FhirBackend` contract before calling it supported. |
 
 ## Model providers
@@ -34,9 +34,9 @@ A deployment can let demo visitors pick which configured backend powers
 their session (`NEXT_PUBLIC_DEMO_BACKENDS`, `id|Label` pairs) and stream an
 under-the-hood panel of the agent's FHIR operations
 (`NEXT_PUBLIC_DEMO_DEV_OUTPUT`). Both default off. The allowlist is bound to
-this matrix **in code**: `medplum`, `hapi`, and `aidbox` are demo-eligible,
-and every other adapter is dropped by the parser regardless of the env
-value. Flipping a backend's eligibility is a governance change — it requires
+this matrix **in code**: `medplum`, `hapi`, `aidbox`, and `oystehr` are
+demo-eligible, and every other adapter is dropped by the parser regardless
+of the env value. Flipping a backend's eligibility is a governance change — it requires
 updating this matrix in the same PR plus contract-harness evidence against
 the concrete target, including the `_tag`/`_tag:not` session-isolation
 semantics.
@@ -50,6 +50,16 @@ never affected (they ride a separate tagged query), but under heavy
 concurrent demo load other sessions' rows can crowd seed rows out of the
 server-side result window. Offer an Aidbox picker option only on a box you
 own and seed.
+
+Oystehr's eligibility evidence (2026-07-21, operator-owned developer-tier
+project): real-server contract 5/5 including the isolation clause, with a
+direct probe confirming the bare-system `_tag:not` token is honored
+server-side — the first verified backend needing no client-side filter arm
+— plus the FHIR Agent Safety Eval 7/7 and `meta.security`/`meta.tag`
+persistence on create. The project is seeded with the demo's synthetic
+patients. Offer an Oystehr picker option only on a project you own and
+seed; the developer tier is non-production/no-PHI by contract, and its
+storage and rate ceilings are Oystehr's.
 
 Operator rules:
 

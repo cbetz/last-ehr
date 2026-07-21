@@ -5,6 +5,12 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Oystehr is demo-eligible (`DEMO_ELIGIBLE_BACKENDS`) for operator-owned,
+  seeded projects: eligibility evidence in docs/support.md (contract 5/5
+  with server-side `_tag:not` honored per direct probe, safety eval 7/7,
+  audit metadata persistence). Self-hosted pickers can now offer
+  `oystehr|<label>` in `NEXT_PUBLIC_DEMO_BACKENDS`.
+
 - New verified backend adapter: Oystehr (`FHIR_BACKEND=oystehr`) —
   OAuth2 M2M client credentials against Oystehr's hosted FHIR R4 API,
   with lazy token minting, exp-based caching, and single-flighted
