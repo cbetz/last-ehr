@@ -33,10 +33,19 @@ export const KNOWN_FHIR_BACKENDS = [
  * so isolation runs on the client-side filter arm — safe, with the
  * window-crowding caveat under heavy concurrent load (docs/support.md).
  * Firely stays excluded: its public sandbox is shared and world-writable.
- * Oystehr is verified synthetic-eval (2026-07-21) but stays demo-excluded
- * until an operator decides to seed and offer their own project.
+ * Oystehr was flipped 2026-07-21 against the operator-owned developer
+ * sandbox: contract 5/5 including the isolation clause (a direct probe
+ * confirmed bare-system _tag:not is honored server-side — no client-side
+ * filter arm needed), safety eval 7/7, meta.security/meta.tag persist,
+ * and the project is seeded. Firely stays excluded: its public sandbox is
+ * shared and world-writable.
  */
-export const DEMO_ELIGIBLE_BACKENDS = ["medplum", "hapi", "aidbox"] as const;
+export const DEMO_ELIGIBLE_BACKENDS = [
+  "medplum",
+  "hapi",
+  "aidbox",
+  "oystehr",
+] as const;
 
 /** docs/support.md tier per known backend, for picker badges and checks. */
 export const DEMO_BACKEND_TIERS: Record<
