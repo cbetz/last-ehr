@@ -99,12 +99,12 @@ the eligibility rules and `npm run check:backends` for preflight.
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with four built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, and Aidbox for synthetic evaluation. The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with five built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, Aidbox, and Oystehr for synthetic evaluation ([docs/support.md](./docs/support.md)). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
 
 ```mermaid
 flowchart LR
     B["Browser chat"] --> A["/api/chat<br/>streamText + FHIR tools"]
-    A -- "reads<br/>search_patients, show_patient_info, read_chart_section" --> M[("Your FHIR backend<br/>(Medplum, HAPI, Firely, Aidbox)")]
+    A -- "reads<br/>search_patients, show_patient_info, read_chart_section" --> M[("Your FHIR backend<br/>(Medplum, HAPI, Firely, Aidbox, Oystehr)")]
     A -- "writes<br/>add_note, record_observation, create_task" --> C{"Approval card"}
     C -- "Approve & save" --> M
     C -- "Cancel" --> N["Nothing saved"]

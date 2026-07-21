@@ -6,6 +6,7 @@ import { AidboxBackend } from "../lib/fhir/aidbox";
 import { FirelyBackend } from "../lib/fhir/firely";
 import { MedplumBackend } from "../lib/fhir/medplum";
 import { HapiBackend } from "../lib/fhir/hapi";
+import { OystehrBackend } from "../lib/fhir/oystehr";
 import { SYNTHETIC_SYSTEM } from "./fixtures/patients";
 
 // Child resource types owned by a synthetic patient, deleted before recreating.
@@ -126,11 +127,30 @@ export async function createSeedBackend({
     return { backend: new HapiBackend(baseUrl), target: baseUrl };
   }
 
-  if (kind === "firely" || kind === "aidbox") {
+  if (kind === "firely" || kind === "aidbox" || kind === "oystehr") {
     if (!confirmSyntheticTarget) {
       throw new Error(
         `FHIR_BACKEND=${kind} seeds an adapter target: the seed deletes and recreates synthetic charts, so it must only run against a disposable synthetic sandbox. Re-run with: npm run seed -- --confirm-synthetic`,
       );
+    }
+    if (kind === "oystehr") {
+      const clientId = process.env.OYSTEHR_CLIENT_ID;
+      const clientSecret = process.env.OYSTEHR_CLIENT_SECRET;
+      if (!clientId || !clientSecret) {
+        throw new Error(
+          "FHIR_BACKEND=oystehr requires OYSTEHR_CLIENT_ID and OYSTEHR_CLIENT_SECRET (an M2M client; see docs/adapters.md).",
+        );
+      }
+      const baseUrl = process.env.OYSTEHR_BASE_URL || undefined;
+      return {
+        backend: new OystehrBackend({
+          clientId,
+          clientSecret,
+          baseUrl,
+          projectId: process.env.OYSTEHR_PROJECT_ID || undefined,
+        }),
+        target: baseUrl ?? "Oystehr's hosted FHIR API",
+      };
     }
     if (kind === "firely") {
       const baseUrl = process.env.FIRELY_BASE_URL || process.env.FHIR_BASE_URL;
@@ -163,7 +183,7 @@ export async function createSeedBackend({
 
   if (kind !== "medplum") {
     throw new Error(
-      `Unknown FHIR_BACKEND "${kind}". Supported values: medplum, hapi, firely, aidbox.`,
+      `Unknown FHIR_BACKEND "${kind}". Supported values: medplum, hapi, firely, aidbox, oystehr.`,
     );
   }
 

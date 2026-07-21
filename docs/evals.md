@@ -88,12 +88,15 @@ evaluator at their own disposable synthetic sandbox:
 ```bash
 npm run eval -- --backend firely --base-url https://server.fire.ly --confirm-synthetic
 npm run eval -- --backend aidbox --base-url http://localhost:8888/fhir --confirm-synthetic
+npm run eval -- --backend oystehr --confirm-synthetic
 ```
 
 Adapter targets never prepare the local Docker stack and fail closed without
 `--confirm-synthetic`, because the evaluator creates and deletes resources on
-the target. Credentials come from the environment (`FIRELY_ACCESS_TOKEN`, or
-`AIDBOX_CLIENT_ID` + `AIDBOX_CLIENT_SECRET`); see the per-backend setup in the
+the target. Credentials come from the environment (`FIRELY_ACCESS_TOKEN`,
+`AIDBOX_CLIENT_ID` + `AIDBOX_CLIENT_SECRET`, or `OYSTEHR_CLIENT_ID` +
+`OYSTEHR_CLIENT_SECRET` — for Oystehr, `--base-url` is optional because the
+adapter defaults to the hosted API); see the per-backend setup in the
 [adapter guide](./adapters.md).
 
 Authors of a new, not-yet-registered adapter should first pass both

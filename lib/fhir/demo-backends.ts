@@ -17,6 +17,7 @@ export const KNOWN_FHIR_BACKENDS = [
   "hapi",
   "firely",
   "aidbox",
+  "oystehr",
 ] as const;
 
 /**
@@ -32,24 +33,27 @@ export const KNOWN_FHIR_BACKENDS = [
  * so isolation runs on the client-side filter arm — safe, with the
  * window-crowding caveat under heavy concurrent load (docs/support.md).
  * Firely stays excluded: its public sandbox is shared and world-writable.
+ * Oystehr is verified synthetic-eval (2026-07-21) but stays demo-excluded
+ * until an operator decides to seed and offer their own project.
  */
 export const DEMO_ELIGIBLE_BACKENDS = ["medplum", "hapi", "aidbox"] as const;
 
 /** docs/support.md tier per known backend, for picker badges and checks. */
 export const DEMO_BACKEND_TIERS: Record<
   (typeof KNOWN_FHIR_BACKENDS)[number],
-  "supported" | "local-eval" | "synthetic-eval"
+  "supported" | "local-eval" | "synthetic-eval" | "pending"
 > = {
   medplum: "supported",
   hapi: "local-eval",
   firely: "synthetic-eval",
   aidbox: "synthetic-eval",
+  oystehr: "synthetic-eval",
 };
 
 export type DemoBackend = { id: string; label: string };
 
 export type DemoBackendEntry = DemoBackend & {
-  /** The id is one of the four adapter ids the factory can construct. */
+  /** The id is an adapter id the factory can construct. */
   known: boolean;
   /** The id passes the code-level demo-eligibility gate above. */
   eligible: boolean;

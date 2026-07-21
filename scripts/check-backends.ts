@@ -27,6 +27,8 @@ function requiredEnvFor(id: string): string {
       return "FIRELY_BASE_URL (or FHIR_BASE_URL when firely is the deployment default)";
     case "aidbox":
       return "AIDBOX_BASE_URL (or FHIR_BASE_URL when aidbox is the default), plus AIDBOX_CLIENT_ID + AIDBOX_CLIENT_SECRET";
+    case "oystehr":
+      return "OYSTEHR_CLIENT_ID + OYSTEHR_CLIENT_SECRET (base URL defaults to the hosted API)";
     default:
       return "";
   }

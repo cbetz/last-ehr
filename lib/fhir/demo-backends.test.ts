@@ -21,12 +21,14 @@ describe("parseDemoBackends", () => {
   });
 
   it("drops ids outside the code-level eligibility gate", () => {
-    // firely is a known adapter but stays ineligible (shared public
-    // sandbox); unknown ids and typos must never become picker options.
-    // aidbox is eligible as of 2026-07-18 (operator-owned box verified with
-    // the isolation clause).
+    // firely stays ineligible (shared public sandbox) and oystehr stays
+    // ineligible pending verification (#122); unknown ids and typos must
+    // never become picker options. aidbox is eligible as of 2026-07-18
+    // (operator-owned box verified with the isolation clause).
     expect(
-      parseDemoBackends("medplum|Medplum,firely|Firely,aidbox|Aidbox,oystehr"),
+      parseDemoBackends(
+        "medplum|Medplum,firely|Firely,aidbox|Aidbox,oystehr|Oystehr,openemr",
+      ),
     ).toEqual([
       { id: "medplum", label: "Medplum" },
       { id: "aidbox", label: "Aidbox" },
@@ -55,9 +57,9 @@ describe("parseDemoBackends", () => {
 
 describe("parseDemoBackendEntries", () => {
   it("keeps ineligible and unknown entries, flagged, for the check script", () => {
-    expect(parseDemoBackendEntries("firely|Firely,oystehr|Oystehr")).toEqual([
-      { id: "firely", label: "Firely", known: true, eligible: false },
-      { id: "oystehr", label: "Oystehr", known: false, eligible: false },
+    expect(parseDemoBackendEntries("oystehr|Oystehr,openemr|OpenEMR")).toEqual([
+      { id: "oystehr", label: "Oystehr", known: true, eligible: false },
+      { id: "openemr", label: "OpenEMR", known: false, eligible: false },
     ]);
   });
 });

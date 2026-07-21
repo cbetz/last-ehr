@@ -15,6 +15,7 @@ import { AidboxBackend } from "@/lib/fhir/aidbox";
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { FirelyBackend } from "@/lib/fhir/firely";
 import { HapiBackend } from "@/lib/fhir/hapi";
+import { OystehrBackend } from "@/lib/fhir/oystehr";
 
 function fakeBackend(overrides: Partial<Record<keyof FhirBackend, unknown>>) {
   return {
@@ -160,10 +161,27 @@ describe("createSeedBackend", () => {
     ).rejects.toThrow("AIDBOX_CLIENT_ID");
   });
 
+  it("selects Oystehr with the confirmation and M2M credentials", async () => {
+    vi.stubEnv("FHIR_BACKEND", "oystehr");
+    vi.stubEnv("OYSTEHR_CLIENT_ID", "m2m");
+    vi.stubEnv("OYSTEHR_CLIENT_SECRET", "secret");
+    const { backend } = await createSeedBackend({
+      confirmSyntheticTarget: true,
+    });
+    expect(backend).toBeInstanceOf(OystehrBackend);
+  });
+
+  it("fails closed on oystehr without the synthetic confirmation", async () => {
+    vi.stubEnv("FHIR_BACKEND", "oystehr");
+    vi.stubEnv("OYSTEHR_CLIENT_ID", "m2m");
+    vi.stubEnv("OYSTEHR_CLIENT_SECRET", "secret");
+    await expect(createSeedBackend()).rejects.toThrow("--confirm-synthetic");
+  });
+
   it("rejects unknown backends, listing every supported value", async () => {
     vi.stubEnv("FHIR_BACKEND", "not-a-backend");
     await expect(createSeedBackend()).rejects.toThrow(
-      "medplum, hapi, firely, aidbox",
+      "medplum, hapi, firely, aidbox, oystehr",
     );
   });
 

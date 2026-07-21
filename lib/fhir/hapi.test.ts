@@ -9,6 +9,7 @@ vi.mock("@medplum/core", () => ({
 import { AidboxBackend } from "@/lib/fhir/aidbox";
 import { FirelyBackend } from "@/lib/fhir/firely";
 import { HapiBackend } from "@/lib/fhir/hapi";
+import { OystehrBackend } from "@/lib/fhir/oystehr";
 import { createFhirBackend, hasFhirBackendConfig } from "@/lib/fhir/backend";
 import { MedplumBackend } from "@/lib/fhir/medplum";
 import { defineFhirRestAdapterContract } from "@/test/fhir-rest-adapter-contract";
@@ -114,6 +115,20 @@ describe("createFhirBackend", () => {
     expect(() => createFhirBackend("tok")).toThrow("AIDBOX_CLIENT_ID");
   });
 
+  it("selects Oystehr with M2M credentials and no base URL (SaaS default)", () => {
+    vi.stubEnv("FHIR_BACKEND", "oystehr");
+    vi.stubEnv("OYSTEHR_CLIENT_ID", "m2m");
+    vi.stubEnv("OYSTEHR_CLIENT_SECRET", "secret");
+    expect(createFhirBackend("tok")).toBeInstanceOf(OystehrBackend);
+  });
+
+  it("throws loudly when oystehr is selected without M2M credentials", () => {
+    vi.stubEnv("FHIR_BACKEND", "oystehr");
+    vi.stubEnv("OYSTEHR_CLIENT_ID", "");
+    vi.stubEnv("OYSTEHR_CLIENT_SECRET", "");
+    expect(() => createFhirBackend("tok")).toThrow("OYSTEHR_CLIENT_ID");
+  });
+
   it("rejects unknown backends", () => {
     vi.stubEnv("FHIR_BACKEND", "not-a-backend");
     expect(() => createFhirBackend("tok")).toThrow("Unknown FHIR_BACKEND");
@@ -131,10 +146,13 @@ describe("hasFhirBackendConfig", () => {
     vi.stubEnv("AIDBOX_BASE_URL", "");
     vi.stubEnv("AIDBOX_CLIENT_ID", "");
     vi.stubEnv("AIDBOX_CLIENT_SECRET", "");
+    vi.stubEnv("OYSTEHR_CLIENT_ID", "");
+    vi.stubEnv("OYSTEHR_CLIENT_SECRET", "");
     expect(hasFhirBackendConfig("hapi")).toBe(false);
     expect(hasFhirBackendConfig("medplum")).toBe(false);
     expect(hasFhirBackendConfig("firely")).toBe(false);
     expect(hasFhirBackendConfig("aidbox")).toBe(false);
+    expect(hasFhirBackendConfig("oystehr")).toBe(false);
     expect(hasFhirBackendConfig("not-a-backend")).toBe(false);
 
     vi.stubEnv("HAPI_BASE_URL", "http://localhost:8080/fhir");
@@ -152,6 +170,12 @@ describe("hasFhirBackendConfig", () => {
     vi.stubEnv("AIDBOX_CLIENT_ID", "lastehr");
     vi.stubEnv("AIDBOX_CLIENT_SECRET", "secret");
     expect(hasFhirBackendConfig("aidbox")).toBe(true);
+
+    // Oystehr is SaaS-only: credentials alone are complete config — no
+    // base URL requirement (the adapter defaults to the hosted endpoint).
+    vi.stubEnv("OYSTEHR_CLIENT_ID", "m2m");
+    vi.stubEnv("OYSTEHR_CLIENT_SECRET", "secret");
+    expect(hasFhirBackendConfig("oystehr")).toBe(true);
   });
 
   it("counts the shared FHIR_BASE_URL only for the deployment's own default", () => {

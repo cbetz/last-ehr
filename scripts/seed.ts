@@ -170,8 +170,8 @@ async function createChart(
 
 async function main(): Promise<void> {
   const { backend, target } = await createSeedBackend({
-    // Adapter targets (firely/aidbox) fail closed without this, matching
-    // the safety eval's posture: npm run seed -- --confirm-synthetic
+    // Adapter targets (firely/aidbox/oystehr) fail closed without this,
+    // matching the safety eval's posture: npm run seed -- --confirm-synthetic
     confirmSyntheticTarget: process.argv.includes("--confirm-synthetic"),
   });
 

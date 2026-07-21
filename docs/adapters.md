@@ -3,7 +3,8 @@
 Backend adapters are the most useful contribution path. Medplum is supported
 today; the local HAPI FHIR stack and the Firely Server and Aidbox adapters
 below are for synthetic evaluation only. The next valuable adapters are
-Oystehr and other FHIR R4 backends with a clear auth story.
+FHIR R4 backends with a clear auth story (OpenEMR is a documented no-go
+for now — see issue #123).
 
 ## Start with the executable starter
 
@@ -246,6 +247,71 @@ knowing:
   before pointing a public demo at a box, scope the Client's AccessPolicy to
   the demo's resource types rather than the allow-all used for verification.
 
+## Oystehr (verified synthetic evaluation)
+
+[`lib/fhir/oystehr.ts`](../lib/fhir/oystehr.ts) is an adapter over the shared
+REST transport for [Oystehr](https://oystehr.com) (formerly ZapEHR), the
+hosted headless EHR behind the open-source Ottehr. It is registered as
+`FHIR_BACKEND=oystehr` and was **verified 2026-07-21** against a
+developer-tier sandbox: real-server contract 5/5 — including the
+`_tag`/`_tag:not` session-isolation clause; a direct probe additionally
+confirmed Oystehr honors the bare-system `_tag:not` token server-side
+(a tagged row was excluded), so isolation needs no client-side filter
+arm, unlike Aidbox — and the
+FHIR Agent Safety Eval 7/7, plus a persistence probe confirming
+`meta.security` and `meta.tag` survive create round-trips. The developer
+tier is non-production/no-PHI by contract — synthetic data only.
+
+Auth is an M2M client's OAuth2 client credentials: the adapter POSTs a JSON
+body to `https://auth.zapehr.com/oauth/token` (audience
+`https://api.zapehr.com`), caches the 24-hour JWT until shortly before its
+`exp`, and single-flights concurrent mints. The FHIR base defaults to the
+hosted R4 endpoint (`https://fhir-api.zapehr.com/r4`, which serves R4B) and
+deliberately does not fall back to the shared `FHIR_BASE_URL`.
+
+```bash
+FHIR_BACKEND=oystehr
+OYSTEHR_CLIENT_ID=<m2m client id>
+OYSTEHR_CLIENT_SECRET=<m2m client secret>
+# Optional; M2M tokens embed the project claim, but the official docs'
+# examples send the header, so the adapter does too when configured:
+# OYSTEHR_PROJECT_ID=<project id>
+```
+
+Minting sandbox credentials (a free developer account; the Bronze tier is
+non-production/no-PHI by contract — synthetic data only either way):
+
+1. Create an account at the [Oystehr quickstart](https://docs.oystehr.com/oystehr/getting-started/quickstart/)
+   and log into the developer console. Every new project auto-creates a
+   default M2M client.
+2. On the M2M client's details page, copy the Client ID and rotate the
+   secret to reveal it (shown once; rotating again invalidates the old one).
+3. Give the client an access policy that allows at least `FHIR:Search`,
+   `FHIR:Read`, and `FHIR:Create`; the seed and contract harness also need
+   `FHIR:Delete`:
+
+   ```json
+   { "rule": [{ "resource": ["FHIR:*"], "action": ["FHIR:*"], "effect": "Allow" }] }
+   ```
+
+   The allow-all policy is for a disposable synthetic project only.
+4. Run both verification layers (the search-semantics clause matters here:
+   Oystehr documents `_tag` and `_tag:not` support, and its own SDK builds
+   multi-tenancy on them):
+
+   ```bash
+   RUN_OYSTEHR_E2E=1 OYSTEHR_CLIENT_ID=... OYSTEHR_CLIENT_SECRET=... \
+     npx vitest run lib/fhir/oystehr.contract.integration.test.ts
+   OYSTEHR_CLIENT_ID=... OYSTEHR_CLIENT_SECRET=... \
+     npm run eval -- --backend oystehr --confirm-synthetic
+   ```
+
+Caveats: no SMART launch or MCP on this tier; Oystehr's access policies,
+tenancy, and audit logs remain Oystehr's job; URL length is capped at 10KB
+(irrelevant for this adapter's small queries); and the public
+CapabilityStatement is stale — trust the documented search-parameter list
+plus the verification runs, not `/metadata`.
+
 ## Suggested adapter issues
 
 Open or pick up one adapter at a time. A good issue title looks like:
@@ -264,8 +330,10 @@ The issue should include:
 ## What not to do
 
 - Do not add a backend-specific branch inside `lib/ai/tools.ts`.
-- Do not add an unverified backend name to `FHIR_BACKEND` or imply support in
-  marketing copy.
+- Do not add an unverified backend name to `FHIR_BACKEND` unless the same PR
+  documents its synthetic verification path in this guide and adds a
+  verification-pending row to [docs/support.md](./support.md) — and never
+  imply support in marketing copy before the verification lands.
 - Do not emulate access control in Last EHR.
 - Do not add real patient data to fixtures or tests.
 - Do not add high-risk write tools as part of an adapter PR.

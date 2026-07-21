@@ -48,7 +48,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 20,
     audience: "Technical evaluators and architecture owners",
-    lastModified: "2026-07-18",
+    lastModified: "2026-07-21",
     keywords: ["support", "Medplum", "HAPI", "compatibility", "status"],
   },
   {
@@ -108,7 +108,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 10,
     audience: "Backend contributors and integration teams",
-    lastModified: "2026-07-18",
+    lastModified: "2026-07-21",
     keywords: ["adapter", "Aidbox", "Firely", "Oystehr", "contract"],
   },
   {
