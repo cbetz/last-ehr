@@ -20,7 +20,7 @@ and proposes writes, and nothing is saved until you approve. Bring your own
 Medplum project and model key for a real agent, or start with the zero-key
 local synthetic walkthrough.
 
-> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, or Aidbox for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
+> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, Aidbox, or Oystehr for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
@@ -80,10 +80,11 @@ authorization, or compliance certification; see the [evaluation guide](./docs/ev
 
 Last EHR is **Medplum-supported** for authenticated deployments and includes a
 **local, no-auth HAPI FHIR mode** for synthetic-data evaluation. **Firely
-Server** (`FHIR_BACKEND=firely`) and **Aidbox** (`FHIR_BACKEND=aidbox`) are
-verified synthetic-evaluation adapters: each passed both contract harnesses
-and the [FHIR Agent Safety Eval](./docs/evals.md) against a disposable
-synthetic target. Other FHIR R4 backends need an adapter before they are
+Server** (`FHIR_BACKEND=firely`), **Aidbox** (`FHIR_BACKEND=aidbox`), and
+**Oystehr** (`FHIR_BACKEND=oystehr`) are verified synthetic-evaluation
+adapters: each passed both contract harnesses and the
+[FHIR Agent Safety Eval](./docs/evals.md) against a disposable synthetic
+target. Other FHIR R4 backends need an adapter before they are
 supported. See the full [support matrix](./docs/support.md) for the web,
 SMART, MCP, auth, and evaluation boundaries before choosing a path.
 

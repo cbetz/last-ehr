@@ -36,7 +36,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 10,
     audience: "Evaluators and first-time builders",
-    lastModified: "2026-07-14",
+    lastModified: "2026-07-22",
     keywords: ["local", "HAPI", "Medplum", "setup", "Docker"],
   },
   {

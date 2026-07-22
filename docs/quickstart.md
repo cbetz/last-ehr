@@ -182,10 +182,11 @@ The write prompts should stop at the approval card before anything is saved.
 
 ## Other synthetic-evaluation backends
 
-Beyond Medplum and the local HAPI stack, two more adapters are verified for
-synthetic evaluation: Firely Server (`FHIR_BACKEND=firely`, e.g. against the
-public sandbox at `https://server.fire.ly`) and Aidbox (`FHIR_BACKEND=aidbox`,
-against a dev-licensed local box). Setup, auth, and caveats for each are in
-the [adapter guide](./adapters.md); the boundaries are in the
-[support matrix](./support.md). Neither is an authenticated or PHI-ready
-path.
+Beyond Medplum and the local HAPI stack, three more adapters are verified
+for synthetic evaluation: Firely Server (`FHIR_BACKEND=firely`, e.g. against
+the public sandbox at `https://server.fire.ly`), Aidbox
+(`FHIR_BACKEND=aidbox`, against a dev-licensed or hosted dev box), and
+Oystehr (`FHIR_BACKEND=oystehr`, against a developer-tier project). Setup,
+auth, and caveats for each are in the [adapter guide](./adapters.md); the
+boundaries are in the [support matrix](./support.md). None is an
+authenticated or PHI-ready path.
