@@ -17,8 +17,9 @@ criticism are invited.
 
 This repository is the reference implementation: the agent reads the chart
 and proposes writes, and nothing is saved until you approve. Bring your own
-Medplum project and model key for a real agent, or start with the zero-key
-local synthetic walkthrough.
+FHIR backend and model key for a real agent — Medplum for the authenticated
+path, or any verified adapter for synthetic evaluation — or start with the
+zero-key local synthetic walkthrough.
 
 > **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, Aidbox, or Oystehr for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
@@ -35,7 +36,7 @@ local synthetic walkthrough.
 | See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo): no sign-up. |
 | Read the protocol | [Approval-Gated Agent Writes on FHIR, v0.1 draft](./docs/agent-write-protocol.md) |
 | Test an MCP (stdio) implementation of the protocol | `npx @lastehr/agent-write-conformance` — see the [conformance guide](./docs/conformance.md) |
-| Give an MCP client bounded chart reads (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
+| Give an MCP client bounded chart tools — read-only by default, opt-in approved writes (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
 | Prove the synthetic web-agent workflow locally | `npm run eval` |
 | Inspect the complete flow locally with no account or model key | `npm run demo:local` |
@@ -55,7 +56,7 @@ Configure a least-privilege Medplum token before connecting it to a real
 project; full setup is in the
 [MCP guide](./docs/mcp.md) and the [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr).
 
-Want to inspect those two MCP tools before configuring Medplum? From a
+Want to inspect the read surface before configuring Medplum? From a
 checkout, `npm run mcp:demo` starts the included local HAPI stack, resets the
 four synthetic fixture charts, and prints a Claude Code/Cursor configuration.
 That checkout-only **MCP Local Lab** needs no FHIR/Medplum credentials or
@@ -124,7 +125,7 @@ On the public demo, writes are also tagged with your session, so you only ever s
 
 You'll still need a **Medplum** project seeded with the synthetic patients (`npm run seed`, below) for the demo to have data.
 
-**Run it locally.** Prerequisites: Node 22.18+ (or 24.2+), a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one tool-capable model API key (OpenAI, Anthropic, or Amazon Bedrock).
+**Run it locally (authenticated Medplum path).** Prerequisites: Node 22.18+ (or 24.2+), a **Medplum** project (Medplum-hosted [free tier](https://app.medplum.com/) or your own), and one tool-capable model API key (OpenAI, Anthropic, or Amazon Bedrock). For a real agent without Medplum, the same `.env.local` works with `FHIR_BACKEND=hapi` against the local Docker stack, or with any verified synthetic-evaluation adapter ([support matrix](./docs/support.md)).
 
 ```bash
 git clone https://github.com/cbetz/last-ehr.git
@@ -161,9 +162,10 @@ FHIR wrapper permits only that synthetic record and observation. Press Ctrl-C
 to stop Next.js; use `npm run demo:local:down` to remove the local stack.
 Honest scope: the local HAPI server runs with **no auth**, so this mode is for
 local, single-tenant use only; per-browser session isolation is client-side
-filtering, not a security boundary. The published `@lastehr/mcp` package still
-requires Medplum credentials; the separate checkout-only `npm run mcp:demo`
-Local Lab instead exposes two synthetic, read-only charts without credentials.
+filtering, not a security boundary. The published `@lastehr/mcp` package targets
+Medplum (credentialed) or a local HAPI stack; the separate checkout-only
+`npm run mcp:demo` Local Lab exposes four synthetic, read-only fixture
+charts without credentials.
 Neither local route is a real-data or production path. To run a real agent
 against HAPI, configure `.env.local` with a supported model key instead. The
 hosted public demo stays on Medplum.
@@ -208,7 +210,7 @@ Medplum sign-in (SMART App Launch with PKCE, public client, no secret). The
 token is bounded by the granted SMART scopes and your AccessPolicy, and writes
 still stop at the approval card.
 
-## Use chart reads over MCP
+## Use chart tools over MCP
 
 [`@lastehr/mcp`](./packages/mcp) is a small, standalone MCP server for
 Medplum (or the local HAPI stack). It gives Claude Code, Cursor, and other
