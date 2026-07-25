@@ -32,15 +32,24 @@ function fakeWriteClient({ failProvenance = false } = {}) {
     async search() {
       return { resourceType: "Bundle", type: "searchset" } as never;
     },
-    async searchResources() {
-      return [] as never;
+    async searchResources(_type: unknown, params?: Record<string, string>) {
+      // The superseding tool fetches the original by _id before asking, so
+      // the fake resolves that lookup from what it has created.
+      const id = params?._id;
+      if (!id) return [] as never;
+      return created.filter(
+        (resource) => (resource as { id?: string }).id === id,
+      ) as never;
     },
     async createResource(resource) {
       if (failProvenance && resource.resourceType === "Provenance") {
         throw new Error("audit backend down");
       }
-      created.push(resource);
-      return { ...resource, id: `created-${created.length}` };
+      // Store WITH the server-assigned id so a later _id read can find it,
+      // the way a real server would.
+      const stored = { ...resource, id: `created-${created.length + 1}` };
+      created.push(stored);
+      return stored;
     },
   };
   return { client, created };
@@ -99,6 +108,7 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
       "show_patient_info",
       "add_note",
       "record_observation",
+      "record_superseding_observation",
       "create_task",
     ]);
 
@@ -407,6 +417,66 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     );
     expect(prompts[0].split("\n").filter((l) => l.startsWith("Due:"))).toHaveLength(0);
     expect(prompts[0].split("\n").filter((l) => l.startsWith("Patient:"))).toHaveLength(1);
+  });
+
+  it("supersedes an observation with one create carrying the R4 replaces link", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+    });
+    // File the original, then supersede it.
+    await mcpClient.callTool({
+      name: "record_observation",
+      arguments: { patientId: "p1", label: "Body weight", value: 70, unit: "kg" },
+    });
+    const originalId = (created[0] as { id: string }).id;
+    const result = (await mcpClient.callTool({
+      name: "record_superseding_observation",
+      arguments: { patientId: "p1", supersedes: originalId, value: 17, unit: "kg" },
+    })) as { content: Array<{ text: string }> };
+
+    // Exactly one new resource: the link rides it, so nothing can orphan.
+    expect(created).toHaveLength(2);
+    const superseding = created[1] as {
+      status?: string;
+      issued?: string;
+      extension?: { url: string; valueReference?: { reference?: string } }[];
+    };
+    expect(superseding.status).toBe("final");
+    expect(superseding.extension).toEqual([
+      {
+        url: "http://hl7.org/fhir/StructureDefinition/observation-replaces",
+        valueReference: { reference: `Observation/${originalId}` },
+      },
+    ]);
+    expect(superseding.issued).toBeDefined();
+
+    // The reviewer is told the limit in the prompt they approve...
+    expect(prompts[1]).toContain("Supersedes:");
+    expect(prompts[1]).toContain("does not mark it as an error");
+    // ...and the model is told it in the result it paraphrases.
+    expect(JSON.parse(result.content[0].text)).toMatchObject({
+      saved: true,
+      supersedes: originalId,
+    });
+    expect(JSON.parse(result.content[0].text).outcome).toMatch(
+      /does not mark it as an error/,
+    );
+  });
+
+  it("refuses a bogus or cross-patient supersede without asking a human", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+    });
+    const bogus = (await mcpClient.callTool({
+      name: "record_superseding_observation",
+      arguments: { patientId: "p1", supersedes: "nope-404", value: 1, unit: "kg" },
+    })) as { content: Array<{ text: string }> };
+    expect(JSON.parse(bogus.content[0].text)).toMatchObject({ saved: false });
+    expect(created).toHaveLength(0);
+    // Never bother a reviewer with a proposal that cannot commit.
+    expect(prompts).toHaveLength(0);
   });
 
   it("threads runtime config into write-tool options field-for-field", () => {

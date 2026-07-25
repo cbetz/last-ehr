@@ -5,6 +5,13 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- `record_superseding_observation` is now in `@lastehr/mcp` too, so both
+  bindings offer the same write surface. The MCP form fetches the original
+  before asking, so the elicitation names the row being superseded and a
+  bogus or cross-patient id is refused **without bothering a reviewer with
+  a proposal that cannot commit** — the same pre-elicitation policy
+  ordering the write profile already uses.
+
 - New gated write `record_superseding_observation`: when a value already on
   the chart is wrong, the agent can propose a corrected one. Today's answer
   to "that weight was wrong" is "I can't."
@@ -30,7 +37,6 @@ self-hosters can tell what moved between pulls.
   patient. `status` stays `final`: "corrected" and "amended" describe a
   resource's own prior lifecycle, and this one was never final before.
 
-  Web binding only for now; `@lastehr/mcp` parity is next.
 
 - Agent-written observations are now coded, in both bindings. A recognized
   vital gains a LOINC `coding` and the `vital-signs` category — both

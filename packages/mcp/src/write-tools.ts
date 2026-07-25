@@ -3,7 +3,11 @@ import { z } from "zod";
 
 import type { ApprovalRequest, RequestApproval } from "./approval.js";
 import type { FhirReadClient, McpReadTool } from "./read-tools.js";
-import { codeObservation, UCUM_SYSTEM } from "./vitals.js";
+import {
+  codeObservation,
+  OBSERVATION_REPLACES_EXTENSION,
+  UCUM_SYSTEM,
+} from "./vitals.js";
 
 // Proposal-shaped writes: the same write actions as the web demo
 // (Communication note, Observation vital), with matching input caps,
@@ -106,6 +110,24 @@ function isRealCalendarDate(value: string): boolean {
   );
 }
 
+const supersedingObservationSchema = z.object({
+  patientId: z.string().min(1).max(64).describe("The patient resource id."),
+  supersedes: z
+    .string()
+    .min(1)
+    .max(64)
+    .describe(
+      "Resource id of the earlier observation this one supersedes, from a prior read.",
+    ),
+  value: z
+    .number()
+    .finite()
+    .gte(-100_000)
+    .lte(100_000)
+    .describe("The corrected numeric value."),
+  unit: z.string().min(1).max(20).describe("The unit, e.g. kg."),
+});
+
 const createTaskSchema = z.object({
   patientId: z.string().min(1).max(64).describe("The patient resource id."),
   description: z
@@ -159,7 +181,11 @@ const policyDeniedResult = (reason?: string) => ({
 });
 
 export type McpWriteTool = Omit<McpReadTool, "name"> & {
-  name: "add_note" | "record_observation" | "create_task";
+  name:
+    | "add_note"
+    | "record_observation"
+    | "record_superseding_observation"
+    | "create_task";
   /** Marks the tool as a proposal-shaped write for annotations/docs. */
   proposesWrite: true;
 };
@@ -167,6 +193,7 @@ export type McpWriteTool = Omit<McpReadTool, "name"> & {
 export const WRITE_TOOL_NAMES = [
   "add_note",
   "record_observation",
+  "record_superseding_observation",
   "create_task",
 ] as const;
 
@@ -376,6 +403,106 @@ export function createWriteTools(
         const created = await client.createResource(resource);
         await emitWriteProvenance("Observation", created.id);
         return { saved: true, resourceType: "Observation", id: created.id };
+      },
+    },
+    {
+      name: "record_superseding_observation",
+      proposesWrite: true,
+      description:
+        "Propose a new observation that supersedes an earlier one on the same chart, for when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes; the earlier entry is NOT changed, NOT deleted, and NOT marked as an error. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve.",
+      inputSchema: supersedingObservationSchema,
+      async execute(input: unknown) {
+        const { patientId, supersedes, value, unit } =
+          supersedingObservationSchema.parse(input);
+        const proposal = {
+          toolName: "record_superseding_observation",
+          resourceType: "Observation",
+          patientId,
+        };
+        const policyBefore = await checkWritePolicy(proposal);
+        if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
+
+        // Fetch the original BEFORE asking, so the reviewer sees the real row
+        // being superseded and a bogus id refuses instead of minting a
+        // dangling reference.
+        const [original] = await client.searchResources("Observation", {
+          _id: supersedes,
+          _count: "1",
+        });
+        if (!original) {
+          return {
+            saved: false,
+            outcome: `No observation ${supersedes} is readable, so there is nothing to supersede. Nothing was saved to the chart.`,
+          };
+        }
+        if (original.subject?.reference !== `Patient/${patientId}`) {
+          return {
+            saved: false,
+            outcome: `Observation ${supersedes} does not belong to patient ${patientId}. Nothing was saved to the chart.`,
+          };
+        }
+        const priorLabel =
+          original.code?.text ??
+          original.code?.coding?.[0]?.display ??
+          "Observation";
+        const priorValue = original.valueQuantity
+          ? `${original.valueQuantity.value ?? ""} ${original.valueQuantity.unit ?? ""}`.trim()
+          : "(no value)";
+
+        const decision = await decide({
+          title: "File a superseding observation?",
+          summary: [
+            `Patient: Patient/${patientId}`,
+            `Resource: Observation`,
+            `Supersedes: Observation/${supersedes} — ${JSON.stringify(`${priorLabel} ${priorValue}`)}`,
+            `New value: ${value} ${JSON.stringify(unit)}`,
+            "The earlier entry stays on the chart as a final result. This does not mark it as an error and does not delete it.",
+          ].join("\n"),
+        });
+        if (decision !== "approved") {
+          return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
+        }
+        const policyAtCommit = await checkWritePolicy(proposal);
+        if (policyAtCommit.deny) {
+          return policyDeniedResult(policyAtCommit.reason);
+        }
+        const coded = codeObservation(priorLabel, unit);
+        // One create: the supersession link rides the resource, so there is
+        // no second write that could fail and leave two contradictory values
+        // with nothing joining them.
+        const resource: Observation = {
+          resourceType: "Observation",
+          status: "final",
+          code: original.code ?? { text: priorLabel },
+          ...(original.category ? { category: original.category } : {}),
+          subject: { reference: `Patient/${patientId}` },
+          // The original's measurement time; `issued` marks the correction.
+          ...(original.effectiveDateTime
+            ? { effectiveDateTime: original.effectiveDateTime }
+            : {}),
+          issued: new Date().toISOString(),
+          valueQuantity: {
+            value,
+            unit,
+            ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
+          },
+          extension: [
+            {
+              url: OBSERVATION_REPLACES_EXTENSION,
+              valueReference: { reference: `Observation/${supersedes}` },
+            },
+          ],
+          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
+        };
+        const created = await client.createResource(resource);
+        await emitWriteProvenance("Observation", created.id);
+        return {
+          saved: true,
+          resourceType: "Observation",
+          id: created.id,
+          supersedes,
+          outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
+        };
       },
     },
     {

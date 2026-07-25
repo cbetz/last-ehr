@@ -52,7 +52,7 @@ const entryPoints = [
 ];
 
 const evidenceRows = [
-  ["Web agent", "Three write tools are proposal-shaped and approval-gated."],
+  ["Web agent", "Every write tool is proposal-shaped and approval-gated."],
   [
     "Read coverage",
     "Counted in the open against US Core, with the ceiling and the deliberate exclusions published rather than implied.",
