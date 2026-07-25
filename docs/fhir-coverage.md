@@ -15,7 +15,7 @@ types**, counted from the published
 generated 2026-05-31), unmodified. US Core is the denominator because it is
 the floor US implementers are actually asked about.
 
-**15 of 27 US Core resource types**, plus 3 types US Core does not profile.
+**21 of 27 US Core resource types**, plus 3 types US Core does not profile.
 
 | Readable today | In US Core 9.0.0 |
 | --- | --- |
@@ -34,6 +34,12 @@ the floor US implementers are actually asked about.
 | ServiceRequest | ✅ |
 | CareTeam | ✅ |
 | Coverage | ✅ |
+| Device | ✅ |
+| FamilyMemberHistory | ✅ |
+| MedicationDispense | ✅ |
+| QuestionnaireResponse | ✅ |
+| RelatedPerson | ✅ |
+| Specimen | ✅ |
 | Communication | ❌ — not a US Core profile |
 | Task | ❌ — not a US Core profile |
 | AuditEvent | ❌ — not a US Core profile |
@@ -43,9 +49,13 @@ Core clinical profiles. Worth stating plainly because **two of the three
 types the agent can write are outside this denominator** — the write surface
 and the read denominator are not the same set.
 
-The 12 US Core types with no read path today: Device, FamilyMemberHistory,
-Location, Medication, MedicationDispense, Organization, Practitioner,
-PractitionerRole, Provenance, QuestionnaireResponse, RelatedPerson, Specimen.
+The 6 US Core types with no read path today: Location, Medication,
+Organization, Practitioner, PractitionerRole, Provenance. **Every one of
+them is unreachable for the same reason** — none can be scoped to a patient,
+so none can be a chart section. They are reachable only by following a
+reference from a resource that names them, which is the `_include` row under
+[resolution mechanisms](#axis-c--resolution-mechanisms). That single
+mechanism is what would take this axis from 21 to 27.
 
 Three of those absences are deliberate rather than pending, and the reasons
 are worth stating:
@@ -170,8 +180,8 @@ work — a safety regression wearing a coverage win.
 
 The tool builds every query. The model chooses a section and filters and
 never supplies raw search parameters, so the model's entire search vocabulary
-is: a patient name, a section from a 10-value allowlist, an Observation-only
-code token, `dateFrom`, `dateTo`, and a count of 1-100.
+is: a patient name, a section from a 23-value allowlist, a
+code token, a status, a category, `dateFrom`, `dateTo`, and a count of 1-100.
 
 | Feature | Status |
 | --- | --- |
@@ -179,7 +189,7 @@ code token, `dateFrom`, `dateTo`, and a count of 1-100.
 | Newest-first server-side `_sort` on every section | ✅ each value probed for real ordering |
 | Single date bound | ✅ |
 | Date range | ⚠️ one bound is applied server-side and the other filtered from the returned rows; correct results, but a range wider than the window reports `truncated` |
-| `code` token filter | ✅ Observation, Condition, AllergyIntolerance, MedicationRequest, Immunization (`vaccine-code`) — coded records only |
+| `code` token filter | ✅ on 9 sections (Observation, Condition, AllergyIntolerance, MedicationRequest, Immunization, Encounter, DiagnosticReport, Procedure, ServiceRequest) — coded records only |
 | `status` filter | ✅ every section, mapped to that type's own parameter (`clinical-status`, `lifecycle-status`, `status`) and validated against its R4 value set |
 | `category` filter | ✅ Observation — separates `vital-signs` from `laboratory` |
 | Paging (`Bundle.link[next]`) | ❌ — `_count` is a cap, not a page |

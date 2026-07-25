@@ -381,6 +381,42 @@ export function buildTools(
     "entered-in-error",
     "unknown",
   ] as const;
+  const DEVICE_STATUSES = [
+    "active",
+    "inactive",
+    "entered-in-error",
+    "unknown",
+  ] as const;
+  const FAMILY_HISTORY_STATUSES = [
+    "partial",
+    "completed",
+    "entered-in-error",
+    "health-unknown",
+  ] as const;
+  const MEDICATION_DISPENSE_STATUSES = [
+    "preparation",
+    "in-progress",
+    "cancelled",
+    "on-hold",
+    "completed",
+    "entered-in-error",
+    "stopped",
+    "declined",
+    "unknown",
+  ] as const;
+  const QUESTIONNAIRE_RESPONSE_STATUSES = [
+    "in-progress",
+    "completed",
+    "amended",
+    "entered-in-error",
+    "stopped",
+  ] as const;
+  const SPECIMEN_STATUSES = [
+    "available",
+    "unavailable",
+    "unsatisfactory",
+    "entered-in-error",
+  ] as const;
   const ENCOUNTER_STATUSES = [
     "planned",
     "arrived",
@@ -743,6 +779,105 @@ export function buildTools(
           r.outcome ? ` outcome=${r.outcome}` : ""
         }${r.outcomeDesc ? `: ${asChartText(r.outcomeDesc)}` : ""}`,
         date: r.recorded?.slice(0, 10) ?? "",
+      }),
+    },
+    Device: {
+      patientParam: "patient",
+      statusParam: "status",
+      statuses: DEVICE_STATUSES,
+      toRow: (r: ExtractResource<"Device">) => ({
+        id: r.id ?? "",
+        text: `${asChartText(
+          r.type?.text ?? r.type?.coding?.[0]?.display ?? "Device",
+        )}${r.status ? ` (${r.status})` : ""}`,
+        date: "",
+      }),
+    },
+    FamilyMemberHistory: {
+      patientParam: "patient",
+      dateParam: "date",
+      sort: "-date",
+      statusParam: "status",
+      statuses: FAMILY_HISTORY_STATUSES,
+      toRow: (r: ExtractResource<"FamilyMemberHistory">) => ({
+        id: r.id ?? "",
+        text: `${asChartText(
+          r.relationship?.text ??
+            r.relationship?.coding?.[0]?.display ??
+            "Relative",
+        )}: ${
+          r.condition
+            ?.map(
+              (entry) =>
+                entry.code?.text ?? entry.code?.coding?.[0]?.display ?? "condition",
+            )
+            .join(", ") || "no conditions recorded"
+        }`,
+        date: r.date?.slice(0, 10) ?? "",
+      }),
+    },
+    MedicationDispense: {
+      patientParam: "patient",
+      dateParam: "whenhandedover",
+      sort: "-whenhandedover",
+      statusParam: "status",
+      statuses: MEDICATION_DISPENSE_STATUSES,
+      toRow: (r: ExtractResource<"MedicationDispense">) => ({
+        id: r.id ?? "",
+        text: `${
+          r.medicationCodeableConcept?.text ??
+          r.medicationCodeableConcept?.coding?.[0]?.display ??
+          "Medication"
+        }${r.status ? ` (${r.status})` : ""}`,
+        date: r.whenHandedOver?.slice(0, 10) ?? "",
+      }),
+    },
+    QuestionnaireResponse: {
+      patientParam: "patient",
+      dateParam: "authored",
+      sort: "-authored",
+      statusParam: "status",
+      statuses: QUESTIONNAIRE_RESPONSE_STATUSES,
+      toRow: (r: ExtractResource<"QuestionnaireResponse">) => ({
+        id: r.id ?? "",
+        // Answers are free text by nature, so the row reports only that a
+        // response exists; reading answers is a separate, larger question.
+        text: `${asChartText(r.questionnaire ?? "Questionnaire response")}${
+          r.status ? ` (${r.status})` : ""
+        }${r.item?.length ? ` — ${r.item.length} item(s)` : ""}`,
+        date: r.authored?.slice(0, 10) ?? "",
+      }),
+    },
+    RelatedPerson: {
+      patientParam: "patient",
+      // R4 exposes `active` as a boolean, not a status token, so this
+      // section takes no status filter rather than inventing a mapping.
+      toRow: (r: ExtractResource<"RelatedPerson">) => ({
+        id: r.id ?? "",
+        text: `${asChartText(
+          r.relationship?.[0]?.text ??
+            r.relationship?.[0]?.coding?.[0]?.display ??
+            "Related person",
+        )}: ${asChartText(
+          [r.name?.[0]?.given?.join(" "), r.name?.[0]?.family]
+            .filter(Boolean)
+            .join(" ") || "unnamed",
+        )}`,
+        date: "",
+      }),
+    },
+    Specimen: {
+      patientParam: "patient",
+      dateParam: "collected",
+      sort: "-collected",
+      statusParam: "status",
+      statuses: SPECIMEN_STATUSES,
+      toRow: (r: ExtractResource<"Specimen">) => ({
+        id: r.id ?? "",
+        text: `${
+          r.type?.text ?? r.type?.coding?.[0]?.display ?? "Specimen"
+        }${r.status ? ` (${r.status})` : ""}`,
+        date: r.collection?.collectedDateTime?.slice(0, 10) ?? "",
       }),
     },
   } as const;
