@@ -19,6 +19,7 @@ import {
 } from "@/components/chat";
 import { PatientCard } from "@/components/chat/patient";
 import { ConfirmWrite } from "@/components/chat/confirm-write";
+import { codeObservation, UCUM_SYSTEM } from "@/lib/fhir/vitals";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
 import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
@@ -59,6 +60,47 @@ const DEV_EVENT_CAP = 200;
 // The chat API writes its error bodies for users (rate limit, expired session,
 // model failure), and the transport surfaces that body as error.message. Show
 // messages we recognize verbatim; anything else gets a generic fallback.
+// Approval-card rendering of the observation coding, derived from the same
+// pinned table the write tool uses (lib/fhir/vitals.ts) so the card cannot
+// drift from what saves.
+function observationCodingRows(
+  label: string,
+  unit: string,
+): { label: string; value: string }[] {
+  const coded = codeObservation(label, unit);
+  const loinc = coded.code.coding?.[0];
+  return [
+    ...(loinc
+      ? [{ label: "Code", value: `LOINC ${loinc.code} — ${loinc.display}` }]
+      : [{ label: "Code", value: `${label} (text only — no standard code)` }]),
+    ...(coded.ucum
+      ? [{ label: "Unit", value: `UCUM ${coded.ucum}` }]
+      : [{ label: "Unit", value: `${unit} (no UCUM code — saved as text)` }]),
+  ];
+}
+
+function observationPreview(
+  patientId: string,
+  label: string,
+  value: number,
+  unit: string,
+) {
+  const coded = codeObservation(label, unit);
+  return {
+    resourceType: "Observation",
+    status: "final",
+    code: coded.code,
+    ...(coded.category ? { category: coded.category } : {}),
+    subject: { reference: `Patient/${patientId}` },
+    effectiveDateTime: "<server time when approved>",
+    valueQuantity: {
+      value,
+      unit,
+      ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
+    },
+  };
+}
+
 const FRIENDLY_ERROR_PREFIXES = [
   "Rate limit reached",
   "Your demo session expired",
@@ -561,23 +603,22 @@ export function DemoChat() {
                                     label: "Value",
                                     value: `${part.input.value} ${part.input.unit}`,
                                   },
+                                  // The derived codes are clinically
+                                  // meaningful, so the reviewer sees them
+                                  // rather than discovering them on the
+                                  // chart. Same shared function the write
+                                  // tool builds from.
+                                  ...observationCodingRows(
+                                    part.input.label,
+                                    part.input.unit,
+                                  ),
                                 ]}
-                                preview={{
-                                  resourceType: "Observation",
-                                  status: "final",
-                                  code: { text: part.input.label },
-                                  subject: {
-                                    reference: `Patient/${part.input.patientId}`,
-                                  },
-                                  effectiveDateTime:
-                                    "<server time when approved>",
-                                  valueQuantity: {
-                                    value: part.input.value,
-                                    unit: part.input.unit,
-                                    system: "http://unitsofmeasure.org",
-                                    code: part.input.unit,
-                                  },
-                                }}
+                                preview={observationPreview(
+                                  part.input.patientId,
+                                  part.input.label,
+                                  part.input.value,
+                                  part.input.unit,
+                                )}
                                 onApprove={() =>
                                   respondToApproval(
                                     "record_observation",

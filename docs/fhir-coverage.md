@@ -84,11 +84,20 @@ No update, no patch, no delete is reachable by any agent tool — deliberately;
 the protocol's v0.1 draft holds updates and deletes out of scope until it has
 field experience with creates.
 
-`record_observation` does not yet satisfy the US Core Vital Signs or
-Laboratory Result profiles: it writes `code.text` with no `coding` and no
-`category`, and it copies the human-supplied unit string into
-`valueQuantity.code`, which is a valid UCUM code for some units and not for
-others. Tracked in the [roadmap](../ROADMAP.md).
+`record_observation` codes its writes from a pinned local table
+([`lib/fhir/vitals.ts`](https://github.com/cbetz/last-ehr/blob/main/lib/fhir/vitals.ts)):
+a recognized vital gains a LOINC `coding` and the `vital-signs` category —
+both required by US Core Vital Signs — and `valueQuantity.system`/`code` are
+set only when the unit resolves to a real UCUM code. An unrecognized label
+stays plain `code.text` with **no** category, and an unrecognized unit gets
+no UCUM code, because a guessed classification is worse than an honestly
+uncoded row. The table is local by choice rather than a terminology server:
+the mapping is visible in the approval card, so the reviewer sees the codes
+that will save, and the write path gains no network dependency.
+
+Not yet coded: laboratory results (no `laboratory` category is ever
+asserted, since the agent cannot tell a lab from a vital by label alone) and
+medications/conditions/allergies, which still write `code.text` only.
 
 ## Axis C — resolution mechanisms
 

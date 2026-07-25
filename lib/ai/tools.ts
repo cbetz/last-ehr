@@ -4,6 +4,7 @@ import type { ExtractResource, ResourceType } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { AIAST_LABEL, PROVENANCE_PARTICIPANT_TYPE } from "@/lib/fhir/labels";
+import { codeObservation, UCUM_SYSTEM } from "@/lib/fhir/vitals";
 import {
   evaluateWritePolicy,
   resolveDisabledWriteTools,
@@ -1157,17 +1158,27 @@ export function buildTools(
           resourceType: "Observation",
           patientId,
         });
+        // Coded from the shared pinned table (lib/fhir/vitals.ts), which the
+        // approval card renders too, so the reviewer sees the LOINC and UCUM
+        // codes that will save. A recognized vital gains a LOINC coding and
+        // the vital-signs category (both required by US Core Vital Signs);
+        // an unrecognized label stays plain text with NO category rather
+        // than a guessed classification. Quantity.system/code are set only
+        // when the unit resolves to a real UCUM code — the previous form
+        // copied the typed unit into Quantity.code, asserting that "bpm"
+        // was UCUM when the UCUM code is "/min".
+        const coded = codeObservation(label, unit);
         const created = await backend.createResource({
           resourceType: "Observation",
           status: "final",
-          code: { text: label },
+          code: coded.code,
+          ...(coded.category ? { category: coded.category } : {}),
           subject: { reference: `Patient/${patientId}` },
           effectiveDateTime: new Date().toISOString(),
           valueQuantity: {
             value,
             unit,
-            system: "http://unitsofmeasure.org",
-            code: unit,
+            ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
           },
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
         });
