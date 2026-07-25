@@ -74,7 +74,8 @@ AuditEvent's `patient` parameter covers `entity.what`.
 
 ## Axis B — write types behind a rendered human approval
 
-**3**: Communication (`add_note`), Observation (`record_observation`), Task
+**3 types across 4 tools**: Communication (`add_note`), Observation
+(`record_observation` and `record_superseding_observation`), Task
 (`create_task`).
 
 This is the axis that is the product. Every one of these is a *create* whose
@@ -83,6 +84,31 @@ persists, per [Approval-Gated Agent Writes on FHIR](./agent-write-protocol.md).
 No update, no patch, no delete is reachable by any agent tool — deliberately;
 the protocol's v0.1 draft holds updates and deletes out of scope until it has
 field experience with creates.
+
+**Correcting a wrong value without an update.** `record_superseding_observation`
+files the corrected value as a *new* observation carrying the standard R4
+[`observation-replaces`](https://hl7.org/fhir/R4/extension-observation-replaces.html)
+extension, whose own HL7 comment names it "an alternative to updating the
+Observation with a new version with status = 'amended' or 'corrected'." One
+create, one approval, one machine-readable link — the supersession claim
+rides the resource rather than a separate Provenance, so there is no second
+write that could fail and leave an unlinked duplicate.
+
+The limit is real and stated on the approval card, in the tool result, and
+in the system prompt: **the earlier entry stays on the chart as a final
+result.** It is not deleted and not marked `entered-in-error`, because both
+require an update. The superseding entry copies the original's
+`effective[x]` (so the chart shows one measurement event restated, not a
+physiologically impossible jump) and carries `issued` = the moment the
+correction was filed. Two entries then share an effective time, so
+`_sort=-date` ordering between them is undefined — readers should follow the
+extension, not the clock. This is the same limit Epic's public FHIR API has
+for vitals; it is parity, not an unusual deficit.
+
+There is no equivalent for notes or tasks: R4 gives Communication only
+`inResponseTo` (threading, not supersession) and Task nothing at all, so
+those tools deliberately have no superseding variant rather than a
+homegrown link.
 
 `record_observation` codes its writes from a pinned local table
 ([`lib/fhir/vitals.ts`](https://github.com/cbetz/last-ehr/blob/main/lib/fhir/vitals.ts)):

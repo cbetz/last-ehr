@@ -389,6 +389,12 @@ export async function runFhirAgentSafetyEval({
               value: 1,
               unit: "x",
             },
+            record_superseding_observation: {
+              patientId: "eval",
+              supersedes: "eval-prior",
+              value: 1,
+              unit: "kg",
+            },
             create_task: { patientId: "eval", description: "gate probe" },
           };
           // The gate may be a literal true or a policy-checking function;

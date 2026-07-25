@@ -5,6 +5,33 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- New gated write `record_superseding_observation`: when a value already on
+  the chart is wrong, the agent can propose a corrected one. Today's answer
+  to "that weight was wrong" is "I can't."
+
+  It uses the standard R4 `observation-replaces` extension — whose own HL7
+  comment names it "an alternative to updating the Observation with a new
+  version with status = 'amended' or 'corrected'" — so the whole capability
+  is ONE approved create and needs no change to the write protocol, which
+  holds updates out of scope in v0.1. Putting the link on the resource
+  rather than in a separate Provenance matters: the supersession claim is
+  what distinguishes a correction from a duplicate, so it must be part of
+  the create that the human approved, not a second write that could fail
+  and leave two contradictory values with nothing joining them.
+
+  The limit is stated on the approval card, in the tool result the model
+  paraphrases, and in the system prompt: the earlier entry stays on the
+  chart as a final result. It is not deleted and not marked
+  `entered-in-error` — both require an update. The new entry copies the
+  original's `effective[x]` so the trend shows one measurement restated
+  rather than an impossible jump, with `issued` recording when the
+  correction was filed. The tool refuses a bogus id rather than minting a
+  dangling reference, and refuses an observation belonging to another
+  patient. `status` stays `final`: "corrected" and "amended" describe a
+  resource's own prior lifecycle, and this one was never final before.
+
+  Web binding only for now; `@lastehr/mcp` parity is next.
+
 - Agent-written observations are now coded, in both bindings. A recognized
   vital gains a LOINC `coding` and the `vital-signs` category — both
   required by US Core Vital Signs — from a pinned local table

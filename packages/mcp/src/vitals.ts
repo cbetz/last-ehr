@@ -13,6 +13,17 @@ export const UCUM_SYSTEM = "http://unitsofmeasure.org";
 export const OBSERVATION_CATEGORY_SYSTEM =
   "http://terminology.hl7.org/CodeSystem/observation-category";
 
+/**
+ * Standard HL7 R4 extension (context Observation, 0..*,
+ * Reference(Observation)): "This observation replaces a previous
+ * observation (i.e. a revised value)." HL7's own comment names it as "an
+ * alternative to updating the Observation with a new version with status =
+ * 'amended' or 'corrected'" — which is precisely why it fits a protocol
+ * whose v0.1 permits creates only.
+ */
+export const OBSERVATION_REPLACES_EXTENSION =
+  "http://hl7.org/fhir/StructureDefinition/observation-replaces";
+
 /** LOINC codes for the vitals a chat agent plausibly records. */
 const VITALS: ReadonlyArray<{
   loinc: string;

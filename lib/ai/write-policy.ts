@@ -89,6 +89,7 @@ export async function evaluateWritePolicy(
 export const WRITE_TOOL_NAMES = [
   "add_note",
   "record_observation",
+  "record_superseding_observation",
   "create_task",
 ] as const;
 
