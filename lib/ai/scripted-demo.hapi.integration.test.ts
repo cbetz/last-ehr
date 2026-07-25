@@ -108,13 +108,28 @@ describe.skipIf(!runHapiE2E)("scripted local HAPI approval flow", () => {
       expect(created[0]).toMatchObject({
         resourceType: "Observation",
         status: "final",
-        code: { text: "Heart rate" },
+        code: {
+          coding: [
+            { system: "http://loinc.org", code: "8867-4", display: "Heart rate" },
+          ],
+          text: "Heart rate",
+        },
+        category: [
+          {
+            coding: [
+              {
+                system: "http://terminology.hl7.org/CodeSystem/observation-category",
+                code: "vital-signs",
+              },
+            ],
+          },
+        ],
         subject: { reference: `Patient/${mariaId}` },
         valueQuantity: {
           value: 72,
           unit: "bpm",
           system: "http://unitsofmeasure.org",
-          code: "bpm",
+          code: "/min",
         },
         meta: {
           tag: [{ system: "http://lastehr.demo", code: sessionTag }],

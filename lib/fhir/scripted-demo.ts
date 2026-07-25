@@ -9,6 +9,7 @@ import type {
 
 import type { FhirBackend } from "./backend";
 import { AIAST_LABEL } from "./labels";
+import { codeObservation, UCUM_SYSTEM } from "./vitals";
 import {
   SCRIPTED_DEMO_PATIENT_KEY,
   SYNTHETIC_SYSTEM,
@@ -34,6 +35,11 @@ function isScriptedPatient(resource: Resource | undefined): resource is Patient 
  * and one known Observation write. This keeps the convenience mode incapable
  * of reading or mutating arbitrary records even on a local HAPI instance.
  */
+// The fixed synthetic write this wrapper permits.
+const SCRIPTED_LABEL = "Heart rate";
+const SCRIPTED_UNIT = "bpm";
+const SCRIPTED_VALUE = 72;
+
 export class ScriptedDemoBackend implements FhirBackend {
   constructor(
     private readonly backend: FhirBackend,
@@ -82,14 +88,18 @@ export class ScriptedDemoBackend implements FhirBackend {
   async createResource<T extends Resource>(
     resource: T,
   ): Promise<T & { id: string }> {
+    // The one write this wrapper permits, derived from the shared coding
+    // table so the guard and the canonical resource below cannot drift
+    // apart from what the real write tools build.
+    const canonical = codeObservation(SCRIPTED_LABEL, SCRIPTED_UNIT);
     if (
       resource.resourceType !== "Observation" ||
       resource.status !== "final" ||
-      resource.code?.text !== "Heart rate" ||
-      resource.valueQuantity?.value !== 72 ||
-      resource.valueQuantity?.unit !== "bpm" ||
-      resource.valueQuantity?.system !== "http://unitsofmeasure.org" ||
-      resource.valueQuantity?.code !== "bpm"
+      resource.code?.text !== SCRIPTED_LABEL ||
+      resource.valueQuantity?.value !== SCRIPTED_VALUE ||
+      resource.valueQuantity?.unit !== SCRIPTED_UNIT ||
+      resource.valueQuantity?.system !== UCUM_SYSTEM ||
+      resource.valueQuantity?.code !== canonical.ucum
     ) {
       throw new Error(
         "The scripted demo can create only its fixed synthetic heart-rate observation.",
@@ -116,14 +126,19 @@ export class ScriptedDemoBackend implements FhirBackend {
     const created = await this.backend.createResource<Observation>({
       resourceType: "Observation",
       status: "final",
-      code: { text: "Heart rate" },
+      // Coded exactly as the real write tools code it (LOINC + vital-signs
+      // category + a true UCUM unit), so the scripted path demonstrates the
+      // same conformant write rather than a stripped-down lookalike.
+      code: canonical.code,
+      ...(canonical.category ? { category: canonical.category } : {}),
       subject: { reference: `Patient/${patient.id}` },
       effectiveDateTime: new Date().toISOString(),
       valueQuantity: {
-        value: 72,
-        unit: "bpm",
-        system: "http://unitsofmeasure.org",
-        code: "bpm",
+        value: SCRIPTED_VALUE,
+        unit: SCRIPTED_UNIT,
+        ...(canonical.ucum
+          ? { system: UCUM_SYSTEM, code: canonical.ucum }
+          : {}),
       },
       // Recreate the browser session tag instead of accepting arbitrary meta
       // from the tool input, preserving local-demo isolation without widening
