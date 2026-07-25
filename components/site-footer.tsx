@@ -104,7 +104,18 @@ export function SiteFooter() {
       </div>
       <div className="container flex flex-col gap-3 border-t marketing-rule py-5 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <p>© {year} Last EHR. Apache-2.0.</p>
-        <p>A personal open-source project. Not affiliated with Medplum or Vercel.</p>
+        <p>
+          A personal open-source project by{" "}
+          <Link
+            href="https://www.cbetz.com"
+            target="_blank"
+            rel="noopener noreferrer author"
+            className="font-medium text-foreground transition-colors hover:text-primary"
+          >
+            Chris Betz
+          </Link>
+          . Not affiliated with Medplum or Vercel.
+        </p>
         <Link
           href="/privacy"
           className="text-muted-foreground transition-colors hover:text-foreground"

@@ -9,6 +9,20 @@ export function JsonLd() {
     "@context": "https://schema.org",
     "@graph": [
       {
+        // The single author of the project, resolvable to their own site, so
+        // the work and the person are one entity across both domains.
+        "@type": "Person",
+        "@id": "https://www.cbetz.com/#chris-betz",
+        name: "Chris Betz",
+        url: "https://www.cbetz.com",
+        jobTitle: "Head of Engineering",
+        sameAs: [
+          "https://www.cbetz.com",
+          "https://github.com/cbetz",
+          "https://www.linkedin.com/in/christopherbetz",
+        ],
+      },
+      {
         "@type": "Organization",
         "@id": `${BASE_URL}/#organization`,
         name: "Last EHR",
@@ -17,6 +31,7 @@ export function JsonLd() {
         description:
           "Last EHR makes every AI chart write a reviewable proposal: an open draft protocol for agent-initiated FHIR writes (Proposal, Decision, Commit, Audit) with web and MCP bindings, an independent conformance suite, and a person approving every write.",
         sameAs: ["https://github.com/cbetz/last-ehr", "https://x.com/lastehr"],
+        founder: { "@id": "https://www.cbetz.com/#chris-betz" },
       },
       {
         "@type": "WebSite",
@@ -34,6 +49,7 @@ export function JsonLd() {
         operatingSystem: "Web",
         url: BASE_URL,
         publisher: { "@id": `${BASE_URL}/#organization` },
+        author: { "@id": "https://www.cbetz.com/#chris-betz" },
         license: "https://www.apache.org/licenses/LICENSE-2.0",
         isAccessibleForFree: true,
         description:
