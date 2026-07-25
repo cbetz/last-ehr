@@ -64,7 +64,7 @@ export function buildSystemPrompt(
 Reading the chart:
 - Use search_patients to find patients by name. After a bare name search ("find/look up patients named X"), show the results and stop. Do not open a chart on your own; the results have a "View record" button the user can click.
 - Use show_patient_info to open a patient's chart when the user asks to see a specific patient's record or chart (for example "show me Jane Smith's chart" or "view record for id ..."). If you only have a name, call search_patients first to get the id, then call show_patient_info. Do not ask the user to confirm before opening a chart they asked to see; just open it.
-- Use read_chart_section for questions about ONE kind of record or a time window — "when was her last flu shot" (Immunization), "blood pressure over six months" (Observation with a date filter), goals, care plans, documents. It is filtered and current where the full chart fetch is a fixed newest-N window. Answer from the returned rows only; if the rows do not contain the answer, say so rather than guessing.
+- Use read_chart_section for questions about ONE kind of record or a time window — "when was her last flu shot" (Immunization), "blood pressure over six months" (Observation with a date filter), "what happened at her last visit" (Encounter), "what did the lab report conclude" (DiagnosticReport, which carries the conclusion a loose result list loses), procedures, orders, care team, coverage, goals, care plans, documents. The AuditEvent section answers questions about the record itself — which proposed writes a reviewer rejected. It is filtered and current where the full chart fetch is a fixed newest-N window. Answer from the returned rows only; if the rows do not contain the answer, say so rather than guessing.
 - read_chart_section takes status and category filters: use status to ask about current records ("active" problems, medications, goals, care plans; "requested" or "in-progress" tasks; "completed" immunizations) and category on Observation to separate "vital-signs" from "laboratory". Prefer a filtered read over fetching everything and sorting it yourself. If a filter value is refused, the error names the legal values for that section — use one of them.
 - read_chart_section results carry a truncated flag. When it is true you saw only the newest rows the filter matched and older ones may exist, so never state an absence ("no record of X", "she has never had Y") from a truncated read: report what you saw, say the list was capped, and offer to narrow the dates or raise the count. A read that refuses a filter is telling you that section cannot filter that way — re-read it without the filter rather than assuming the section is empty.
 
@@ -373,6 +373,51 @@ export function buildTools(
     "entered-in-error",
     "unknown",
   ] as const;
+  const ENCOUNTER_STATUSES = [
+    "planned",
+    "arrived",
+    "triaged",
+    "in-progress",
+    "onleave",
+    "finished",
+    "cancelled",
+    "entered-in-error",
+    "unknown",
+  ] as const;
+  const DIAGNOSTIC_REPORT_STATUSES = [
+    "registered",
+    "partial",
+    "preliminary",
+    "final",
+    "amended",
+    "corrected",
+    "appended",
+    "cancelled",
+    "entered-in-error",
+    "unknown",
+  ] as const;
+  const SERVICE_REQUEST_STATUSES = [
+    "draft",
+    "active",
+    "on-hold",
+    "revoked",
+    "completed",
+    "entered-in-error",
+    "unknown",
+  ] as const;
+  const CARE_TEAM_STATUSES = [
+    "proposed",
+    "active",
+    "suspended",
+    "inactive",
+    "entered-in-error",
+  ] as const;
+  const COVERAGE_STATUSES = [
+    "active",
+    "cancelled",
+    "draft",
+    "entered-in-error",
+  ] as const;
   const TASK_STATUSES = [
     "draft",
     "requested",
@@ -553,6 +598,145 @@ export function buildTools(
         date: r.authoredOn?.slice(0, 10) ?? "",
       }),
     },
+    Encounter: {
+      patientParam: "patient",
+      dateParam: "date",
+      sort: "-date",
+      codeParam: "type",
+      statusParam: "status",
+      statuses: ENCOUNTER_STATUSES,
+      toRow: (r: ExtractResource<"Encounter">) => ({
+        id: r.id ?? "",
+        text: `${
+          r.type?.[0]?.text ??
+          r.type?.[0]?.coding?.[0]?.display ??
+          "Encounter"
+        }${r.class?.code ? ` (${r.class.code})` : ""}${
+          r.status ? ` — ${r.status}` : ""
+        }`,
+        date: r.period?.start?.slice(0, 10) ?? "",
+      }),
+    },
+    DiagnosticReport: {
+      patientParam: "patient",
+      dateParam: "date",
+      sort: "-date",
+      codeParam: "code",
+      statusParam: "status",
+      statuses: DIAGNOSTIC_REPORT_STATUSES,
+      toRow: (r: ExtractResource<"DiagnosticReport">) => ({
+        id: r.id ?? "",
+        // The report's own conclusion is the value a loose Observation
+        // list cannot carry, and it is narrative — so it crosses the
+        // untrusted-content boundary.
+        text: `${
+          r.code?.text ?? r.code?.coding?.[0]?.display ?? "Report"
+        }${r.status ? ` (${r.status})` : ""}${
+          r.conclusion ? `: ${asChartText(r.conclusion)}` : ""
+        }`,
+        date: r.effectiveDateTime?.slice(0, 10) ?? "",
+      }),
+    },
+    Procedure: {
+      patientParam: "patient",
+      dateParam: "date",
+      sort: "-date",
+      codeParam: "code",
+      statusParam: "status",
+      statuses: EVENT_STATUSES,
+      toRow: (r: ExtractResource<"Procedure">) => ({
+        id: r.id ?? "",
+        text: `${
+          r.code?.text ?? r.code?.coding?.[0]?.display ?? "Procedure"
+        }${r.status ? ` (${r.status})` : ""}`,
+        date:
+          r.performedDateTime?.slice(0, 10) ??
+          r.performedPeriod?.start?.slice(0, 10) ??
+          "",
+      }),
+    },
+    ServiceRequest: {
+      patientParam: "patient",
+      dateParam: "authored",
+      sort: "-authored",
+      codeParam: "code",
+      statusParam: "status",
+      statuses: SERVICE_REQUEST_STATUSES,
+      toRow: (r: ExtractResource<"ServiceRequest">) => ({
+        id: r.id ?? "",
+        text: `${
+          r.code?.text ?? r.code?.coding?.[0]?.display ?? "Order"
+        }${r.intent ? ` (${r.intent})` : ""}${
+          r.status ? ` — ${r.status}` : ""
+        }`,
+        date: r.authoredOn?.slice(0, 10) ?? "",
+      }),
+    },
+    CareTeam: {
+      patientParam: "patient",
+      // CareTeam.period is frequently open-ended (a start with no end), and
+      // R4 date search matches interval OVERLAP, so a team that began
+      // before the window but is still open correctly matches it. Probed:
+      // that is the server's behavior, not a bug to "fix".
+      dateParam: "date",
+      sort: "-date",
+      statusParam: "status",
+      statuses: CARE_TEAM_STATUSES,
+      toRow: (r: ExtractResource<"CareTeam">) => ({
+        id: r.id ?? "",
+        text: `${asChartText(r.name ?? "Care team")}${
+          r.status ? ` (${r.status})` : ""
+        }${
+          r.participant?.length
+            ? ` — ${r.participant.length} participant${r.participant.length === 1 ? "" : "s"}`
+            : ""
+        }`,
+        date: r.period?.start?.slice(0, 10) ?? "",
+      }),
+    },
+    Coverage: {
+      patientParam: "patient",
+      statusParam: "status",
+      statuses: COVERAGE_STATUSES,
+      toRow: (r: ExtractResource<"Coverage">) => ({
+        id: r.id ?? "",
+        text: `${asChartText(
+          r.type?.text ?? r.type?.coding?.[0]?.display ?? "Coverage",
+        )}${
+          r.payor?.[0]?.display ? ` — ${asChartText(r.payor[0].display)}` : ""
+        }${r.status ? ` (${r.status})` : ""}`,
+        date: r.period?.start?.slice(0, 10) ?? "",
+      }),
+    },
+    // There is deliberately NO Provenance section. R4 defines
+    // Provenance's patient parameter as target.where(resolve() is Patient),
+    // so `Provenance?patient=X` returns only provenance whose TARGET is the
+    // Patient resource — not provenance for that patient's observations and
+    // notes, which is what the write path emits. Probed on HAPI: a
+    // Provenance targeting an Observation is invisible to ?patient=. The
+    // mechanism that does work is `_revinclude=Provenance:target` on the
+    // resource search (a US Core SHALL, confirmed working on HAPI), and it
+    // needs a bundle-shaped read path — searchResources keeps only
+    // search.mode "match" entries, so include entries are dropped today.
+    // A patient-scoped Provenance section would look like a working
+    // transparency read and return nothing for our own writes.
+    AuditEvent: {
+      patientParam: "patient",
+      // Our rejected-proposal writer puts the Patient in entity.what, and
+      // AuditEvent's patient parameter covers entity.what — so unlike
+      // Provenance, this section really does find the events we write.
+      dateParam: "date",
+      sort: "-date",
+      toRow: (r: ExtractResource<"AuditEvent">) => ({
+        id: r.id ?? "",
+        text: `${r.type?.code ?? "event"}${
+          r.subtype?.[0]?.code ? `/${r.subtype[0].code}` : ""
+        }${r.action ? ` action=${r.action}` : ""}${
+          r.outcome ? ` outcome=${r.outcome}` : ""
+        }${r.outcomeDesc ? `: ${asChartText(r.outcomeDesc)}` : ""}`,
+        date: r.recorded?.slice(0, 10) ?? "",
+      }),
+    },
   } as const;
   type ChartSectionType = keyof typeof CHART_SECTIONS;
   const CHART_SECTION_TYPES = Object.keys(CHART_SECTIONS) as [
@@ -667,6 +851,15 @@ export function buildTools(
         count,
       }) => {
         const section = CHART_SECTIONS[resourceType];
+        // The input schema's enum keeps the model inside the allowlist, but
+        // executors are also called directly (the safety eval does), so an
+        // unknown section refuses cleanly instead of throwing a TypeError
+        // on the capability checks below.
+        if (!section) {
+          throw new Error(
+            `"${resourceType}" is not a readable chart section. Available: ${CHART_SECTION_TYPES.join(", ")}.`,
+          );
+        }
         const dateParam =
           "dateParam" in section ? section.dateParam : undefined;
         const codeParam =

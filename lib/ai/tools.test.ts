@@ -793,6 +793,67 @@ describe("read_chart_section", () => {
     expect(searchResources).not.toHaveBeenCalled();
   });
 
+  it("reads the seven new patient-scoped sections with probed params", async () => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([]);
+    const tools = buildTools(backend);
+    // Each param below was probed against HAPI (patient scoping, date
+    // filter, real sort ordering, status filter) before being exposed.
+    const cases: Array<[string, Record<string, string>]> = [
+      ["Encounter", { patient: "p1", _sort: "-date" }],
+      ["DiagnosticReport", { patient: "p1", _sort: "-date" }],
+      ["Procedure", { patient: "p1", _sort: "-date" }],
+      ["ServiceRequest", { patient: "p1", _sort: "-authored" }],
+      ["CareTeam", { patient: "p1", _sort: "-date" }],
+      ["Coverage", { patient: "p1" }],
+      ["AuditEvent", { patient: "p1", _sort: "-date" }],
+    ];
+    for (const [resourceType, expected] of cases) {
+      await exec(tools)({ patientId: "p1", resourceType }, {});
+      expect(searchResources).toHaveBeenLastCalledWith(
+        resourceType,
+        expect.objectContaining(expected),
+      );
+    }
+  });
+
+  it("has no Provenance section: ?patient= cannot see provenance for a patient's resources", async () => {
+    // R4 defines Provenance's patient parameter as
+    // target.where(resolve() is Patient), so provenance targeting an
+    // Observation — which is what the write path emits — is invisible to it
+    // (probed on HAPI). A section here would be a transparency read that
+    // silently returns nothing for our own writes.
+    searchResources.mockReset();
+    const tools = buildTools(backend);
+    await expect(
+      exec(tools)({ patientId: "p1", resourceType: "Provenance" }, {}),
+    ).rejects.toThrow(/not a readable chart section/);
+    expect(searchResources).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a DiagnosticReport conclusion inside the untrusted-content boundary", async () => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([
+      {
+        id: "dr1",
+        status: "final",
+        code: { text: "CBC panel" },
+        conclusion: "Mild anemia, recheck in 3 months.",
+        effectiveDateTime: "2026-02-11T00:00:00Z",
+      },
+    ]);
+    const tools = buildTools(backend);
+    const out = await exec(tools)(
+      { patientId: "p1", resourceType: "DiagnosticReport" },
+      {},
+    );
+    // The conclusion is the value a loose Observation list cannot carry,
+    // and it is narrative, so it must cross the boundary marker.
+    expect(out.entries[0].text).toBe(
+      "CBC panel (final): <chart_text>Mild anemia, recheck in 3 months.</chart_text>",
+    );
+  });
+
   it("maps one status vocabulary onto each section's own search parameter", async () => {
     searchResources.mockReset();
     searchResources.mockResolvedValue([]);

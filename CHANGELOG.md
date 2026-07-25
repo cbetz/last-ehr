@@ -5,6 +5,26 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- `read_chart_section` grew from 10 sections to 17, taking readable US Core
+  9.0.0 resource types from 9 of 27 to 15 of 27: Encounter ("what happened
+  at her last visit" — nothing could answer this), DiagnosticReport (which
+  carries the `conclusion` a loose Observation list loses), Procedure,
+  ServiceRequest, CareTeam, Coverage, and AuditEvent (which proposed writes
+  a reviewer rejected). Every patient parameter, date parameter, sort, and
+  status filter was probed against HAPI before exposure, then verified
+  end-to-end through the tool itself.
+
+  Two absences are deliberate and documented rather than pending.
+  Practitioner, Organization, and Location have no `patient` search
+  parameter, so they cannot be patient-scoped sections without breaking the
+  one-patient rule. And there is no Provenance section: R4 defines its
+  `patient` parameter as `target.where(resolve() is Patient)`, so
+  `Provenance?patient=X` cannot see provenance targeting that patient's
+  observations — which is exactly what the write path emits. A section
+  would have looked like a working AI-transparency read and returned
+  nothing for our own writes; `_revinclude=Provenance:target` is the
+  mechanism that works, and it needs a bundle-shaped read path.
+
 - `read_chart_section` gained status, category, and per-section code
   filters, so the agent can ask for *current* records instead of fetching
   everything and sorting it out: "her active problems", "what's still open

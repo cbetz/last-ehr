@@ -15,7 +15,7 @@ types**, counted from the published
 generated 2026-05-31), unmodified. US Core is the denominator because it is
 the floor US implementers are actually asked about.
 
-**9 of 27 US Core resource types**, plus 2 types US Core does not profile.
+**15 of 27 US Core resource types**, plus 3 types US Core does not profile.
 
 | Readable today | In US Core 9.0.0 |
 | --- | --- |
@@ -28,28 +28,49 @@ the floor US implementers are actually asked about.
 | DocumentReference | ✅ |
 | Goal | ✅ |
 | CarePlan | ✅ |
+| Encounter | ✅ |
+| DiagnosticReport | ✅ |
+| Procedure | ✅ |
+| ServiceRequest | ✅ |
+| CareTeam | ✅ |
+| Coverage | ✅ |
 | Communication | ❌ — not a US Core profile |
 | Task | ❌ — not a US Core profile |
+| AuditEvent | ❌ — not a US Core profile |
 
-Communication and Task are agent-workflow types, not US Core clinical
-profiles. Worth stating plainly because **two of the three types the agent
-can write are outside this denominator** — the write surface and the read
-denominator are not the same set.
+Communication, Task, and AuditEvent are workflow and audit types, not US
+Core clinical profiles. Worth stating plainly because **two of the three
+types the agent can write are outside this denominator** — the write surface
+and the read denominator are not the same set.
 
-The 18 US Core types with no read path today: CareTeam, Coverage, Device,
-DiagnosticReport, Encounter, FamilyMemberHistory, Location, Medication,
-MedicationDispense, Organization, Practitioner, PractitionerRole, Procedure,
-Provenance, QuestionnaireResponse, RelatedPerson, ServiceRequest, Specimen.
+The 12 US Core types with no read path today: Device, FamilyMemberHistory,
+Location, Medication, MedicationDispense, Organization, Practitioner,
+PractitionerRole, Provenance, QuestionnaireResponse, RelatedPerson, Specimen.
 
-Two consequences of that list are worth naming rather than leaving for a
-reader to discover:
+Three of those absences are deliberate rather than pending, and the reasons
+are worth stating:
 
-- **No Encounter read** means the agent cannot answer "what happened at her
-  last visit."
-- **No Provenance read** means the agent writes `Provenance` (opt-in, see
-  [approval gates](./approval-gates.md)) and cannot read it back. It cannot
-  answer *"which entries on this chart were AI-written?"* — a question this
-  project's own transparency posture exists to make answerable.
+- **Practitioner, Organization, Location** have no `patient` search
+  parameter, so they cannot be a patient-scoped chart section without
+  breaking the rule that every read is scoped to one patient. They are
+  reachable only by following a reference from a resource that names them —
+  see the `_include` row under [resolution mechanisms](#axis-c--resolution-mechanisms).
+- **Provenance** is the interesting one. R4 defines its `patient` parameter as
+  `target.where(resolve() is Patient)`, so `Provenance?patient=X` returns
+  only provenance whose *target is the Patient resource itself* — not
+  provenance for that patient's observations and notes, which is exactly
+  what the write path emits. Probed on HAPI: a Provenance targeting an
+  Observation is invisible to `?patient=`. A patient-scoped Provenance
+  section would therefore look like a working transparency read and return
+  nothing for our own writes, so there isn't one. The mechanism that does
+  work is `_revinclude=Provenance:target` on the resource search — a US Core
+  SHALL, confirmed working on HAPI — which needs the bundle-shaped read path
+  described under Axis C.
+
+Until then, the closest available answer to *"what did the agent do to this
+chart?"* is the **AuditEvent** section, which does work: the
+rejected-proposal writer puts the Patient in `entity.what`, and
+AuditEvent's `patient` parameter covers `entity.what`.
 
 ## Axis B — write types behind a rendered human approval
 
@@ -76,7 +97,7 @@ and it cannot.
 
 | Mechanism | Status | What it would unlock |
 | --- | --- | --- |
-| Follow a reference (`_include`) | ❌ | "who ordered this", "who wrote that note" — every author/performer reference is a dead pointer today |
+| Follow a reference (`_include` / `_revinclude`) | ❌ | "who ordered this", "who wrote that note", and the AI-transparency read above — every author/performer reference is a dead pointer today, and Practitioner/Organization/Location are reachable no other way |
 | Page a result set | ❌ | "has he *ever* had a flu shot", answered from the record instead of one window |
 | Resolve a code (`$expand` / `$validate-code`) | ❌ | LOINC/SNOMED/RxNorm coding rather than free-text `code.text` |
 | Read a document body | ❌ | "what does the discharge summary actually say" — the agent can report only that a document exists |
@@ -119,7 +140,7 @@ code token, `dateFrom`, `dateTo`, and a count of 1-100.
 
 | Feature | Status |
 | --- | --- |
-| Patient-scoped search on every section | ✅ enforced, not optional |
+| Patient-scoped search on every section | ✅ enforced, not optional — a type without a `patient` parameter cannot become a section |
 | Newest-first server-side `_sort` on every section | ✅ each value probed for real ordering |
 | Single date bound | ✅ |
 | Date range | ⚠️ one bound is applied server-side and the other filtered from the returned rows; correct results, but a range wider than the window reports `truncated` |
