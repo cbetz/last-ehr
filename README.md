@@ -223,6 +223,9 @@ approves each proposed write through the client's approval prompt
 npx -y @lastehr/mcp init --client claude-code
 ```
 
+Use `npx -y @lastehr/mcp --version` to check the installed MCP package version
+without starting the server.
+
 Authenticate with a least-privilege `MEDPLUM_ACCESS_TOKEN`, or
 `MEDPLUM_CLIENT_ID` plus `MEDPLUM_CLIENT_SECRET`; set `MEDPLUM_BASE_URL` for a
 self-hosted Medplum instance. Read access can still return PHI, so review the

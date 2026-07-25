@@ -31,6 +31,12 @@ Start the stdio server with:
 npx -y @lastehr/mcp
 ```
 
+Check the installed package version without configuring a backend:
+
+```bash
+npx -y @lastehr/mcp --version
+```
+
 ## Configuration
 
 Set one authentication method before starting the server:

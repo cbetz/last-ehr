@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { config as loadEnv } from "dotenv";
+import { pathToFileURL } from "node:url";
 
 import { McpConfigurationError, loadMcpConfig } from "./config.js";
 import { isMcpClient, renderInit, type McpClient } from "./init.js";
-import { startMcpServer } from "./server.js";
+import { MCP_SERVER_VERSION, startMcpServer } from "./server.js";
 
 function hasExplicitMedplumAuth(env: NodeJS.ProcessEnv) {
   return Boolean(
@@ -36,6 +37,7 @@ function help() {
     "  npx -y @lastehr/mcp                 Start the stdio MCP server",
     "  npx -y @lastehr/mcp init [--client json|claude-code|cursor]",
     "  npx -y @lastehr/mcp doctor          Validate local configuration",
+    "  npx -y @lastehr/mcp --version       Print the package version",
     "",
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
     "Local stack: FHIR_BACKEND=hapi with HAPI_BASE_URL or FHIR_BASE_URL",
@@ -68,6 +70,11 @@ export async function runCli(
     return;
   }
 
+  if (command === "--version" || command === "-v") {
+    process.stdout.write(`${MCP_SERVER_VERSION}\n`);
+    return;
+  }
+
   if (command === "init") {
     process.stdout.write(renderInit(initClient(args.slice(1))));
     return;
@@ -97,11 +104,17 @@ export async function runCli(
   throw new McpConfigurationError(`Unknown command: ${command}`);
 }
 
-runCli().catch((error: unknown) => {
-  const message =
-    error instanceof McpConfigurationError
-      ? error.message
-      : "Last EHR MCP could not start. Verify the backend configuration and try again.";
-  console.error(message);
-  process.exitCode = 1;
-});
+const isDirectExecution =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isDirectExecution) {
+  runCli().catch((error: unknown) => {
+    const message =
+      error instanceof McpConfigurationError
+        ? error.message
+        : "Last EHR MCP could not start. Verify the backend configuration and try again.";
+    console.error(message);
+    process.exitCode = 1;
+  });
+}
