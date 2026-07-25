@@ -5,6 +5,31 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Chart reads now report their own limits instead of overstating them.
+  `read_chart_section` returns a `truncated` flag whenever a result fills
+  the window, and the system prompt forbids the agent from stating an
+  absence ("no record of X") from a truncated read. A filter a section
+  cannot apply is now REFUSED rather than silently dropped, so unfiltered
+  rows can never be reported as filtered. Every section gained a
+  server-side newest-first `_sort` (five had none, so their window was
+  whatever order the server chose) — each value probed against HAPI for
+  real ordering, not just acceptance.
+
+- Fixed a date-range read that could report an empty chart section while
+  the rows existed: a full range now sends the UPPER bound to the server
+  and filters the lower bound from the returned rows. With the previous
+  lower-bound-first form, a patient with recent data filled the
+  newest-first window with rows above the range, and the client-side
+  filter dropped every one — verified live on HAPI, where a query for a
+  three-row range returned nothing before the fix and all three after.
+
+- New [FHIR coverage page](docs/fhir-coverage.md): what the agent can and
+  cannot reach, counted against US Core 9.0.0 (9 of its 27 resource
+  types), plus the write and resolution axes, why there is no read-by-id,
+  why the project publishes no "percentage of R4", and the two
+  capabilities that will never be added (a generic `fhir_request` tool and
+  model-authored search parameters).
+
 - Oystehr is demo-eligible (`DEMO_ELIGIBLE_BACKENDS`) for operator-owned,
   seeded projects: eligibility evidence in docs/support.md (contract 5/5
   with server-side `_tag:not` honored per direct probe, safety eval 7/7,
@@ -21,6 +46,7 @@ self-hosters can tell what moved between pulls.
   Safety Eval 7/7, and `meta.security`/`meta.tag` persist on create.
   Synthetic-evaluation tier: the developer tier is non-production/no-PHI
   by contract.
+
 ## 0.2.8 — 2026-07-20
 
 - The site and README now lead with the protocol: "Make every AI chart

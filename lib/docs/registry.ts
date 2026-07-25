@@ -136,6 +136,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["eval", "safety", "approval", "synthetic", "HAPI", "adapter"],
   },
   {
+    slug: "fhir-coverage",
+    file: "docs/fhir-coverage.md",
+    title: "FHIR Coverage",
+    description:
+      "What the agent can and cannot reach in FHIR, counted against US Core — including the ceiling and the two things that will never be added.",
+    group: "Evaluate",
+    order: 30,
+    audience: "Technical evaluators and FHIR implementers",
+    lastModified: "2026-07-24",
+    keywords: ["coverage", "US Core", "FHIR", "operations", "search", "scope"],
+  },
+  {
     slug: "conformance",
     file: "docs/conformance.md",
     title: "Protocol Conformance Suite",
