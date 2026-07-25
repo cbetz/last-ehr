@@ -65,6 +65,7 @@ Reading the chart:
 - Use search_patients to find patients by name. After a bare name search ("find/look up patients named X"), show the results and stop. Do not open a chart on your own; the results have a "View record" button the user can click.
 - Use show_patient_info to open a patient's chart when the user asks to see a specific patient's record or chart (for example "show me Jane Smith's chart" or "view record for id ..."). If you only have a name, call search_patients first to get the id, then call show_patient_info. Do not ask the user to confirm before opening a chart they asked to see; just open it.
 - Use read_chart_section for questions about ONE kind of record or a time window — "when was her last flu shot" (Immunization), "blood pressure over six months" (Observation with a date filter), goals, care plans, documents. It is filtered and current where the full chart fetch is a fixed newest-N window. Answer from the returned rows only; if the rows do not contain the answer, say so rather than guessing.
+- read_chart_section results carry a truncated flag. When it is true you saw only the newest rows the filter matched and older ones may exist, so never state an absence ("no record of X", "she has never had Y") from a truncated read: report what you saw, say the list was capped, and offer to narrow the dates or raise the count. A read that refuses a filter is telling you that section cannot filter that way — re-read it without the filter rather than assuming the section is empty.
 
 ${writeSection}
 
@@ -286,9 +287,20 @@ export function buildTools(
   // read_chart_section's per-type query recipe. The TOOL builds the query —
   // the model chooses a section and filters, never raw search params — so
   // every request stays patient-scoped, capped, and inside this allowlist.
-  // Date params are standard R4 search parameters, verified against the
-  // repository's HAPI stack; free-text fields are wrapped in the
-  // <chart_text> boundary before they reach the model.
+  // Date params and sorts are standard R4 search parameters, each probed
+  // against the repository's HAPI stack for real newest-first ORDERING (a
+  // server that accepts _sort without honoring it would hand back an
+  // arbitrary window that looks like the newest one). Free-text fields are
+  // wrapped in the <chart_text> boundary before they reach the model.
+  //
+  // A section with no dateParam does not support date filtering, and only
+  // Observation supports a code filter; read_chart_section REFUSES a
+  // filter it cannot apply rather than dropping it. AllergyIntolerance and
+  // Goal deliberately have no dateParam: R4 offers date/start-date, but
+  // both index a recorded/start date that is frequently absent, so a dated
+  // query would answer "nothing in that window" for a patient who does
+  // have the allergy — a confident false negative on a chart, which is
+  // worse than refusing the filter.
   const CHART_SECTIONS = {
     Observation: {
       patientParam: "patient",
@@ -321,6 +333,7 @@ export function buildTools(
     Condition: {
       patientParam: "patient",
       dateParam: "recorded-date",
+      sort: "-recorded-date",
       toRow: (r: ExtractResource<"Condition">) => ({
         id: r.id ?? "",
         text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Condition",
@@ -329,6 +342,7 @@ export function buildTools(
     },
     AllergyIntolerance: {
       patientParam: "patient",
+      sort: "-date",
       toRow: (r: ExtractResource<"AllergyIntolerance">) => ({
         id: r.id ?? "",
         text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Allergy",
@@ -338,6 +352,7 @@ export function buildTools(
     MedicationRequest: {
       patientParam: "patient",
       dateParam: "authoredon",
+      sort: "-authoredon",
       toRow: (r: ExtractResource<"MedicationRequest">) => ({
         id: r.id ?? "",
         text: `${
@@ -375,6 +390,7 @@ export function buildTools(
     },
     Goal: {
       patientParam: "patient",
+      sort: "-start-date",
       toRow: (r: ExtractResource<"Goal">) => ({
         id: r.id ?? "",
         text: asChartText(r.description?.text ?? "Goal"),
@@ -384,6 +400,7 @@ export function buildTools(
     CarePlan: {
       patientParam: "patient",
       dateParam: "date",
+      sort: "-date",
       toRow: (r: ExtractResource<"CarePlan">) => ({
         id: r.id ?? "",
         text: asChartText(r.title ?? r.description ?? "Care plan"),
@@ -502,29 +519,54 @@ export function buildTools(
         count,
       }) => {
         const section = CHART_SECTIONS[resourceType];
+        const dateParam =
+          "dateParam" in section ? section.dateParam : undefined;
+        const codeParam =
+          "codeParam" in section ? section.codeParam : undefined;
+
+        // Refuse a filter this section cannot apply. Dropping it silently
+        // would hand the model unfiltered rows it believes are filtered,
+        // which is how an agent ends up asserting "no record of that" about
+        // a window it never narrowed.
+        if ((dateFrom || dateTo) && !dateParam) {
+          throw new Error(
+            `The ${resourceType} section does not support date filtering. Read it without dateFrom/dateTo and filter the returned rows, or choose a section that does.`,
+          );
+        }
+        if (code && !codeParam) {
+          throw new Error(
+            `The ${resourceType} section does not support a code filter (only Observation does). Read it without code.`,
+          );
+        }
+
+        const requested = count ?? 25;
         const params: Record<string, string> = {
           [section.patientParam]:
             "patientRef" in section && section.patientRef
               ? `Patient/${patientId}`
               : patientId,
-          _count: String(count ?? 25),
+          _count: String(requested),
         };
         if ("sort" in section && section.sort) params._sort = section.sort;
-        if (code && "codeParam" in section && section.codeParam) {
-          params[section.codeParam] = code;
-        }
-        const dateParam =
-          "dateParam" in section ? section.dateParam : undefined;
+        if (code && codeParam) params[codeParam] = code;
+
         // A full range needs the same search param twice (ge + le), which
-        // the structured-params contract cannot express; single bounds go
-        // to the server, and only the both-bounds case filters the upper
-        // bound from the fetched rows below.
-        let clientDateTo: string | undefined;
-        if (dateParam && dateFrom) {
-          params[dateParam] = `ge${dateFrom}`;
-          clientDateTo = dateTo;
-        } else if (dateParam && dateTo) {
+        // the structured-params contract cannot express, so one bound is
+        // filtered from the fetched rows. Send the UPPER bound: every
+        // section sorts newest-first, so `le{dateTo}` walks backwards from
+        // the end of the range and the rows that arrive are the ones most
+        // likely to be inside it. Sending `ge{dateFrom}` instead fills the
+        // window with the newest rows overall — for a patient with recent
+        // data, a query about an older range comes back empty while the
+        // rows exist. The remaining lower-bound filter can only lose rows
+        // when the range itself overflows the window, which `truncated`
+        // then reports.
+        let clientDateFrom: string | undefined;
+        if (dateParam && dateTo) {
           params[dateParam] = `le${dateTo}`;
+          clientDateFrom = dateFrom;
+        } else if (dateParam && dateFrom) {
+          params[dateParam] = `ge${dateFrom}`;
         }
 
         const toRow = section.toRow as (resource: unknown) => {
@@ -539,12 +581,16 @@ export function buildTools(
           params,
           (resource) => toRow(resource).date,
         );
+        // A full window means the server had at least this many matching
+        // rows, so older ones may exist beyond it. The model is told (see
+        // SYSTEM_PROMPT) never to report an absence from a truncated read.
+        const truncated = resources.length >= requested;
         const entries = resources
           .map((resource) => toRow(resource))
           .filter(
-            (row) => !clientDateTo || !row.date || row.date <= clientDateTo,
+            (row) => !clientDateFrom || !row.date || row.date >= clientDateFrom,
           );
-        return { resourceType, entries };
+        return { resourceType, entries, truncated };
       },
     }),
     show_patient_info: tool({

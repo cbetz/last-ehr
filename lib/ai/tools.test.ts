@@ -644,7 +644,11 @@ describe("read_chart_section", () => {
     tools.read_chart_section.execute as unknown as (
       input: unknown,
       opts: unknown,
-    ) => Promise<{ resourceType: string; entries: { id: string; text: string; date: string }[] }>;
+    ) => Promise<{
+      resourceType: string;
+      entries: { id: string; text: string; date: string }[];
+      truncated: boolean;
+    }>;
 
   it("is a read: never approval-gated", () => {
     expect(buildTools(backend).read_chart_section.needsApproval).toBeFalsy();
@@ -708,7 +712,7 @@ describe("read_chart_section", () => {
     });
   });
 
-  it("sends single date bounds to the server and filters only the range's upper bound client-side", async () => {
+  it("sends single date bounds to the server as given", async () => {
     searchResources.mockResolvedValue([]);
     const tools = buildTools(backend);
     await exec(tools)(
@@ -728,7 +732,14 @@ describe("read_chart_section", () => {
       "Immunization",
       expect.objectContaining({ date: "le2025-06-30" }),
     );
+  });
 
+  it("sends the UPPER bound for a full range so recent rows cannot empty the window", async () => {
+    // Regression: with `ge{dateFrom}` and newest-first sort, a patient with
+    // newer data fills the window with rows ABOVE the range, and the
+    // client-side upper-bound filter then drops every one of them — an
+    // empty answer while the rows exist (reproduced live on HAPI).
+    const tools = buildTools(backend);
     searchResources.mockResolvedValue([
       {
         id: "in",
@@ -736,9 +747,9 @@ describe("read_chart_section", () => {
         occurrenceDateTime: "2025-03-01T00:00:00Z",
       },
       {
-        id: "out",
+        id: "tooOld",
         vaccineCode: { text: "Flu shot" },
-        occurrenceDateTime: "2025-09-01T00:00:00Z",
+        occurrenceDateTime: "2019-09-01T00:00:00Z",
       },
     ]);
     const ranged = await exec(tools)(
@@ -752,9 +763,85 @@ describe("read_chart_section", () => {
     );
     expect(searchResources).toHaveBeenLastCalledWith(
       "Immunization",
-      expect.objectContaining({ date: "ge2025-01-01" }),
+      expect.objectContaining({ date: "le2025-06-30" }),
     );
+    // The remaining client-side filter is the LOWER bound.
     expect(ranged.entries.map((e) => e.id)).toEqual(["in"]);
+  });
+
+  it("refuses a filter the section cannot apply instead of dropping it", async () => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([]);
+    const tools = buildTools(backend);
+    // AllergyIntolerance and Goal declare no dateParam on purpose.
+    for (const resourceType of ["AllergyIntolerance", "Goal"]) {
+      await expect(
+        exec(tools)({ patientId: "p1", resourceType, dateFrom: "2025-01-01" }, {}),
+      ).rejects.toThrow(/does not support date filtering/);
+      await expect(
+        exec(tools)({ patientId: "p1", resourceType, dateTo: "2025-01-01" }, {}),
+      ).rejects.toThrow(/does not support date filtering/);
+    }
+    // Only Observation carries a code filter.
+    await expect(
+      exec(tools)(
+        { patientId: "p1", resourceType: "Condition", code: "38341003" },
+        {},
+      ),
+    ).rejects.toThrow(/does not support a code filter/);
+    // A refusal must never reach the server as an unfiltered read.
+    expect(searchResources).not.toHaveBeenCalled();
+  });
+
+  it("reports truncation so the model cannot assert an absence from a capped window", async () => {
+    const tools = buildTools(backend);
+    const rows = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        id: `i${i}`,
+        vaccineCode: { text: "Flu shot" },
+        occurrenceDateTime: `2025-01-${String(i + 1).padStart(2, "0")}T00:00:00Z`,
+      }));
+
+    searchResources.mockResolvedValue(rows(3));
+    const partial = await exec(tools)(
+      { patientId: "p1", resourceType: "Immunization", count: 5 },
+      {},
+    );
+    expect(partial.truncated).toBe(false);
+
+    searchResources.mockResolvedValue(rows(5));
+    const full = await exec(tools)(
+      { patientId: "p1", resourceType: "Immunization", count: 5 },
+      {},
+    );
+    expect(full.truncated).toBe(true);
+  });
+
+  it("sorts every section newest-first at the server, not just in the returned rows", async () => {
+    // Without _sort the server picks the window (usually insertion order),
+    // so the client-side sort would order an arbitrary slice. Each value is
+    // probed against HAPI for real ordering.
+    searchResources.mockResolvedValue([]);
+    const tools = buildTools(backend);
+    const expected: Record<string, string> = {
+      Observation: "-date",
+      Communication: "-sent",
+      Condition: "-recorded-date",
+      AllergyIntolerance: "-date",
+      MedicationRequest: "-authoredon",
+      Immunization: "-date",
+      DocumentReference: "-date",
+      Goal: "-start-date",
+      CarePlan: "-date",
+      Task: "-authored-on",
+    };
+    for (const [resourceType, sort] of Object.entries(expected)) {
+      await exec(tools)({ patientId: "p1", resourceType }, {});
+      expect(searchResources).toHaveBeenLastCalledWith(
+        resourceType,
+        expect.objectContaining({ _sort: sort }),
+      );
+    }
   });
 
   it("keeps per-session isolation: other sessions' rows never appear", async () => {
