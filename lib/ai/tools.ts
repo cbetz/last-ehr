@@ -65,6 +65,7 @@ Reading the chart:
 - Use search_patients to find patients by name. After a bare name search ("find/look up patients named X"), show the results and stop. Do not open a chart on your own; the results have a "View record" button the user can click.
 - Use show_patient_info to open a patient's chart when the user asks to see a specific patient's record or chart (for example "show me Jane Smith's chart" or "view record for id ..."). If you only have a name, call search_patients first to get the id, then call show_patient_info. Do not ask the user to confirm before opening a chart they asked to see; just open it.
 - Use read_chart_section for questions about ONE kind of record or a time window — "when was her last flu shot" (Immunization), "blood pressure over six months" (Observation with a date filter), goals, care plans, documents. It is filtered and current where the full chart fetch is a fixed newest-N window. Answer from the returned rows only; if the rows do not contain the answer, say so rather than guessing.
+- read_chart_section takes status and category filters: use status to ask about current records ("active" problems, medications, goals, care plans; "requested" or "in-progress" tasks; "completed" immunizations) and category on Observation to separate "vital-signs" from "laboratory". Prefer a filtered read over fetching everything and sorting it yourself. If a filter value is refused, the error names the legal values for that section — use one of them.
 - read_chart_section results carry a truncated flag. When it is true you saw only the newest rows the filter matched and older ones may exist, so never state an absence ("no record of X", "she has never had Y") from a truncated read: report what you saw, say the list was capped, and offer to narrow the dates or raise the count. A read that refuses a filter is telling you that section cannot filter that way — re-read it without the filter rather than assuming the section is empty.
 
 ${writeSection}
@@ -284,6 +285,109 @@ export function buildTools(
     }
   };
 
+// Status value sets are the R4 required bindings for each section's status
+  // element, declared here so read_chart_section can validate the model's
+  // value against the section it asked for and REFUSE anything else with the
+  // legal list — the model gets one "status" vocabulary and the tool maps it
+  // to the right search parameter per type. Every parameter name below was
+  // probed against the repository's HAPI stack with two rows differing only
+  // in the filtered field, so a silently-ignored filter cannot pass as a
+  // working one.
+  const OBSERVATION_STATUSES = [
+    "registered",
+    "preliminary",
+    "final",
+    "amended",
+    "corrected",
+    "cancelled",
+    "entered-in-error",
+    "unknown",
+  ] as const;
+  const OBSERVATION_CATEGORIES = [
+    "vital-signs",
+    "laboratory",
+    "imaging",
+    "procedure",
+    "survey",
+    "exam",
+    "therapy",
+    "activity",
+    "social-history",
+  ] as const;
+  const EVENT_STATUSES = [
+    "preparation",
+    "in-progress",
+    "not-done",
+    "on-hold",
+    "stopped",
+    "completed",
+    "entered-in-error",
+    "unknown",
+  ] as const;
+  const CONDITION_CLINICAL_STATUSES = [
+    "active",
+    "recurrence",
+    "relapse",
+    "inactive",
+    "remission",
+    "resolved",
+  ] as const;
+  const ALLERGY_CLINICAL_STATUSES = ["active", "inactive", "resolved"] as const;
+  const MEDICATION_REQUEST_STATUSES = [
+    "active",
+    "on-hold",
+    "cancelled",
+    "completed",
+    "entered-in-error",
+    "stopped",
+    "draft",
+    "unknown",
+  ] as const;
+  const IMMUNIZATION_STATUSES = [
+    "completed",
+    "entered-in-error",
+    "not-done",
+  ] as const;
+  const DOCUMENT_STATUSES = [
+    "current",
+    "superseded",
+    "entered-in-error",
+  ] as const;
+  const GOAL_LIFECYCLE_STATUSES = [
+    "proposed",
+    "planned",
+    "accepted",
+    "active",
+    "on-hold",
+    "completed",
+    "cancelled",
+    "entered-in-error",
+    "rejected",
+  ] as const;
+  const CARE_PLAN_STATUSES = [
+    "draft",
+    "active",
+    "on-hold",
+    "revoked",
+    "completed",
+    "entered-in-error",
+    "unknown",
+  ] as const;
+  const TASK_STATUSES = [
+    "draft",
+    "requested",
+    "received",
+    "accepted",
+    "rejected",
+    "ready",
+    "cancelled",
+    "in-progress",
+    "on-hold",
+    "failed",
+    "completed",
+    "entered-in-error",
+  ] as const;
+
   // read_chart_section's per-type query recipe. The TOOL builds the query —
   // the model chooses a section and filters, never raw search params — so
   // every request stays patient-scoped, capped, and inside this allowlist.
@@ -307,6 +411,10 @@ export function buildTools(
       dateParam: "date",
       codeParam: "code",
       sort: "-date",
+      statusParam: "status",
+      statuses: OBSERVATION_STATUSES,
+      categoryParam: "category",
+      categories: OBSERVATION_CATEGORIES,
       toRow: (r: ExtractResource<"Observation">) => ({
         id: r.id ?? "",
         text: `${r.code?.text ?? r.code?.coding?.[0]?.display ?? "Observation"}: ${
@@ -322,6 +430,8 @@ export function buildTools(
       patientRef: true,
       dateParam: "sent",
       sort: "-sent",
+      statusParam: "status",
+      statuses: EVENT_STATUSES,
       toRow: (r: ExtractResource<"Communication">) => ({
         id: r.id ?? "",
         text: asChartText(
@@ -334,6 +444,9 @@ export function buildTools(
       patientParam: "patient",
       dateParam: "recorded-date",
       sort: "-recorded-date",
+      codeParam: "code",
+      statusParam: "clinical-status",
+      statuses: CONDITION_CLINICAL_STATUSES,
       toRow: (r: ExtractResource<"Condition">) => ({
         id: r.id ?? "",
         text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Condition",
@@ -343,6 +456,9 @@ export function buildTools(
     AllergyIntolerance: {
       patientParam: "patient",
       sort: "-date",
+      codeParam: "code",
+      statusParam: "clinical-status",
+      statuses: ALLERGY_CLINICAL_STATUSES,
       toRow: (r: ExtractResource<"AllergyIntolerance">) => ({
         id: r.id ?? "",
         text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Allergy",
@@ -353,6 +469,9 @@ export function buildTools(
       patientParam: "patient",
       dateParam: "authoredon",
       sort: "-authoredon",
+      codeParam: "code",
+      statusParam: "status",
+      statuses: MEDICATION_REQUEST_STATUSES,
       toRow: (r: ExtractResource<"MedicationRequest">) => ({
         id: r.id ?? "",
         text: `${
@@ -367,6 +486,9 @@ export function buildTools(
       patientParam: "patient",
       dateParam: "date",
       sort: "-date",
+      codeParam: "vaccine-code",
+      statusParam: "status",
+      statuses: IMMUNIZATION_STATUSES,
       toRow: (r: ExtractResource<"Immunization">) => ({
         id: r.id ?? "",
         text:
@@ -380,6 +502,8 @@ export function buildTools(
       patientParam: "patient",
       dateParam: "date",
       sort: "-date",
+      statusParam: "status",
+      statuses: DOCUMENT_STATUSES,
       toRow: (r: ExtractResource<"DocumentReference">) => ({
         id: r.id ?? "",
         text: asChartText(
@@ -391,6 +515,8 @@ export function buildTools(
     Goal: {
       patientParam: "patient",
       sort: "-start-date",
+      statusParam: "lifecycle-status",
+      statuses: GOAL_LIFECYCLE_STATUSES,
       toRow: (r: ExtractResource<"Goal">) => ({
         id: r.id ?? "",
         text: asChartText(r.description?.text ?? "Goal"),
@@ -401,6 +527,8 @@ export function buildTools(
       patientParam: "patient",
       dateParam: "date",
       sort: "-date",
+      statusParam: "status",
+      statuses: CARE_PLAN_STATUSES,
       toRow: (r: ExtractResource<"CarePlan">) => ({
         id: r.id ?? "",
         text: asChartText(r.title ?? r.description ?? "Care plan"),
@@ -411,6 +539,8 @@ export function buildTools(
       patientParam: "patient",
       dateParam: "authored-on",
       sort: "-authored-on",
+      statusParam: "status",
+      statuses: TASK_STATUSES,
       toRow: (r: ExtractResource<"Task">) => ({
         id: r.id ?? "",
         text: `${asChartText(r.description ?? "Task")}${
@@ -496,7 +626,23 @@ export function buildTools(
           .max(120)
           .optional()
           .describe(
-            "Observation only: a code token filter, e.g. a LOINC code like 8867-4 or system|code. Not free text.",
+            "A code token, e.g. a LOINC/SNOMED/RxNorm/CVX code or system|code — never free text. Supported on Observation, Condition, AllergyIntolerance, MedicationRequest, and Immunization, and only matches records that carry a coding.",
+          ),
+        status: z
+          .string()
+          .min(1)
+          .max(40)
+          .optional()
+          .describe(
+            "Filter by the section's status, e.g. 'active' for current problems, medications, goals or care plans; 'requested' or 'in-progress' for open tasks; 'completed' for administered immunizations. If the value is not legal for that section the reply lists the ones that are.",
+          ),
+        category: z
+          .string()
+          .min(1)
+          .max(40)
+          .optional()
+          .describe(
+            "Observation only: separates kinds of result — 'vital-signs' for vitals, 'laboratory' for labs. Use it whenever the question is about one or the other.",
           ),
         dateFrom: z
           .string()
@@ -514,6 +660,8 @@ export function buildTools(
         patientId,
         resourceType,
         code,
+        status,
+        category,
         dateFrom,
         dateTo,
         count,
@@ -535,8 +683,47 @@ export function buildTools(
         }
         if (code && !codeParam) {
           throw new Error(
-            `The ${resourceType} section does not support a code filter (only Observation does). Read it without code.`,
+            `The ${resourceType} section does not support a code filter. Read it without code.`,
           );
+        }
+
+        // Status and category are one model-facing vocabulary mapped to each
+        // section's own search parameter, and validated against that
+        // section's R4 value set. An illegal value is refused WITH the legal
+        // list, so the model corrects itself instead of silently reading an
+        // unfiltered section (Task has no "active" status, for instance —
+        // open work is requested/received/accepted/in-progress/ready).
+        const statusParam =
+          "statusParam" in section ? section.statusParam : undefined;
+        const statuses: readonly string[] | undefined =
+          "statuses" in section ? section.statuses : undefined;
+        if (status) {
+          if (!statusParam || !statuses) {
+            throw new Error(
+              `The ${resourceType} section does not support a status filter. Read it without status.`,
+            );
+          }
+          if (!statuses.includes(status)) {
+            throw new Error(
+              `"${status}" is not a status ${resourceType} can have. Legal values: ${statuses.join(", ")}.`,
+            );
+          }
+        }
+        const categoryParam =
+          "categoryParam" in section ? section.categoryParam : undefined;
+        const categories: readonly string[] | undefined =
+          "categories" in section ? section.categories : undefined;
+        if (category) {
+          if (!categoryParam || !categories) {
+            throw new Error(
+              `The ${resourceType} section does not support a category filter (only Observation does). Read it without category.`,
+            );
+          }
+          if (!categories.includes(category)) {
+            throw new Error(
+              `"${category}" is not an ${resourceType} category. Legal values: ${categories.join(", ")}.`,
+            );
+          }
         }
 
         const requested = count ?? 25;
@@ -549,6 +736,8 @@ export function buildTools(
         };
         if ("sort" in section && section.sort) params._sort = section.sort;
         if (code && codeParam) params[codeParam] = code;
+        if (status && statusParam) params[statusParam] = status;
+        if (category && categoryParam) params[categoryParam] = category;
 
         // A full range needs the same search param twice (ge + le), which
         // the structured-params contract cannot express, so one bound is

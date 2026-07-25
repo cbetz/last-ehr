@@ -5,6 +5,20 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- `read_chart_section` gained status, category, and per-section code
+  filters, so the agent can ask for *current* records instead of fetching
+  everything and sorting it out: "her active problems", "what's still open
+  on his task list", "her labs, not her vitals", "has she had this
+  vaccine (by CVX code)". The model uses one vocabulary (`status`,
+  `category`, `code`) and the tool maps it to each section's own search
+  parameter — `clinical-status` for Condition and AllergyIntolerance,
+  `lifecycle-status` for Goal, `status` elsewhere, `vaccine-code` for
+  Immunization — validating the value against that section's R4 value set
+  and refusing an illegal one WITH the legal list, so the model corrects
+  itself rather than silently reading an unfiltered section. Every
+  parameter name was probed against HAPI with two rows differing only in
+  the filtered field, then verified end-to-end through the tool itself.
+
 - Chart reads now report their own limits instead of overstating them.
   `read_chart_section` returns a `truncated` flag whenever a result fills
   the window, and the system prompt forbids the agent from stating an
