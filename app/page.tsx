@@ -54,6 +54,10 @@ const entryPoints = [
 const evidenceRows = [
   ["Web agent", "Three write tools are proposal-shaped and approval-gated."],
   [
+    "Read coverage",
+    "Counted in the open against US Core, with the ceiling and the deliberate exclusions published rather than implied.",
+  ],
+  [
     "MCP write profile",
     "Elicitation-gated proposals behind an explicit opt-in; write tools are offered only to approval-capable clients.",
   ],
@@ -67,10 +71,11 @@ const evidenceRows = [
 
 const docRoutes = [
   ["01", "Protocol", "Approval-Gated Agent Writes on FHIR — the v0.1 draft", "/docs/agent-write-protocol"],
-  ["02", "Evaluate", "Synthetic web demo and MCP Local Lab", "/docs/quickstart"],
-  ["03", "Understand", "Approval gates, threat model, support boundary", "/docs/approval-gates"],
-  ["04", "Integrate", "Medplum, MCP, conformance, and backend adapters", "/docs/mcp"],
-  ["05", "Contribute", "Executable starter, contracts, and open roadmap", "/docs/adapters"],
+  ["02", "Coverage", "What the agent can and cannot reach in FHIR, counted", "/docs/fhir-coverage"],
+  ["03", "Evaluate", "Synthetic web demo and MCP Local Lab", "/docs/quickstart"],
+  ["04", "Understand", "Approval gates, threat model, support boundary", "/docs/approval-gates"],
+  ["05", "Integrate", "Medplum, MCP, conformance, and backend adapters", "/docs/mcp"],
+  ["06", "Contribute", "Executable starter, contracts, and open roadmap", "/docs/adapters"],
 ];
 
 export default function Home() {

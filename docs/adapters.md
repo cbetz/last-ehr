@@ -97,11 +97,13 @@ Two things an adapter PR does **not** need to touch:
 - Update `README.md` and `docs/quickstart.md`.
 - Add setup notes with exact versions, Docker images, cloud sandbox, or account
   requirements.
-- Verify all four tools end to end with synthetic data:
+- Verify the agent's tools end to end with synthetic data:
   - search patients
   - show chart
+  - read a chart section, with a status or date filter
   - add note with approval
   - record observation with approval
+  - create task with approval
 - Document caveats: auth, tenancy, audit logs, unsupported search parameters,
   server-specific quirks.
 

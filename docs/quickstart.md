@@ -95,8 +95,9 @@ npm run seed
 npm run dev
 ```
 
-Public `NEXT_PUBLIC_*` values are read at startup. The real agent can use all
-four tools and requires a tool-capable model credential.
+Public `NEXT_PUBLIC_*` values are read at startup. The real agent can use its
+full tool surface (see [FHIR coverage](./fhir-coverage.md)) and requires a
+tool-capable model credential.
 
 To run the app itself in Docker too:
 

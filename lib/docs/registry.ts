@@ -36,7 +36,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 10,
     audience: "Evaluators and first-time builders",
-    lastModified: "2026-07-22",
+    lastModified: "2026-07-24",
     keywords: ["local", "HAPI", "Medplum", "setup", "Docker"],
   },
   {
@@ -60,7 +60,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 10,
     audience: "Developers reviewing the implementation",
-    lastModified: "2026-07-19",
+    lastModified: "2026-07-24",
     keywords: ["architecture", "FHIR", "tools", "backend", "data boundary"],
   },
   {
@@ -108,7 +108,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 10,
     audience: "Backend contributors and integration teams",
-    lastModified: "2026-07-21",
+    lastModified: "2026-07-24",
     keywords: ["adapter", "Aidbox", "Firely", "Oystehr", "contract"],
   },
   {

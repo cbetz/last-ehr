@@ -5,6 +5,28 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Agent-written observations are now coded, in both bindings. A recognized
+  vital gains a LOINC `coding` and the `vital-signs` category — both
+  required by US Core Vital Signs — from a pinned local table
+  (`lib/fhir/vitals.ts`), and the approval card renders the derived codes
+  from that same function, so the reviewer sees the LOINC and UCUM codes
+  that will save rather than discovering them on the chart.
+
+  This also retires a live untruth: `valueQuantity.code` used to receive
+  the unit string a human typed, asserting that "bpm" was a UCUM code when
+  the UCUM code is `/min`. The system and code are now set only when the
+  unit actually resolves, and the typed unit is kept as the display value.
+  An unrecognized label stays plain text with NO category rather than a
+  guessed classification.
+
+  Verified end-to-end on HAPI: an agent-written heart rate now carries
+  LOINC 8867-4, `category=vital-signs`, and `valueQuantity.code=/min`, and
+  is findable by the `category: vital-signs` read filter — which could not
+  have found it before, since agent writes carried no category at all.
+  The `@lastehr/mcp` copy of the table is guarded by a test that runs both
+  modules over a matrix of labels and units and asserts identical output,
+  so the two bindings cannot drift into coding the same write differently.
+
 - `read_chart_section` grew from 10 sections to 17, taking readable US Core
   9.0.0 resource types from 9 of 27 to 15 of 27: Encounter ("what happened
   at her last visit" — nothing could answer this), DiagnosticReport (which

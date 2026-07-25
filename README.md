@@ -35,6 +35,7 @@ zero-key local synthetic walkthrough.
 | --- | --- |
 | See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo): no sign-up. |
 | Read the protocol | [Approval-Gated Agent Writes on FHIR, v0.1 draft](./docs/agent-write-protocol.md) |
+| See exactly what the agent can reach in FHIR | [FHIR coverage](./docs/fhir-coverage.md): counted against US Core, ceiling included |
 | Test an MCP (stdio) implementation of the protocol | `npx @lastehr/agent-write-conformance` — see the [conformance guide](./docs/conformance.md) |
 | Give an MCP client bounded chart tools — read-only by default, opt-in approved writes (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
