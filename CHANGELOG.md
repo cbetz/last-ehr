@@ -5,6 +5,36 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- `read_chart_section` can follow references. A new `include` option
+  (`authors`, `encounter`, `facility`, `location`, `provenance`) returns the
+  resources a section points at, so author and performer references stop
+  being dead pointers. **Axis A goes 21 → 25 of US Core 9.0.0's 27 types**
+  and the first of four resolution mechanisms closes, because Practitioner,
+  Organization, Location, and Provenance cannot be scoped to a patient and
+  are reachable no other way.
+
+  This makes the AI-transparency read work for the first time:
+  `include: "provenance"` uses `_revinclude=Provenance:target`, the only
+  query that finds provenance for a patient's *resources* rather than for
+  the Patient resource itself, so the agent can answer "which entries here
+  were AI-written, and who approved them".
+
+  The model still authors no search parameter — it picks from an
+  allowlisted vocabulary and the tool supplies the token, refusing an
+  option a section cannot honor with the ones it can.
+
+  Two isolation hazards handled, both verified live against HAPI with two
+  concurrent demo sessions: the server returns includes for **every** match
+  it found, including rows belonging to other sessions that the visibility
+  filter is about to drop, so matches are filtered first and an included
+  resource survives only if it is still connected to a surviving match.
+  A foreign session's Provenance — and every trace of it — is absent from
+  the reply, while the owning session still sees its own.
+
+  A backend that rejects the parameter degrades to a plain read and says
+  `includeUnsupported`, never letting an unsupported lookup read as "no
+  related records exist".
+
 - Six more chart sections — Device, FamilyMemberHistory, MedicationDispense,
   QuestionnaireResponse, RelatedPerson, Specimen — taking readable US Core
   9.0.0 resource types from 15 of 27 to **21 of 27**. Every patient

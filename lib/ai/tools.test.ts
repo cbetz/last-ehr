@@ -920,6 +920,119 @@ describe("read_chart_section", () => {
     }
   });
 
+  it("follows references with include, and keeps includes session-isolated", async () => {
+    searchResources.mockReset();
+    search.mockReset();
+    // A bundle with one visible match, one FOREIGN-session match, and the
+    // includes for both. The foreign match must be filtered out, and its
+    // include must go with it — otherwise the reply discloses that another
+    // session's write exists.
+    search.mockResolvedValue({
+      entry: [
+        {
+          search: { mode: "match" },
+          resource: {
+            resourceType: "Observation",
+            id: "mine",
+            performer: [{ reference: "Practitioner/dr-visible" }],
+            effectiveDateTime: "2026-02-10T00:00:00Z",
+            code: { text: "Heart rate" },
+            meta: { tag: [{ system: "http://lastehr.demo", code: "session-A" }] },
+          },
+        },
+        {
+          search: { mode: "match" },
+          resource: {
+            resourceType: "Observation",
+            id: "theirs",
+            performer: [{ reference: "Practitioner/dr-secret" }],
+            effectiveDateTime: "2026-02-09T00:00:00Z",
+            code: { text: "Heart rate" },
+            meta: { tag: [{ system: "http://lastehr.demo", code: "session-B" }] },
+          },
+        },
+        {
+          search: { mode: "include" },
+          resource: {
+            resourceType: "Practitioner",
+            id: "dr-visible",
+            name: [{ family: "Adams", given: ["Ada"] }],
+          },
+        },
+        {
+          search: { mode: "include" },
+          resource: {
+            resourceType: "Practitioner",
+            id: "dr-secret",
+            name: [{ family: "Hidden" }],
+          },
+        },
+      ],
+    });
+
+    const tools = buildTools(backend, "A");
+    const out = (await exec(tools)(
+      { patientId: "p1", resourceType: "Observation", include: "authors" },
+      {},
+    )) as unknown as {
+      entries: { id: string }[];
+      related: { id: string; resourceType: string; text: string }[];
+    };
+
+    expect(search).toHaveBeenCalledWith(
+      "Observation",
+      expect.objectContaining({ _include: "Observation:performer" }),
+    );
+    expect(out.entries.map((e) => e.id)).toEqual(["mine"]);
+    // The surviving match's author comes back...
+    expect(out.related.map((r) => r.id)).toEqual(["dr-visible"]);
+    // ...and the other session's author does not, in any form.
+    expect(JSON.stringify(out)).not.toContain("Hidden");
+    expect(JSON.stringify(out)).not.toContain("dr-secret");
+  });
+
+  it("uses _revinclude for provenance on any section, and refuses unsupported options", async () => {
+    search.mockReset();
+    search.mockResolvedValue({ entry: [] });
+    const tools = buildTools(backend);
+    await exec(tools)(
+      { patientId: "p1", resourceType: "Goal", include: "provenance" },
+      {},
+    );
+    expect(search).toHaveBeenLastCalledWith(
+      "Goal",
+      expect.objectContaining({ _revinclude: "Provenance:target" }),
+    );
+    // Goal has no forward includes, so anything else is refused with the
+    // options that do exist.
+    await expect(
+      exec(tools)({ patientId: "p1", resourceType: "Goal", include: "authors" }, {}),
+    ).rejects.toThrow(/cannot include "authors"[\s\S]*provenance/);
+  });
+
+  it("reports includeUnsupported rather than implying no references exist", async () => {
+    search.mockReset();
+    searchResources.mockReset();
+    // A backend that rejects the parameter must not read as "none found".
+    search.mockRejectedValue(new Error("HAPI-0000: _include not supported"));
+    searchResources.mockResolvedValue([
+      {
+        id: "o1",
+        code: { text: "Heart rate" },
+        effectiveDateTime: "2026-02-10T00:00:00Z",
+      },
+    ]);
+    const tools = buildTools(backend);
+    const out = (await exec(tools)(
+      { patientId: "p1", resourceType: "Observation", include: "authors" },
+      {},
+    )) as unknown as { entries: unknown[]; related: unknown[]; includeUnsupported?: boolean };
+    expect(out.includeUnsupported).toBe(true);
+    expect(out.related).toEqual([]);
+    // The rows themselves still come back through the plain path.
+    expect(out.entries).toHaveLength(1);
+  });
+
   it("has no Provenance section: ?patient= cannot see provenance for a patient's resources", async () => {
     // R4 defines Provenance's patient parameter as
     // target.where(resolve() is Patient), so provenance targeting an
