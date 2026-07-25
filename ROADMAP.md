@@ -76,7 +76,7 @@ well-reviewed steps:
 
 - Task creation and assignment
 - Encounter-scoped notes
-- Better Observation coding and unit normalization
+- Better Observation coding and unit normalization — done for vitals (LOINC + UCUM from a pinned table, `lib/fhir/vitals.ts`); laboratory results and medication/condition coding remain
 - Condition/MedicationRequest write experiments behind stricter gates
 
 Shipped: `read_chart_section`, one policy-checked bounded read tool

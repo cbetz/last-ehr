@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { ApprovalRequest, RequestApproval } from "./approval.js";
 import type { FhirReadClient, McpReadTool } from "./read-tools.js";
+import { codeObservation, UCUM_SYSTEM } from "./vitals.js";
 
 // Proposal-shaped writes: the same write actions as the web demo
 // (Communication note, Observation vital), with matching input caps,
@@ -352,17 +353,23 @@ export function createWriteTools(
           return policyDeniedResult(policyAtCommit.reason);
         }
         // Built AFTER the approval; see the note on add_note above.
+        // Same pinned coding table as the web binding (see ./vitals.ts):
+        // a recognized vital gains a LOINC coding plus the vital-signs
+        // category, and Quantity.system/code are set only when the unit
+        // resolves to a real UCUM code rather than asserting the typed
+        // string is one.
+        const coded = codeObservation(label, unit);
         const resource: Observation = {
           resourceType: "Observation",
           status: "final",
-          code: { text: label },
+          code: coded.code,
+          ...(coded.category ? { category: coded.category } : {}),
           subject: { reference: `Patient/${patientId}` },
           effectiveDateTime: new Date().toISOString(),
           valueQuantity: {
             value,
             unit,
-            system: "http://unitsofmeasure.org",
-            code: unit,
+            ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
           },
           meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
         };
