@@ -15,7 +15,7 @@ types**, counted from the published
 generated 2026-05-31), unmodified. US Core is the denominator because it is
 the floor US implementers are actually asked about.
 
-**21 of 27 US Core resource types**, plus 3 types US Core does not profile.
+**25 of 27 US Core resource types**, plus 3 types US Core does not profile.
 
 | Readable today | In US Core 9.0.0 |
 | --- | --- |
@@ -49,13 +49,28 @@ Core clinical profiles. Worth stating plainly because **two of the three
 types the agent can write are outside this denominator** — the write surface
 and the read denominator are not the same set.
 
-The 6 US Core types with no read path today: Location, Medication,
-Organization, Practitioner, PractitionerRole, Provenance. **Every one of
-them is unreachable for the same reason** — none can be scoped to a patient,
-so none can be a chart section. They are reachable only by following a
-reference from a resource that names them, which is the `_include` row under
-[resolution mechanisms](#axis-c--resolution-mechanisms). That single
-mechanism is what would take this axis from 21 to 27.
+Four of those — Practitioner, Organization, Location, and Provenance — are
+now reachable by **following a reference** rather than as sections, because
+none of them can be scoped to a patient. `read_chart_section` takes an
+`include` option (`authors`, `encounter`, `facility`, `location`,
+`provenance`) and returns the referenced resources alongside the matches.
+
+The 2 US Core types still unreachable: **Medication** and
+**PractitionerRole**. Both are reachable by the same mechanism the moment a
+backend models them as references (`MedicationRequest.medicationReference`,
+a `PractitionerRole` performer) rather than inline codeable concepts, which
+the synthetic data here does not. No new mechanism is needed — only data
+that uses one.
+
+**The AI-transparency read works now.** `include: "provenance"` on any
+section uses `_revinclude=Provenance:target`, which is the only query that
+finds provenance for a patient's *resources* — so the agent can finally
+answer "which entries here were AI-written, and who approved them":
+
+```
+Observation/2209 — author: Last EHR agent (model-proposed);
+                   verifier: Human reviewer (approval gate) (recorded 2026-02-10)
+```
 
 Three of those absences are deliberate rather than pending, and the reasons
 are worth stating:
@@ -137,12 +152,12 @@ medications/conditions/allergies, which still write `code.text` only.
 
 ## Axis C — resolution mechanisms
 
-**0 of 4.** Each one is a thing a clinician expects an agent to be able to do
-and it cannot.
+**1 of 4.** Each remaining one is a thing a clinician expects an agent to be
+able to do and it cannot.
 
 | Mechanism | Status | What it would unlock |
 | --- | --- | --- |
-| Follow a reference (`_include` / `_revinclude`) | ❌ | "who ordered this", "who wrote that note", and the AI-transparency read above — every author/performer reference is a dead pointer today, and Practitioner/Organization/Location are reachable no other way |
+| Follow a reference (`_include` / `_revinclude`) | ✅ | "who ordered this", "who wrote that note", and the AI-transparency read — via an allowlisted `include` option per section, never a raw parameter |
 | Page a result set | ❌ | "has he *ever* had a flu shot", answered from the record instead of one window |
 | Resolve a code (`$expand` / `$validate-code`) | ❌ | LOINC/SNOMED/RxNorm coding rather than free-text `code.text` |
 | Read a document body | ❌ | "what does the discharge summary actually say" — the agent can report only that a document exists |
@@ -194,7 +209,7 @@ code token, a status, a category, `dateFrom`, `dateTo`, and a count of 1-100.
 | `category` filter | ✅ Observation — separates `vital-signs` from `laboratory` |
 | Paging (`Bundle.link[next]`) | ❌ — `_count` is a cap, not a page |
 | Repeated parameters | ❌ — the structured-params contract carries one value per key |
-| `_include` / `_revinclude` / chained / `_has` | ❌ |
+| `_include` / `_revinclude` | ✅ allowlisted options per section; chained and `_has` still ❌ |
 
 The model gets one filter vocabulary; the tool maps it to each section's own
 search parameter and validates the value against that section's R4 value set.

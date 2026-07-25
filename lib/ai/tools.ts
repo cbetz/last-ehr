@@ -73,6 +73,7 @@ Reading the chart:
 - Use search_patients to find patients by name. After a bare name search ("find/look up patients named X"), show the results and stop. Do not open a chart on your own; the results have a "View record" button the user can click.
 - Use show_patient_info to open a patient's chart when the user asks to see a specific patient's record or chart (for example "show me Jane Smith's chart" or "view record for id ..."). If you only have a name, call search_patients first to get the id, then call show_patient_info. Do not ask the user to confirm before opening a chart they asked to see; just open it.
 - Use read_chart_section for questions about ONE kind of record or a time window — "when was her last flu shot" (Immunization), "blood pressure over six months" (Observation with a date filter), "what happened at her last visit" (Encounter), "what did the lab report conclude" (DiagnosticReport, which carries the conclusion a loose result list loses), procedures, orders, care team, coverage, goals, care plans, documents. The AuditEvent section answers questions about the record itself — which proposed writes a reviewer rejected. It is filtered and current where the full chart fetch is a fixed newest-N window. Answer from the returned rows only; if the rows do not contain the answer, say so rather than guessing.
+- read_chart_section can also follow references with include: "authors" names who performed or ordered something (a clinician or organization), "encounter" the visit it belongs to, and "provenance" answers whether an entry was AI-written and who approved it. Use it instead of telling the user a reference cannot be resolved. If the reply carries includeUnsupported, the backend refused the lookup — say the references could not be resolved, never that there are none.
 - read_chart_section takes status and category filters: use status to ask about current records ("active" problems, medications, goals, care plans; "requested" or "in-progress" tasks; "completed" immunizations) and category on Observation to separate "vital-signs" from "laboratory". Prefer a filtered read over fetching everything and sorting it yourself. If a filter value is refused, the error names the legal values for that section — use one of them.
 - read_chart_section results carry a truncated flag. When it is true you saw only the newest rows the filter matched and older ones may exist, so never state an absence ("no record of X", "she has never had Y") from a truncated read: report what you saw, say the list was capped, and offer to narrow the dates or raise the count. A read that refuses a filter is telling you that section cannot filter that way — re-read it without the filter rather than assuming the section is empty.
 
@@ -194,6 +195,151 @@ export function buildTools(
   // rows with no demo tag (seed data) and rows tagged by this session. The
   // isVisible filter stays on the merged result as a fallback for backends
   // that silently ignore the :not modifier.
+  // One-line rendering of a referenced resource. Names and titles are
+  // free text from the chart, so they cross the untrusted-content boundary
+  // exactly like note text does.
+  const describeRelated = (resource: Record<string, unknown>): string => {
+    const r = resource as {
+      resourceType?: string;
+      name?: unknown;
+      code?: { text?: string; coding?: { display?: string }[] };
+      type?: { text?: string; coding?: { display?: string }[] };
+      target?: { reference?: string }[];
+      agent?: { type?: { coding?: { code?: string }[] }; who?: { display?: string; reference?: string } }[];
+      recorded?: string;
+    };
+    if (r.resourceType === "Provenance") {
+      const roles =
+        r.agent
+          ?.map((agent) => {
+            const role = agent.type?.coding?.[0]?.code;
+            const who = agent.who?.display ?? agent.who?.reference ?? "unknown";
+            return `${role ? `${role}: ` : ""}${asChartText(who)}`;
+          })
+          .join("; ") || "no agents";
+      const targets =
+        r.target?.map((t) => t.reference).filter(Boolean).join(", ") || "";
+      return `${targets ? `${targets} — ` : ""}${roles}${
+        r.recorded ? ` (recorded ${r.recorded.slice(0, 10)})` : ""
+      }`;
+    }
+    // Practitioner/RelatedPerson carry HumanName; Organization/Location a string.
+    if (typeof r.name === "string") return asChartText(r.name);
+    if (Array.isArray(r.name)) {
+      const first = r.name[0] as { given?: string[]; family?: string; text?: string } | undefined;
+      const rendered =
+        first?.text ??
+        [first?.given?.join(" "), first?.family].filter(Boolean).join(" ");
+      if (rendered) return asChartText(rendered);
+    }
+    return asChartText(
+      r.code?.text ??
+        r.code?.coding?.[0]?.display ??
+        r.type?.text ??
+        r.type?.coding?.[0]?.display ??
+        r.resourceType ??
+        "resource",
+    );
+  };
+
+  // Bundle-shaped read for the _include path. searchResources cannot carry
+  // it: it keeps only search.mode "match" entries and returns one resource
+  // type, so an included Practitioner is structurally unrepresentable. This
+  // reads the raw bundle instead and applies session isolation in TWO
+  // places, because the naive version leaks: the server returns includes
+  // for every match it found, including rows belonging to other demo
+  // sessions that the visibility filter is about to drop. Keeping those
+  // includes would disclose that another session's write exists. So the
+  // matches are filtered first, and an included resource survives only if
+  // it is actually connected to a match that survived.
+  type RelatedRow = { id: string; resourceType: string; text: string };
+  const searchVisibleWithIncludes = async <K extends ResourceType>(
+    resourceType: K,
+    params: Record<string, string>,
+    dateOf: (res: ExtractResource<K>) => string,
+  ): Promise<{ matches: ExtractResource<K>[]; related: RelatedRow[] }> => {
+    type Entry = {
+      resource?: { resourceType?: string; id?: string } & Record<string, unknown>;
+      search?: { mode?: string };
+    };
+    const readBundle = async (extra: Record<string, string>) => {
+      const bundle = (await backend.search(resourceType, {
+        ...params,
+        ...extra,
+      })) as { entry?: Entry[] };
+      return bundle.entry ?? [];
+    };
+
+    const entries = sessionId
+      ? (
+          await Promise.all([
+            readBundle({ "_tag:not": `${DEMO_TAG_SYSTEM}|` }).catch(() =>
+              // Same HAPI-1218 fallback as searchVisible: over-fetch, then
+              // let the visibility filter below do the work.
+              readBundle({
+                _count: String(
+                  Math.min(Math.max((Number(params._count) || 25) * 4, 100), 200),
+                ),
+              }),
+            ),
+            readBundle({ _tag: `${DEMO_TAG_SYSTEM}|session-${sessionId}` }),
+          ])
+        ).flat()
+      : await readBundle({});
+
+    // An entry is an include when the server says so, or when its type
+    // simply is not what we searched for — servers vary on setting mode.
+    const isInclude = (entry: Entry) =>
+      entry.search?.mode === "include" ||
+      (!!entry.resource?.resourceType &&
+        entry.resource.resourceType !== resourceType);
+
+    const seen = new Set<string>();
+    const matches = entries
+      .filter((entry) => !isInclude(entry) && entry.resource)
+      .map((entry) => entry.resource as unknown as ExtractResource<K>)
+      .filter((resource) => {
+        const id = (resource as { id?: string }).id;
+        if (!id) return true;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      })
+      .filter(isVisible)
+      .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
+      .slice(0, Number(params._count) || undefined);
+
+    // Only includes connected to a SURVIVING match, in either direction:
+    // a match may reference the include (_include) or the include may
+    // reference the match (_revinclude).
+    const survivingRefs = new Set(
+      matches
+        .map((resource) => (resource as { id?: string }).id)
+        .filter(Boolean)
+        .map((id) => `${resourceType}/${id}`),
+    );
+    const matchesJson = JSON.stringify(matches);
+    const relatedSeen = new Set<string>();
+    const related: RelatedRow[] = [];
+    for (const entry of entries) {
+      if (!isInclude(entry) || !entry.resource?.id) continue;
+      const key = `${entry.resource.resourceType}/${entry.resource.id}`;
+      if (relatedSeen.has(key)) continue;
+      const raw = JSON.stringify(entry.resource);
+      const linked =
+        matchesJson.includes(`"${key}"`) ||
+        [...survivingRefs].some((ref) => raw.includes(`"${ref}"`));
+      if (!linked) continue;
+      relatedSeen.add(key);
+      related.push({
+        id: entry.resource.id,
+        resourceType: entry.resource.resourceType ?? "Resource",
+        text: describeRelated(entry.resource),
+      });
+    }
+    return { matches, related };
+  };
+
   const searchVisible = async <K extends ResourceType>(
     resourceType: K,
     params: Record<string, string>,
@@ -381,6 +527,33 @@ export function buildTools(
     "entered-in-error",
     "unknown",
   ] as const;
+  // What each model-facing `include` option means per section. The model
+  // picks from this vocabulary; the tool supplies the actual _include
+  // token, so a raw search parameter is never model-authored. Every token
+  // below was probed against HAPI and confirmed to return an entry with
+  // search.mode "include".
+  //
+  // `provenance` is universal and uses _revinclude=Provenance:target — the
+  // only way to answer "which entries here were AI-written", because
+  // Provenance's own patient parameter matches only provenance whose target
+  // IS the Patient (see the absence note in CHART_SECTIONS).
+  const PROVENANCE_REVINCLUDE = "Provenance:target";
+  const SECTION_INCLUDES: Record<string, Record<string, string>> = {
+    Observation: {
+      authors: "Observation:performer",
+      encounter: "Observation:encounter",
+    },
+    DiagnosticReport: { authors: "DiagnosticReport:performer" },
+    MedicationRequest: { authors: "MedicationRequest:requester" },
+    ServiceRequest: { authors: "ServiceRequest:requester" },
+    Condition: { authors: "Condition:asserter" },
+    Encounter: {
+      authors: "Encounter:participant",
+      facility: "Encounter:service-provider",
+      location: "Encounter:location",
+    },
+  };
+
   const DEVICE_STATUSES = [
     "active",
     "inactive",
@@ -997,6 +1170,12 @@ export function buildTools(
           .regex(/^\d{4}-\d{2}-\d{2}$/)
           .optional()
           .describe("Latest date, YYYY-MM-DD."),
+        include: z
+          .enum(["authors", "encounter", "facility", "location", "provenance"])
+          .optional()
+          .describe(
+            "Also return resources this section points at, so references stop being dead ends. 'authors' = who performed, requested, or asserted it (a Practitioner or Organization); 'encounter' = the visit; 'facility'/'location' = Encounter only; 'provenance' = who or what created each row, which is how you answer whether an entry was AI-written and who approved it. Not every section supports every option; the reply names the ones it does.",
+          ),
         count: z.number().int().min(1).max(100).optional(),
       }),
       execute: async ({
@@ -1007,6 +1186,7 @@ export function buildTools(
         category,
         dateFrom,
         dateTo,
+        include,
         count,
       }) => {
         const section = CHART_SECTIONS[resourceType];
@@ -1091,6 +1271,22 @@ export function buildTools(
         if (status && statusParam) params[statusParam] = status;
         if (category && categoryParam) params[categoryParam] = category;
 
+        // `provenance` is available on every section (_revinclude); the rest
+        // are per-section forward includes. An option a section cannot
+        // honor is refused with the ones it can, like every other filter.
+        const sectionIncludes = SECTION_INCLUDES[resourceType] ?? {};
+        if (include && include !== "provenance" && !sectionIncludes[include]) {
+          const available = [...Object.keys(sectionIncludes), "provenance"];
+          throw new Error(
+            `The ${resourceType} section cannot include "${include}". Available: ${available.join(", ")}.`,
+          );
+        }
+        if (include === "provenance") {
+          params._revinclude = PROVENANCE_REVINCLUDE;
+        } else if (include) {
+          params._include = sectionIncludes[include];
+        }
+
         // A full range needs the same search param twice (ge + le), which
         // the structured-params contract cannot express, so one bound is
         // filtered from the fetched rows. Send the UPPER bound: every
@@ -1116,12 +1312,39 @@ export function buildTools(
           date: string;
         };
         // searchVisible keeps per-session isolation on every section and
-        // degrades safely on backends without :not support.
-        const resources = await searchVisible(
-          resourceType,
-          params,
-          (resource) => toRow(resource).date,
-        );
+        // degrades safely on backends without :not support. The include
+        // path needs the raw bundle, so it uses the bundle reader — and
+        // degrades to a plain read if the backend rejects the parameter,
+        // reporting that rather than pretending the references resolved.
+        let resources: ExtractResource<typeof resourceType>[];
+        let related: { id: string; resourceType: string; text: string }[] = [];
+        let includeUnsupported = false;
+        if (include) {
+          try {
+            const withIncludes = await searchVisibleWithIncludes(
+              resourceType,
+              params,
+              (resource) => toRow(resource).date,
+            );
+            resources = withIncludes.matches;
+            related = withIncludes.related;
+          } catch {
+            includeUnsupported = true;
+            delete params._include;
+            delete params._revinclude;
+            resources = await searchVisible(
+              resourceType,
+              params,
+              (resource) => toRow(resource).date,
+            );
+          }
+        } else {
+          resources = await searchVisible(
+            resourceType,
+            params,
+            (resource) => toRow(resource).date,
+          );
+        }
         // A full window means the server had at least this many matching
         // rows, so older ones may exist beyond it. The model is told (see
         // SYSTEM_PROMPT) never to report an absence from a truncated read.
@@ -1131,7 +1354,22 @@ export function buildTools(
           .filter(
             (row) => !clientDateFrom || !row.date || row.date >= clientDateFrom,
           );
-        return { resourceType, entries, truncated };
+        return {
+          resourceType,
+          entries,
+          truncated,
+          ...(include
+            ? includeUnsupported
+              ? {
+                  related: [],
+                  // Never let an unsupported parameter read as "no related
+                  // records exist" — that is the same false-negative class
+                  // the truncated flag exists to prevent.
+                  includeUnsupported: true,
+                }
+              : { related }
+            : {}),
+        };
       },
     }),
     show_patient_info: tool({
