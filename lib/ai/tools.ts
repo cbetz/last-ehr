@@ -4,7 +4,11 @@ import type { ExtractResource, ResourceType } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { AIAST_LABEL, PROVENANCE_PARTICIPANT_TYPE } from "@/lib/fhir/labels";
-import { codeObservation, UCUM_SYSTEM } from "@/lib/fhir/vitals";
+import {
+  codeObservation,
+  OBSERVATION_REPLACES_EXTENSION,
+  UCUM_SYSTEM,
+} from "@/lib/fhir/vitals";
 import {
   evaluateWritePolicy,
   resolveDisabledWriteTools,
@@ -18,6 +22,8 @@ const WRITE_TOOL_PROMPT_LINES: Record<WriteToolName, string> = {
   add_note: "- Use add_note to add a free-text note.",
   record_observation:
     "- Use record_observation to record a vital sign or lab value (a label, a numeric value, and a unit).",
+  record_superseding_observation:
+    "- Use record_superseding_observation when a value already on the chart was wrong. It files the corrected value as a NEW entry linked to the earlier one; the earlier entry stays on the chart and is NOT marked as an error, so tell the user that plainly instead of saying the old value was fixed, replaced, or removed. It needs the earlier observation's resource id from a prior read.",
   create_task:
     '- Use create_task to create a follow-up task on a patient\'s chart (a short description of what needs to happen, and an optional due date). Use it when the user asks to schedule, remind, or follow up on something ("create a task to call her about the results", "follow up in two weeks").',
 };
@@ -28,6 +34,7 @@ const WRITE_SECTION_HEADER =
 const WRITE_ACTION_PHRASES: Record<WriteToolName, string> = {
   add_note: "add a note",
   record_observation: "record an observation",
+  record_superseding_observation: "supersede a wrong observation",
   create_task: "create a task",
 };
 
@@ -756,6 +763,22 @@ export function buildTools(
     options.writeToolsDisabled,
   );
 
+  // One rendering of an existing observation, used by the superseding
+  // tool's result text so the reviewer and the model describe the same row.
+  const describeObservation = (resource: {
+    code?: { text?: string; coding?: { display?: string }[] };
+    valueQuantity?: { value?: number; unit?: string };
+    effectiveDateTime?: string;
+  }): string => {
+    const label =
+      resource.code?.text ?? resource.code?.coding?.[0]?.display ?? "Observation";
+    const measured = resource.valueQuantity
+      ? `${resource.valueQuantity.value ?? ""} ${resource.valueQuantity.unit ?? ""}`.trim()
+      : "";
+    const when = resource.effectiveDateTime?.slice(0, 10);
+    return `${label}${measured ? ` ${measured}` : ""}${when ? ` recorded ${when}` : ""}`;
+  };
+
   // Deny-only policy gate, checked at commit time (top of execute — the
   // human has approved by then; policy can only veto, never wave a write
   // past the gate). Throws rather than returning an error-shaped result:
@@ -1187,6 +1210,107 @@ export function buildTools(
           id: created.id,
           resourceType: "Observation",
           summary: `${label}: ${value} ${unit}`,
+        };
+      },
+    }),
+    record_superseding_observation: tool({
+      description:
+        "Propose a new observation that supersedes an earlier one on the same chart — use when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes. The earlier entry is NOT changed, NOT deleted, and NOT marked as an error; it stays on the chart as a final result. Pass the earlier observation's resource id from a prior read. Requires user approval before saving.",
+      inputSchema: z.object({
+        patientId: z
+          .string()
+          .min(1)
+          .max(64)
+          .describe("The patient resource id."),
+        supersedes: z
+          .string()
+          .min(1)
+          .max(64)
+          .describe(
+            "Resource id of the earlier observation this one supersedes, from a prior read.",
+          ),
+        value: z
+          .number()
+          .gte(-100000)
+          .lte(100000)
+          .describe("The corrected numeric value."),
+        unit: z
+          .string()
+          .min(1)
+          .max(20)
+          .describe("The unit for the corrected value, e.g. 'kg'."),
+      }),
+      needsApproval: true,
+      execute: async ({ patientId, supersedes, value, unit }) => {
+        await guardWritePolicy({
+          toolName: "record_superseding_observation",
+          resourceType: "Observation",
+          patientId,
+        });
+        // Fetch the original through the session-visible path: a bogus id
+        // must refuse rather than mint a dangling reference, and one demo
+        // session must not be able to supersede another session's row.
+        const [original] = await searchVisible(
+          "Observation",
+          { _id: supersedes, _count: "1" },
+          (resource) => resource.effectiveDateTime ?? "",
+        );
+        if (!original) {
+          throw new Error(
+            `No observation ${supersedes} is readable on this chart, so there is nothing to supersede.`,
+          );
+        }
+        if (original.subject?.reference !== `Patient/${patientId}`) {
+          throw new Error(
+            `Observation ${supersedes} does not belong to patient ${patientId}.`,
+          );
+        }
+        const coded = codeObservation(unit ? unit : "", unit);
+        const created = await backend.createResource({
+          resourceType: "Observation",
+          status: "final",
+          // The superseding entry re-states the SAME measurement, so its
+          // code and category come from the original rather than from the
+          // model — superseding one measurement with a different kind of
+          // measurement would be meaningless.
+          code: original.code ?? { text: "Observation" },
+          ...(original.category ? { category: original.category } : {}),
+          subject: { reference: `Patient/${patientId}` },
+          // Clinically this is the same measurement event, so it carries the
+          // original's effective time; `issued` records when the correction
+          // was filed. Backdating here is deliberate: stamping "now" would
+          // assert a measurement nobody took at that moment, and it would
+          // put a physiologically impossible jump in the trend.
+          ...(original.effectiveDateTime
+            ? { effectiveDateTime: original.effectiveDateTime }
+            : {}),
+          issued: new Date().toISOString(),
+          valueQuantity: {
+            value,
+            unit,
+            ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
+          },
+          // The supersession link rides the resource itself, not a separate
+          // Provenance: it is the clinical claim that distinguishes a
+          // correction from a duplicate, so it must be part of the single
+          // approved create rather than a second write that could fail.
+          extension: [
+            {
+              url: OBSERVATION_REPLACES_EXTENSION,
+              valueReference: { reference: `Observation/${supersedes}` },
+            },
+          ],
+          meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
+        });
+        await emitWriteProvenance("Observation", created.id);
+        return {
+          id: created.id,
+          resourceType: "Observation",
+          supersedes,
+          summary: `${describeObservation(original)} superseded by ${value} ${unit}`,
+          // The model paraphrases this, so the limit is stated here and not
+          // only on the card.
+          outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
         };
       },
     }),

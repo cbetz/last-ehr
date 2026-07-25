@@ -19,7 +19,11 @@ import {
 } from "@/components/chat";
 import { PatientCard } from "@/components/chat/patient";
 import { ConfirmWrite } from "@/components/chat/confirm-write";
-import { codeObservation, UCUM_SYSTEM } from "@/lib/fhir/vitals";
+import {
+  codeObservation,
+  OBSERVATION_REPLACES_EXTENSION,
+  UCUM_SYSTEM,
+} from "@/lib/fhir/vitals";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
 import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
@@ -648,6 +652,98 @@ export function DemoChat() {
                           return (
                             <BotMessage key={part.toolCallId}>
                               Sorry, I couldn&apos;t record that:{" "}
+                              {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return pendingSkeleton(part.toolCallId);
+
+                      case "tool-record_superseding_observation":
+                        if (part.state === "approval-requested") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <ConfirmWrite
+                                title="File a superseding observation?"
+                                resourceType="Observation"
+                                fields={[
+                                  {
+                                    label: "Patient",
+                                    value: `Patient/${part.input.patientId}`,
+                                  },
+                                  // The raw id is not optional: the reviewer
+                                  // needs to see exactly which row is being
+                                  // superseded, and the conformance suite
+                                  // requires every argument value to appear
+                                  // in the rendering.
+                                  {
+                                    label: "Supersedes",
+                                    value: `Observation/${part.input.supersedes}`,
+                                  },
+                                  {
+                                    label: "New value",
+                                    value: `${part.input.value} ${part.input.unit}`,
+                                  },
+                                  // Stated where the Approve button is, not
+                                  // inside the collapsed FHIR preview.
+                                  {
+                                    label: "Note",
+                                    value:
+                                      "The earlier entry stays on the chart as a final result. This does not mark it as an error, and does not delete it. Retracting it requires the EHR's own correction workflow.",
+                                  },
+                                ]}
+                                preview={{
+                                  resourceType: "Observation",
+                                  status: "final",
+                                  code: "<copied from the superseded observation>",
+                                  subject: {
+                                    reference: `Patient/${part.input.patientId}`,
+                                  },
+                                  effectiveDateTime:
+                                    "<copied from the superseded observation>",
+                                  issued: "<server time when approved>",
+                                  valueQuantity: {
+                                    value: part.input.value,
+                                    unit: part.input.unit,
+                                  },
+                                  extension: [
+                                    {
+                                      url: OBSERVATION_REPLACES_EXTENSION,
+                                      valueReference: {
+                                        reference: `Observation/${part.input.supersedes}`,
+                                      },
+                                    },
+                                  ],
+                                }}
+                                onApprove={() =>
+                                  respondToApproval(
+                                    "record_superseding_observation",
+                                    part.approval.id,
+                                    true,
+                                  )
+                                }
+                                onCancel={() =>
+                                  respondToApproval(
+                                    "record_superseding_observation",
+                                    part.approval.id,
+                                    false,
+                                  )
+                                }
+                              />
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-available") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              ✓ Superseding observation saved. The earlier
+                              entry remains on the chart.
+                            </BotMessage>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, I couldn&apos;t file that correction:{" "}
                               {part.errorText}
                             </BotMessage>
                           );

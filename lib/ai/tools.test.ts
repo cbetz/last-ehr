@@ -308,7 +308,12 @@ describe("agent FHIR tools", () => {
     expect(prompt).not.toContain("add a note or record an observation");
     expect(prompt).toContain("asks to record an observation");
     const allOff = buildSystemPrompt(
-      new Set(["add_note", "record_observation", "create_task"]),
+      new Set([
+        "add_note",
+        "record_observation",
+        "record_superseding_observation",
+        "create_task",
+      ]),
     );
     expect(allOff).toContain("Writing to the chart is disabled");
     expect(allOff).not.toContain("confirmation card");
@@ -369,6 +374,104 @@ describe("agent FHIR tools", () => {
         ) => unknown
       )({ patientId: "p3", description: "x" }, {}),
     ).rejects.toThrow(WritePolicyDeniedError);
+  });
+
+  it("supersedes an observation with a single create carrying the standard R4 link", async () => {
+    searchResources.mockReset();
+    createResource.mockReset();
+    // The original the correction points at.
+    searchResources.mockResolvedValue([
+      {
+        id: "obs-old",
+        resourceType: "Observation",
+        status: "final",
+        code: {
+          coding: [{ system: "http://loinc.org", code: "29463-7", display: "Body weight" }],
+          text: "Body weight",
+        },
+        category: [
+          {
+            coding: [
+              {
+                system: "http://terminology.hl7.org/CodeSystem/observation-category",
+                code: "vital-signs",
+              },
+            ],
+          },
+        ],
+        subject: { reference: "Patient/p1" },
+        effectiveDateTime: "2026-07-20T10:00:00Z",
+        valueQuantity: { value: 70, unit: "kg" },
+      },
+    ]);
+    createResource.mockResolvedValue({ id: "obs-new" });
+    const tools = buildTools(backend);
+    expect(tools.record_superseding_observation.needsApproval).toBe(true);
+
+    const out = await (
+      tools.record_superseding_observation.execute as unknown as (
+        i: unknown,
+        o: unknown,
+      ) => Promise<{ outcome: string }>
+    )({ patientId: "p1", supersedes: "obs-old", value: 17, unit: "kg" }, {});
+
+    // Exactly ONE create: the supersession link rides the resource, so there
+    // is no second write that could fail and leave an unlinked duplicate.
+    expect(createResource).toHaveBeenCalledTimes(1);
+    const written = createResource.mock.calls[0][0] as Record<string, unknown>;
+    expect(written).toMatchObject({
+      resourceType: "Observation",
+      // Never "corrected"/"amended": those describe THIS resource's own prior
+      // lifecycle, and it was never final before now.
+      status: "final",
+      // Same measurement, so code and category come from the original.
+      code: expect.objectContaining({ text: "Body weight" }),
+      // The original's effective time, so the trend shows one measurement
+      // event restated rather than an impossible jump minutes apart.
+      effectiveDateTime: "2026-07-20T10:00:00Z",
+      extension: [
+        {
+          url: "http://hl7.org/fhir/StructureDefinition/observation-replaces",
+          valueReference: { reference: "Observation/obs-old" },
+        },
+      ],
+    });
+    expect((written as { issued?: string }).issued).toBeDefined();
+    // The honest limit travels in the result the model paraphrases.
+    expect(out.outcome).toMatch(/does not mark it as an error/);
+  });
+
+  it("refuses to supersede an unreadable or cross-patient observation", async () => {
+    const tools = buildTools(backend);
+    const run = (input: Record<string, unknown>) =>
+      (
+        tools.record_superseding_observation.execute as (
+          i: unknown,
+          o: unknown,
+        ) => unknown
+      )({ patientId: "p1", value: 1, unit: "kg", ...input }, {});
+
+    // Nothing readable: refuse rather than mint a dangling reference.
+    createResource.mockReset();
+    searchResources.mockResolvedValue([]);
+    await expect(run({ supersedes: "nope" })).rejects.toThrow(
+      /nothing to supersede/,
+    );
+
+    // Belongs to another patient: refuse (the single-patient scoping rule).
+    searchResources.mockResolvedValue([
+      {
+        id: "obs-other",
+        resourceType: "Observation",
+        subject: { reference: "Patient/other" },
+        effectiveDateTime: "2026-07-20T10:00:00Z",
+      },
+    ]);
+    await expect(run({ supersedes: "obs-other" })).rejects.toThrow(
+      /does not belong to patient/,
+    );
+
+    expect(createResource).not.toHaveBeenCalled();
   });
 
   it("emits opt-in Provenance on approved writes, non-blocking on failure", async () => {
