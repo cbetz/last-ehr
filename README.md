@@ -108,7 +108,7 @@ Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (
 flowchart LR
     B["Browser chat"] --> A["/api/chat<br/>streamText + FHIR tools"]
     A -- "reads<br/>search_patients, show_patient_info, read_chart_section" --> M[("Your FHIR backend<br/>(Medplum, HAPI, Firely, Aidbox, Oystehr)")]
-    A -- "writes<br/>add_note, record_observation, create_task" --> C{"Approval card"}
+    A -- "writes<br/>add_note, record_observation,<br/>record_superseding_observation, create_task" --> C{"Approval card"}
     C -- "Approve & save" --> M
     C -- "Cancel" --> N["Nothing saved"]
     M -. "Every call runs as the signed-in user,<br/>bounded by your AccessPolicy.<br/>The layer stores no PHI." .-> A

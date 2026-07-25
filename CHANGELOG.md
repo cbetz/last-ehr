@@ -5,6 +5,26 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- Six more chart sections — Device, FamilyMemberHistory, MedicationDispense,
+  QuestionnaireResponse, RelatedPerson, Specimen — taking readable US Core
+  9.0.0 resource types from 15 of 27 to **21 of 27**. Every patient
+  parameter, date parameter, sort, and status filter probed against HAPI
+  before exposure, then read end-to-end through the tool.
+
+  That completes the patient-scopeable set: the six US Core types still
+  unreachable (Location, Medication, Organization, Practitioner,
+  PractitionerRole, Provenance) are all unreachable for the *same* reason —
+  none can be scoped to a patient, so none can be a chart section. One
+  mechanism, `_include`/`_revinclude`, takes this axis from 21 to 27.
+
+- docs/fhir-coverage.md is now guarded by a test. Twice a rung updated its
+  tables and left the surrounding prose stale (it claimed a "10-value"
+  section allowlist when there were 17, and listed the code filter on 5
+  sections when it was on 9). The counts are now derived from the tool
+  schema and asserted, along with every section appearing in the Axis A
+  table and every write tool being named. The page whose entire value is
+  that its numbers are right can no longer quietly stop being right.
+
 - `record_superseding_observation` is now in `@lastehr/mcp` too, so both
   bindings offer the same write surface. The MCP form fetches the original
   before asking, so the elicitation names the row being superseded and a
