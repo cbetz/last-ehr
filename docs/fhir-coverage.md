@@ -123,11 +123,19 @@ code token, `dateFrom`, `dateTo`, and a count of 1-100.
 | Newest-first server-side `_sort` on every section | ✅ each value probed for real ordering |
 | Single date bound | ✅ |
 | Date range | ⚠️ one bound is applied server-side and the other filtered from the returned rows; correct results, but a range wider than the window reports `truncated` |
-| `code` token filter | ⚠️ Observation only |
-| `category` / `status` filters | ❌ — cannot separate labs from vitals, or ask for *active* problems |
+| `code` token filter | ✅ Observation, Condition, AllergyIntolerance, MedicationRequest, Immunization (`vaccine-code`) — coded records only |
+| `status` filter | ✅ every section, mapped to that type's own parameter (`clinical-status`, `lifecycle-status`, `status`) and validated against its R4 value set |
+| `category` filter | ✅ Observation — separates `vital-signs` from `laboratory` |
 | Paging (`Bundle.link[next]`) | ❌ — `_count` is a cap, not a page |
 | Repeated parameters | ❌ — the structured-params contract carries one value per key |
 | `_include` / `_revinclude` / chained / `_has` | ❌ |
+
+The model gets one filter vocabulary; the tool maps it to each section's own
+search parameter and validates the value against that section's R4 value set.
+An illegal value is refused **with the legal list**, so the model corrects
+itself rather than reading an unfiltered section — asking for `status:
+"active"` on Task, which has no such status, names
+requested/received/accepted/in-progress/ready instead.
 
 **A read that cannot apply a filter refuses it.** A section with no date
 parameter rejects `dateFrom`/`dateTo` rather than returning unfiltered rows

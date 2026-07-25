@@ -782,15 +782,99 @@ describe("read_chart_section", () => {
         exec(tools)({ patientId: "p1", resourceType, dateTo: "2025-01-01" }, {}),
       ).rejects.toThrow(/does not support date filtering/);
     }
-    // Only Observation carries a code filter.
+    // Goal carries no code filter (the coded sections are covered below).
     await expect(
       exec(tools)(
-        { patientId: "p1", resourceType: "Condition", code: "38341003" },
+        { patientId: "p1", resourceType: "Goal", code: "38341003" },
         {},
       ),
     ).rejects.toThrow(/does not support a code filter/);
     // A refusal must never reach the server as an unfiltered read.
     expect(searchResources).not.toHaveBeenCalled();
+  });
+
+  it("maps one status vocabulary onto each section's own search parameter", async () => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([]);
+    const tools = buildTools(backend);
+    // Every mapping below was probed against HAPI with two rows differing
+    // only in the filtered field, so an ignored filter cannot pass here.
+    const cases: Array<[string, string, string, string]> = [
+      ["Condition", "active", "clinical-status", "active"],
+      ["AllergyIntolerance", "resolved", "clinical-status", "resolved"],
+      ["MedicationRequest", "active", "status", "active"],
+      ["Task", "requested", "status", "requested"],
+      ["Goal", "active", "lifecycle-status", "active"],
+      ["CarePlan", "active", "status", "active"],
+      ["Immunization", "completed", "status", "completed"],
+      ["Communication", "completed", "status", "completed"],
+      ["DocumentReference", "current", "status", "current"],
+      ["Observation", "final", "status", "final"],
+    ];
+    for (const [resourceType, status, param, value] of cases) {
+      await exec(tools)({ patientId: "p1", resourceType, status }, {});
+      expect(searchResources).toHaveBeenLastCalledWith(
+        resourceType,
+        expect.objectContaining({ [param]: value }),
+      );
+    }
+  });
+
+  it("separates vitals from labs by category, and refuses category elsewhere", async () => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([]);
+    const tools = buildTools(backend);
+    await exec(tools)(
+      { patientId: "p1", resourceType: "Observation", category: "laboratory" },
+      {},
+    );
+    expect(searchResources).toHaveBeenLastCalledWith(
+      "Observation",
+      expect.objectContaining({ category: "laboratory" }),
+    );
+    await expect(
+      exec(tools)(
+        { patientId: "p1", resourceType: "Condition", category: "laboratory" },
+        {},
+      ),
+    ).rejects.toThrow(/does not support a category filter/);
+  });
+
+  it("refuses an illegal status value and names the legal ones", async () => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([]);
+    const tools = buildTools(backend);
+    // Task has no "active" status; open work is requested/in-progress/etc.
+    await expect(
+      exec(tools)({ patientId: "p1", resourceType: "Task", status: "active" }, {}),
+    ).rejects.toThrow(/not a status Task can have[\s\S]*requested/);
+    // A refused filter must never reach the server as an unfiltered read.
+    expect(searchResources).not.toHaveBeenCalled();
+  });
+
+  it("supports a code token on the five coded sections and refuses it elsewhere", async () => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([]);
+    const tools = buildTools(backend);
+    const coded: Array<[string, string]> = [
+      ["Observation", "code"],
+      ["Condition", "code"],
+      ["AllergyIntolerance", "code"],
+      ["MedicationRequest", "code"],
+      ["Immunization", "vaccine-code"],
+    ];
+    for (const [resourceType, param] of coded) {
+      await exec(tools)({ patientId: "p1", resourceType, code: "12345" }, {});
+      expect(searchResources).toHaveBeenLastCalledWith(
+        resourceType,
+        expect.objectContaining({ [param]: "12345" }),
+      );
+    }
+    for (const resourceType of ["Goal", "CarePlan", "Task", "DocumentReference"]) {
+      await expect(
+        exec(tools)({ patientId: "p1", resourceType, code: "12345" }, {}),
+      ).rejects.toThrow(/does not support a code filter/);
+    }
   });
 
   it("reports truncation so the model cannot assert an absence from a capped window", async () => {
