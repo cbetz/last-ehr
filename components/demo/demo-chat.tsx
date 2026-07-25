@@ -105,6 +105,27 @@ function observationPreview(
   };
 }
 
+// read_chart_section returns `related`, `truncated`, and
+// `includeUnsupported` conditionally, so the card reads them defensively
+// rather than widening the tool's return type for the sake of the view.
+type ChartReadOutput = {
+  entries: { id: string; text: string; date: string }[];
+  truncated?: boolean;
+  related?: { id: string; resourceType: string; text: string }[];
+  includeUnsupported?: boolean;
+};
+
+const chartReadTruncated = (output: unknown): boolean =>
+  (output as ChartReadOutput | undefined)?.truncated === true;
+
+const chartReadIncludeUnsupported = (output: unknown): boolean =>
+  (output as ChartReadOutput | undefined)?.includeUnsupported === true;
+
+const chartReadRelated = (
+  output: unknown,
+): { id: string; resourceType: string; text: string }[] =>
+  (output as ChartReadOutput | undefined)?.related ?? [];
+
 const FRIENDLY_ERROR_PREFIXES = [
   "Rate limit reached",
   "Your demo session expired",
@@ -513,7 +534,50 @@ export function DemoChat() {
                                   </ul>
                                 ) : (
                                   <p className="mt-2 text-sm text-muted-foreground">
-                                    No matching records in this section.
+                                    {/* Never a bare "none exist" when the
+                                        read was capped or a lookup was
+                                        refused — the reader is the safety
+                                        boundary and gets at least as much
+                                        honesty as the model does. */}
+                                    {chartReadTruncated(part.output)
+                                      ? "No matching records in the window that was read."
+                                      : "No matching records in this section."}
+                                  </p>
+                                )}
+                                {chartReadRelated(part.output).length > 0 && (
+                                  <div className="mt-4 border-t pt-3">
+                                    <p className="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-muted-foreground">
+                                      Referenced records
+                                    </p>
+                                    <ul className="mt-2 space-y-1.5">
+                                      {chartReadRelated(part.output).map((row) => (
+                                        <li
+                                          key={`${row.resourceType}/${row.id}`}
+                                          className="flex items-baseline gap-2 text-sm"
+                                        >
+                                          <span className="shrink-0 border border-border px-1.5 py-0.5 font-mono text-[0.6rem] text-muted-foreground">
+                                            {row.resourceType}
+                                          </span>
+                                          <span className="min-w-0">
+                                            {row.text.replace(/<\/?chart_text>/g, "")}
+                                          </span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {chartReadTruncated(part.output) && (
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    Only the newest {part.output.entries.length}{" "}
+                                    matching records were read. Older ones may
+                                    exist — narrow the dates or ask for more.
+                                  </p>
+                                )}
+                                {chartReadIncludeUnsupported(part.output) && (
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    This backend would not resolve the
+                                    referenced records, so none are shown. That
+                                    is not the same as there being none.
                                   </p>
                                 )}
                               </div>
