@@ -118,8 +118,36 @@ const READABLE_DOCUMENT_TYPES = new Set(["text/plain", "text/markdown"]);
  */
 const MAX_DOCUMENT_CHARS = 20_000;
 
+/**
+ * Any chart_text tag appearing INSIDE a value, in any case or spacing a model
+ * might honor. Matched before wrapping, so the only tags in the result are the
+ * two this function adds.
+ */
+const CHART_TEXT_MARKER = /<\s*\/?\s*chart_text\s*>/gi;
+
+/**
+ * Wrap free text so the system prompt can declare it data, never instructions.
+ *
+ * The value is neutralized first. A chart value containing a literal
+ * `</chart_text>` closes the boundary early, and everything after it reads to
+ * the model as content from outside the chart — which is where an instruction
+ * would have to appear to be obeyed. Reading document bodies (read_document)
+ * made that a realistic delivery route rather than a theoretical one: an
+ * outside-records note is long, arbitrary, and written by someone else.
+ *
+ * Replaced with a visible marker rather than deleted, because a value that
+ * contained our own boundary tag is a targeted attempt and silently swallowing
+ * it hides that from the reviewer reading the transcript.
+ *
+ * Chosen over a per-session random delimiter deliberately: the system prompt is
+ * one of two fixed strings today, so it caches across every session, and a
+ * nonce would make each session's prefix unique for no gain here — the value is
+ * sanitized at the only point where it enters the boundary.
+ */
 const asChartText = (text: string): string =>
-  text ? `<chart_text>${text}</chart_text>` : text;
+  text
+    ? `<chart_text>${text.replace(CHART_TEXT_MARKER, "[boundary marker removed]")}</chart_text>`
+    : text;
 
 // The date regex alone admits 2026-02-31; round-trip through UTC Date parts
 // so an impossible date is rejected at proposal time, not by (or worse,
