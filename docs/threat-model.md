@@ -27,9 +27,28 @@ do not mistake the approval card for a full security system.
   trail is always written to the deployment default, never the picked
   backend.
 
+- FHIR server response to the agent's chart view. The configured server is
+  trusted to answer FHIR, not to steer the process that asked. Every FHIR
+  fetch therefore refuses redirects (`redirect: "manual"`; a 3xx fails the
+  request) and bounds both time and response bytes. Without that, a
+  compromised, impersonated, or merely misconfigured server could redirect an
+  **ordinary search** to any host the app process can reach, and the body that
+  host returned would enter the chart — and model context — as if the FHIR
+  server had returned it. Cross-origin redirects drop `authorization` but not
+  custom auth headers, and nothing protects the response direction at all.
+
 ## Intended controls
 
 - Medplum token stored in an HttpOnly, Secure, SameSite cookie.
+- No FHIR fetch follows a redirect, and none reads an unbounded body. The
+  control is duplicated across three publish boundaries (`lib/fhir/rest.ts`,
+  `@lastehr/mcp`, `@lastehr/agent-write-conformance`, which depend on nothing
+  in `lib/` by design); a source-level guard in `lib/fhir/rest.test.ts` fails
+  if any copy stops applying it.
+- Every URL the transport fetches is built from the configured base URL plus a
+  path derived from a `ResourceType` union. No server-supplied URL is ever
+  dereferenced — which is also why `Bundle.link[next]` paging is not
+  implemented; see [FHIR coverage](./fhir-coverage.md).
 - Backend AccessPolicy controls what the signed-in user can read or write.
 - Write tools in the web app use `needsApproval: true`.
 - Demo writes are tagged per browser session.
