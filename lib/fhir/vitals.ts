@@ -119,6 +119,66 @@ export function resolveUcumCode(unit: string): string | undefined {
   return UNITS.find((entry) => entry.inputs.includes(key))?.ucum;
 }
 
+/**
+ * Concepts that are a SET of codes rather than one. A write codes a single
+ * measurement, so `resolveVitalCoding` returning one code is right there. A
+ * READ has to answer a question, and "what is her blood pressure" is two LOINC
+ * codes: searching either one alone silently answers half of it.
+ *
+ * Every code here is taken from the VITALS table above rather than restated,
+ * so a read and a write cannot disagree about what a label means.
+ */
+const CONCEPT_SETS: ReadonlyArray<{
+  labels: readonly string[];
+  display: string;
+  /** Labels in VITALS, resolved through it — never codes copied by hand. */
+  members: readonly string[];
+}> = [
+  {
+    labels: ["blood pressure", "bp", "blood pressure panel"],
+    display: "Blood pressure",
+    members: ["systolic blood pressure", "diastolic blood pressure"],
+  },
+];
+
+export type ObservationConcept = {
+  /** One or more LOINC codes; a token search ORs them with commas. */
+  loinc: readonly string[];
+  display: string;
+};
+
+/**
+ * Resolve a measurement name to the LOINC code set that answers a read.
+ * Single vitals come straight from VITALS; multi-code concepts come from
+ * CONCEPT_SETS. Undefined when the name is not in either, so a caller can
+ * refuse the filter rather than search for a code it invented.
+ */
+export function resolveObservationConcept(
+  label: string,
+): ObservationConcept | undefined {
+  const set = CONCEPT_SETS.find((entry) => entry.labels.includes(normalize(label)));
+  if (set) {
+    const members = set.members.map((member) => resolveVitalCoding(member));
+    // A member that stopped resolving means the tables drifted apart; refusing
+    // beats searching a partial code set and reporting the result as complete.
+    if (members.some((member) => !member)) return undefined;
+    return {
+      loinc: members.map((member) => member!.loinc),
+      display: set.display,
+    };
+  }
+  const single = resolveVitalCoding(label);
+  return single ? { loinc: [single.loinc], display: single.display } : undefined;
+}
+
+/** Every measurement name a read can resolve, for a refusal message. */
+export function observationConceptNames(): string[] {
+  return [
+    ...VITALS.map((vital) => vital.labels[0]),
+    ...CONCEPT_SETS.map((set) => set.labels[0]),
+  ].sort();
+}
+
 export type ObservationCoding = {
   /** CodeableConcept for Observation.code. */
   code: { coding?: { system: string; code: string; display: string }[]; text: string };

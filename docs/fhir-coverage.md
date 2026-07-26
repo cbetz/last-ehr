@@ -152,15 +152,46 @@ medications/conditions/allergies, which still write `code.text` only.
 
 ## Axis C — resolution mechanisms
 
-**1 of 4.** Each remaining one is a thing a clinician expects an agent to be
-able to do and it cannot.
+**1 of 4 fully, 1 partly.** Each remaining one is a thing a clinician expects
+an agent to be able to do and it cannot.
 
 | Mechanism | Status | What it would unlock |
 | --- | --- | --- |
 | Follow a reference (`_include` / `_revinclude`) | ✅ | "who ordered this", "who wrote that note", and the AI-transparency read — via an allowlisted `include` option per section, never a raw parameter |
 | Page a result set | ❌ **decided against** — see below | would brute-force what a filter answers exactly |
-| Resolve a code (`$expand` / `$validate-code`) | ❌ | LOINC/SNOMED/RxNorm coding rather than free-text `code.text` |
+| Resolve a code | ⚠️ **partly** — measurement names resolve to LOINC from a curated table; nothing resolves for problems, medications, or vaccines | asking for a vital by name instead of by remembered code |
 | Read a document body | ❌ | "what does the discharge summary actually say" — the agent can report only that a document exists |
+
+### Why code resolution uses a local table, not `$expand`
+
+The standard mechanism is a terminology operation against the configured
+server. Probed on the repository's HAPI stack, it does not hold up:
+
+- **Support is not discoverable.** HAPI's `CapabilityStatement` advertises no
+  `$expand`, `$validate-code`, or `$lookup` — only proprietary admin
+  operations — so a client cannot tell whether they will work.
+- **They fail for the code systems that matter.** `$expand` on the CVX
+  vaccine-code value set answers 412 (`CodeSystem could not be found`), and
+  `$lookup` for LOINC `8480-6` answers 404. A default stack has neither
+  loaded, and LOINC's license makes "just load it" an operator decision, not a
+  dependency this project can assume.
+- **`$validate-code` answers the wrong thing when a system is missing.** It
+  returned HTTP 200 for a CVX code against a server with no CVX. A terminology
+  check that reports "not a valid code" when it means "I do not have that code
+  system" manufactures exactly the false negative this page keeps closing.
+
+So a measurement name resolves through the same pinned table
+[`lib/fhir/vitals.ts`](https://github.com/cbetz/last-ehr/blob/main/lib/fhir/vitals.ts)
+that `record_observation` codes writes with. A read and a write therefore mean
+the same thing by one label — asserted by test — and the read path gains no
+network dependency and no server capability requirement.
+
+The honest limit: **this covers vital signs and nothing else.** There is no
+resolution for problems, medications, or vaccines, which is why an uncoded
+immunization still cannot be found by code (see the `codeFilterUnmatched`
+guard below). Extending the table to those means curating clinical code sets,
+and a wrong entry is a false negative on a chart — so each addition needs a
+verified source rather than a plausible one.
 
 ### Why result paging is not implemented
 
@@ -231,7 +262,8 @@ work — a safety regression wearing a coverage win.
 The tool builds every query. The model chooses a section and filters and
 never supplies raw search parameters, so the model's entire search vocabulary
 is: a patient name, a section from a 23-value allowlist, a
-code token, a status, a category, `dateFrom`, `dateTo`, and a count of 1-100.
+measurement name, a code token, a status, a category, `dateFrom`, `dateTo`,
+and a count of 1-100.
 
 | Feature | Status |
 | --- | --- |
@@ -239,6 +271,7 @@ code token, a status, a category, `dateFrom`, `dateTo`, and a count of 1-100.
 | Newest-first server-side `_sort` on every section | ✅ each value probed for real ordering |
 | Single date bound | ✅ |
 | Date range | ⚠️ one bound is applied server-side and the other filtered from the returned rows; correct results, but a range wider than the window reports `truncated` |
+| `measurement` name resolved to LOINC | ✅ Observation — a name ("blood pressure", "pulse") resolved from the same curated table the write path codes with; `blood pressure` resolves to both systolic and diastolic, comma-ORed in one parameter value |
 | `code` token filter | ✅ on 9 sections (Observation, Condition, AllergyIntolerance, MedicationRequest, Immunization, Encounter, DiagnosticReport, Procedure, ServiceRequest) — coded records only |
 | `status` filter | ✅ every section, mapped to that type's own parameter (`clinical-status`, `lifecycle-status`, `status`) and validated against its R4 value set |
 | `category` filter | ✅ Observation — separates `vital-signs` from `laboratory` |

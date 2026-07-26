@@ -7,6 +7,8 @@ import { AIAST_LABEL, PROVENANCE_PARTICIPANT_TYPE } from "@/lib/fhir/labels";
 import {
   codeObservation,
   OBSERVATION_REPLACES_EXTENSION,
+  observationConceptNames,
+  resolveObservationConcept,
   UCUM_SYSTEM,
 } from "@/lib/fhir/vitals";
 import {
@@ -76,6 +78,7 @@ Reading the chart:
 - read_chart_section can also follow references with include: "authors" names who performed or ordered something (a clinician or organization), "encounter" the visit it belongs to, and "provenance" answers whether an entry was AI-written and who approved it. Use it instead of telling the user a reference cannot be resolved. If the reply carries includeUnsupported, the backend refused the lookup — say the references could not be resolved, never that there are none.
 - read_chart_section takes status and category filters: use status to ask about current records ("active" problems, medications, goals, care plans; "requested" or "in-progress" tasks; "completed" immunizations) and category on Observation to separate "vital-signs" from "laboratory". Prefer a filtered read over fetching everything and sorting it yourself. If a filter value is refused, the error names the legal values for that section — use one of them.
 - read_chart_section results carry a truncated flag. When it is true you saw only the newest rows the filter matched and older ones may exist, so never state an absence ("no record of X", "she has never had Y") from a truncated read: report what you saw, say the list was capped, and offer to narrow the dates or raise the count. A read that refuses a filter is telling you that section cannot filter that way — re-read it without the filter rather than assuming the section is empty.
+- For a vital sign, ask read_chart_section for the measurement by name (measurement: "blood pressure", "heart rate", "temperature", "oxygen saturation") instead of recalling a LOINC code. The tool resolves the name to the right code — "blood pressure" to both systolic and diastolic — and refuses an unrecognized name with the list it accepts. A code you half-remember returns an empty section that looks like an absence.
 - An empty result from a code filter is never an absence. A code only matches records that carry a coding, and plenty of real records are text-only. When a coded read returns no entries and carries codeFilterUnmatched, the section DOES hold records that differ only by the code: re-read it without code and read their text before answering. Never turn an unmatched code into "she has never had X".
 
 ${writeSection}
@@ -1190,6 +1193,14 @@ export function buildTools(
           .describe(
             "A code token, e.g. a LOINC/SNOMED/RxNorm/CVX code or system|code — never free text. Supported on Observation, Condition, AllergyIntolerance, MedicationRequest, and Immunization, and only matches records that carry a coding.",
           ),
+        measurement: z
+          .string()
+          .min(1)
+          .max(60)
+          .optional()
+          .describe(
+            "Observation only, and the preferred way to ask for a vital sign: the NAME of the measurement — 'blood pressure', 'heart rate', 'temperature', 'weight', 'oxygen saturation'. The tool resolves the name to the right LOINC code(s), so never recall a code from memory for a vital. 'blood pressure' resolves to both systolic and diastolic. If the name is not recognized the reply lists the ones that are. Do not combine with code.",
+          ),
         status: z
           .string()
           .min(1)
@@ -1228,6 +1239,7 @@ export function buildTools(
         patientId,
         resourceType,
         code,
+        measurement,
         status,
         category,
         dateFrom,
@@ -1263,6 +1275,36 @@ export function buildTools(
           throw new Error(
             `The ${resourceType} section does not support a code filter. Read it without code.`,
           );
+        }
+
+        // A measurement NAME resolves to codes here rather than being guessed
+        // by the model. Reading vitals by code otherwise means the model
+        // recalling LOINC from memory, and a near miss (an oral-temperature
+        // code for "temperature") returns an empty section that reads as an
+        // absence. The names come from the same table record_observation codes
+        // writes with, so a read and a write mean the same thing by one label.
+        let resolvedConcept: string | undefined;
+        if (measurement) {
+          if (resourceType !== "Observation") {
+            throw new Error(
+              `measurement is Observation-only; the ${resourceType} section does not record measurements. Use code, or read the section unfiltered.`,
+            );
+          }
+          if (code) {
+            throw new Error(
+              "Pass measurement or code, not both: measurement resolves to the codes for that measurement, so a second code filter would narrow it to nothing.",
+            );
+          }
+          const concept = resolveObservationConcept(measurement);
+          if (!concept) {
+            throw new Error(
+              `"${measurement}" is not a measurement this tool can resolve to a code. Recognized: ${observationConceptNames().join(", ")}. Or pass a code token directly.`,
+            );
+          }
+          // Comma-joined tokens are a single param value ORed by the server,
+          // so a multi-code concept stays inside the one-value-per-key
+          // contract. Probed on HAPI: code=8480-6,8462-4 returns the union.
+          resolvedConcept = concept.loinc.join(",");
         }
 
         // Status and category are one model-facing vocabulary mapped to each
@@ -1313,7 +1355,10 @@ export function buildTools(
           _count: String(requested),
         };
         if ("sort" in section && section.sort) params._sort = section.sort;
-        if (code && codeParam) params[codeParam] = code;
+        // resolvedConcept already carries the comma-ORed LOINC set; the two
+        // are mutually exclusive above, so this cannot overwrite a code.
+        if (resolvedConcept && codeParam) params[codeParam] = resolvedConcept;
+        else if (code && codeParam) params[codeParam] = code;
         if (status && statusParam) params[statusParam] = status;
         if (category && categoryParam) params[categoryParam] = category;
 

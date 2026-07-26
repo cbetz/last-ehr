@@ -88,6 +88,38 @@ if (!runHapiE2E) {
       expect(coded.codeFilterUnmatched).toBeUndefined();
     });
 
+    it("resolves a measurement name to codes that actually match seeded rows", async () => {
+      // The point of resolution: a name the model can say, mapped to a code it
+      // would otherwise have to recall. If the mapping were wrong this comes
+      // back empty, which is exactly the false negative it prevents.
+      const patient = await patientId();
+
+      const byName = await read({
+        patientId: patient,
+        resourceType: "Observation",
+        measurement: "blood pressure",
+      });
+      expect(byName.entries.length).toBeGreaterThan(0);
+
+      // "blood pressure" must be BOTH codes: the union has to exceed either
+      // half, or the read silently answered half the question.
+      const systolic = await read({
+        patientId: patient,
+        resourceType: "Observation",
+        measurement: "systolic blood pressure",
+      });
+      expect(systolic.entries.length).toBeGreaterThan(0);
+      expect(byName.entries.length).toBeGreaterThan(systolic.entries.length);
+
+      // And a single vital resolves to the row the write path would create.
+      const pulse = await read({
+        patientId: patient,
+        resourceType: "Observation",
+        measurement: "pulse",
+      });
+      expect(pulse.entries.length).toBeGreaterThan(0);
+    });
+
     it("stays quiet on a section whose seed data IS coded", async () => {
       // Observations carry real LOINC, so the coded filter works normally and
       // the extra existence probe never fires.

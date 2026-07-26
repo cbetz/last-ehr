@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   codeObservation,
+  observationConceptNames,
+  resolveObservationConcept,
   resolveUcumCode,
   resolveVitalCoding,
   UCUM_SYSTEM,
@@ -60,6 +62,42 @@ describe("observation coding", () => {
 
   it("exposes the UCUM system constant the write path uses", () => {
     expect(UCUM_SYSTEM).toBe("http://unitsofmeasure.org");
+  });
+
+  it("resolves a read concept to the code set that answers it", () => {
+    // A write codes one measurement; a read has to answer a question, and
+    // "blood pressure" is two codes. One of them alone answers half.
+    expect(resolveObservationConcept("blood pressure")?.loinc).toEqual([
+      "8480-6",
+      "8462-4",
+    ]);
+    expect(resolveObservationConcept("bp")?.loinc).toEqual(["8480-6", "8462-4"]);
+    // Single vitals come straight from the write-path table, synonyms included.
+    expect(resolveObservationConcept("pulse")?.loinc).toEqual(["8867-4"]);
+    expect(resolveObservationConcept("temp")?.loinc).toEqual(["8310-5"]);
+    expect(resolveObservationConcept("hemoglobin a1c")).toBeUndefined();
+  });
+
+  it("resolves a read and a write of the same label to the same code", () => {
+    // If these diverged the agent would write a row its own read cannot find.
+    for (const label of [
+      "heart rate", "pulse", "temp", "weight", "height",
+      "systolic", "diastolic", "spo2", "bmi", "head circumference",
+    ]) {
+      const read = resolveObservationConcept(label);
+      const write = resolveVitalCoding(label);
+      expect(read?.loinc, `read/write disagree on "${label}"`).toEqual([
+        write?.loinc,
+      ]);
+    }
+  });
+
+  it("names every measurement it accepts, so a refusal is actionable", () => {
+    const names = observationConceptNames();
+    expect(names).toContain("heart rate");
+    expect(names).toContain("blood pressure");
+    // Sorted and unique: the list goes into an error message the model reads.
+    expect(names).toEqual([...new Set(names)].sort());
   });
 
   it("stays byte-for-byte in behavior with the @lastehr/mcp copy", () => {
