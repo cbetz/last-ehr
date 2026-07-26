@@ -93,6 +93,7 @@ jobs:
           npm test --
           lib/fhir/hapi.contract.integration.test.ts
           lib/ai/scripted-demo.hapi.integration.test.ts
+          lib/ai/coded-read.hapi.integration.test.ts
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Run browser approval-flow e2e
