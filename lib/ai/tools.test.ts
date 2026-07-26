@@ -1180,6 +1180,103 @@ describe("read_chart_section", () => {
     expect(full.truncated).toBe(true);
   });
 
+  // Reading a vital by code means the model recalling LOINC from memory, and a
+  // near miss returns an empty section that reads as an absence. A measurement
+  // NAME is resolved from the same table record_observation writes with.
+  describe("measurement names resolve to codes the model never authors", () => {
+    beforeEach(() => searchResources.mockReset());
+
+    it("resolves a single vital to its LOINC code", async () => {
+      searchResources.mockResolvedValue([]);
+      await exec(buildTools(backend))(
+        { patientId: "p1", resourceType: "Observation", measurement: "pulse" },
+        {},
+      );
+      expect(searchResources).toHaveBeenCalledWith(
+        "Observation",
+        expect.objectContaining({ code: "8867-4" }),
+      );
+    });
+
+    it("resolves blood pressure to BOTH codes, comma-ORed in one param", async () => {
+      // Searching only systolic would answer half the question and report the
+      // result as complete. Comma-joined tokens keep the one-value-per-key
+      // contract; probed on HAPI, code=8480-6,8462-4 returns the union.
+      searchResources.mockResolvedValue([]);
+      await exec(buildTools(backend))(
+        { patientId: "p1", resourceType: "Observation", measurement: "blood pressure" },
+        {},
+      );
+      expect(searchResources).toHaveBeenCalledWith(
+        "Observation",
+        expect.objectContaining({ code: "8480-6,8462-4" }),
+      );
+    });
+
+    it("refuses an unrecognized name WITH the list it accepts", async () => {
+      searchResources.mockResolvedValue([]);
+      await expect(
+        exec(buildTools(backend))(
+          { patientId: "p1", resourceType: "Observation", measurement: "hemoglobin a1c" },
+          {},
+        ),
+      ).rejects.toThrow(/not a measurement this tool can resolve[\s\S]*heart rate/);
+      // A refused filter must never reach the server as an unfiltered read.
+      expect(searchResources).not.toHaveBeenCalled();
+    });
+
+    it("refuses measurement on a section that records no measurements", async () => {
+      searchResources.mockResolvedValue([]);
+      await expect(
+        exec(buildTools(backend))(
+          { patientId: "p1", resourceType: "Immunization", measurement: "heart rate" },
+          {},
+        ),
+      ).rejects.toThrow(/Observation-only/);
+      expect(searchResources).not.toHaveBeenCalled();
+    });
+
+    it("refuses measurement and code together rather than ANDing them to nothing", async () => {
+      searchResources.mockResolvedValue([]);
+      await expect(
+        exec(buildTools(backend))(
+          {
+            patientId: "p1",
+            resourceType: "Observation",
+            measurement: "heart rate",
+            code: "8462-4",
+          },
+          {},
+        ),
+      ).rejects.toThrow(/not both/);
+      expect(searchResources).not.toHaveBeenCalled();
+    });
+
+    it("agrees with the write path on what a label means", async () => {
+      // record_observation("Heart rate") and a read for "pulse" must land on
+      // the same LOINC, or the agent writes a row its own read cannot find.
+      createResource.mockResolvedValue({ id: "obs-1" });
+      await (
+        buildTools(backend).record_observation.execute as (
+          i: unknown,
+          o: unknown,
+        ) => Promise<unknown>
+      )({ patientId: "p1", label: "Heart rate", value: 72, unit: "bpm" }, {});
+      const written = createResource.mock.calls[0][0] as {
+        code: { coding?: { code: string }[] };
+      };
+
+      searchResources.mockResolvedValue([]);
+      await exec(buildTools(backend))(
+        { patientId: "p1", resourceType: "Observation", measurement: "pulse" },
+        {},
+      );
+      const read = searchResources.mock.calls[0][1] as Record<string, string>;
+
+      expect(read.code).toBe(written.code.coding?.[0].code);
+    });
+  });
+
   // A coded filter can only match rows that carry a coding, and text-only
   // CodeableConcepts are ordinary FHIR — the repository's own synthetic
   // immunizations and medications are text-only on purpose. So an empty coded
