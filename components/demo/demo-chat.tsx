@@ -105,14 +105,15 @@ function observationPreview(
   };
 }
 
-// read_chart_section returns `related`, `truncated`, and
-// `includeUnsupported` conditionally, so the card reads them defensively
+// read_chart_section returns `related`, `truncated`, `includeUnsupported`,
+// and `codeFilterUnmatched` conditionally, so the card reads them defensively
 // rather than widening the tool's return type for the sake of the view.
 type ChartReadOutput = {
   entries: { id: string; text: string; date: string }[];
   truncated?: boolean;
   related?: { id: string; resourceType: string; text: string }[];
   includeUnsupported?: boolean;
+  codeFilterUnmatched?: boolean;
 };
 
 const chartReadTruncated = (output: unknown): boolean =>
@@ -120,6 +121,9 @@ const chartReadTruncated = (output: unknown): boolean =>
 
 const chartReadIncludeUnsupported = (output: unknown): boolean =>
   (output as ChartReadOutput | undefined)?.includeUnsupported === true;
+
+const chartReadCodeFilterUnmatched = (output: unknown): boolean =>
+  (output as ChartReadOutput | undefined)?.codeFilterUnmatched === true;
 
 const chartReadRelated = (
   output: unknown,
@@ -539,9 +543,11 @@ export function DemoChat() {
                                         refused — the reader is the safety
                                         boundary and gets at least as much
                                         honesty as the model does. */}
-                                    {chartReadTruncated(part.output)
-                                      ? "No matching records in the window that was read."
-                                      : "No matching records in this section."}
+                                    {chartReadCodeFilterUnmatched(part.output)
+                                      ? "No record in this section carries that code."
+                                      : chartReadTruncated(part.output)
+                                        ? "No matching records in the window that was read."
+                                        : "No matching records in this section."}
                                   </p>
                                 )}
                                 {chartReadRelated(part.output).length > 0 && (
@@ -578,6 +584,14 @@ export function DemoChat() {
                                     This backend would not resolve the
                                     referenced records, so none are shown. That
                                     is not the same as there being none.
+                                  </p>
+                                )}
+                                {chartReadCodeFilterUnmatched(part.output) && (
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    This section does hold records — none of
+                                    them carry that code. Records with text-only
+                                    entries cannot match a coded search. Read
+                                    the section without a code to see them.
                                   </p>
                                 )}
                               </div>

@@ -158,9 +158,44 @@ able to do and it cannot.
 | Mechanism | Status | What it would unlock |
 | --- | --- | --- |
 | Follow a reference (`_include` / `_revinclude`) | ✅ | "who ordered this", "who wrote that note", and the AI-transparency read — via an allowlisted `include` option per section, never a raw parameter |
-| Page a result set | ❌ | "has he *ever* had a flu shot", answered from the record instead of one window |
+| Page a result set | ❌ **decided against** — see below | would brute-force what a filter answers exactly |
 | Resolve a code (`$expand` / `$validate-code`) | ❌ | LOINC/SNOMED/RxNorm coding rather than free-text `code.text` |
 | Read a document body | ❌ | "what does the discharge summary actually say" — the agent can report only that a document exists |
+
+### Why result paging is not implemented
+
+Paging was investigated as the answer to "has he *ever* had a flu shot" and
+rejected. The reasons are recorded here so it is not re-proposed as an
+oversight.
+
+- **It would dereference a server-authored URL — the transport's first.** Every
+  URL fetched today is built from the configured base plus a path derived from a
+  `ResourceType` union. `Bundle.link[next]` is not that, and it cannot be
+  reconstructed: HAPI's next link is a **root-path** absolute URL carrying an
+  opaque `_getpages` cursor, so `GET /fhir/Patient?_getpages=…` answers 400
+  where `GET /fhir?_getpages=…` answers 200. A raw-absolute-URL primitive would
+  need an origin validator duplicated across three publish boundaries. See the
+  [threat model](./threat-model.md).
+- **Page 2's query would be authored by the server**, which is free to drop
+  `patient=` or the session `_tag`. The post-fetch visibility filter would stop
+  being a fallback and become the only thing enforcing patient scope.
+- **`Bundle.total` does not rescue it either.** Measured on the seeded HAPI
+  stack: `_count=2` returns a `next` link and **no `total` at all**, while
+  `_count=200` returns `total: 14`. HAPI reports the total only when the result
+  set already fits — it is absent in exactly the truncated case that would need
+  it. (`_summary=count` does return it, at the cost of a second request per
+  section.) Any use of `total` must fail closed when absent, which lands back on
+  the window signal already in place.
+- **A filter answers the question exactly; paging answers it by brute force.**
+  A coded or dated read collapses the result set below the window, so one
+  request settles it — and paging hundreds of rows into model context is worse
+  for the model than a narrow read.
+
+The exhaustiveness question paging was meant to settle is instead answered by
+reporting truncation honestly (below), and narrowing is the job of the
+filters. **The higher-value rung is code resolution**, not paging: a coded
+filter is what makes a narrow read possible, and today an uncoded record
+cannot be found by one at all.
 
 ## RESTful interactions
 
@@ -207,7 +242,7 @@ code token, a status, a category, `dateFrom`, `dateTo`, and a count of 1-100.
 | `code` token filter | ✅ on 9 sections (Observation, Condition, AllergyIntolerance, MedicationRequest, Immunization, Encounter, DiagnosticReport, Procedure, ServiceRequest) — coded records only |
 | `status` filter | ✅ every section, mapped to that type's own parameter (`clinical-status`, `lifecycle-status`, `status`) and validated against its R4 value set |
 | `category` filter | ✅ Observation — separates `vital-signs` from `laboratory` |
-| Paging (`Bundle.link[next]`) | ❌ — `_count` is a cap, not a page |
+| Paging (`Bundle.link[next]`) | ❌ **decided against**, not merely absent — `_count` is a cap, not a page; see [why](#why-result-paging-is-not-implemented) |
 | Repeated parameters | ❌ — the structured-params contract carries one value per key |
 | `_include` / `_revinclude` | ✅ allowlisted options per section; chained and `_has` still ❌ |
 
@@ -227,9 +262,29 @@ query would answer "nothing in that window" for a patient who *does* have the
 allergy. A refused filter is recoverable; a confident false negative on a
 chart is not.
 
-**Every read reports truncation.** When a result fills the window, the reply
-carries `truncated: true` and the system prompt forbids the agent from
-stating an absence from a truncated read.
+**Every read reports truncation, measured at the server window.** When a
+query's server-side window comes back full, the reply carries
+`truncated: true` and the system prompt forbids the agent from stating an
+absence from a truncated read. Fullness is deliberately *not* the count of
+rows the reply contains: session isolation drops other sessions' rows after
+the fetch, so a full window can leave few or zero visible rows, and a
+row-count signal would have called that an exhaustive search. It is measured
+per query arm against what that arm asked the server for.
+
+**An empty coded read is reported as an unmatched code, never as an
+absence.** A coded search parameter can only match a record that carries a
+coding, and text-only `CodeableConcept`s are ordinary FHIR — this
+repository's own synthetic immunizations and medications are text-only on
+purpose, because asserting CVX/RxNorm codes nobody verified would be worse.
+Measured on the seeded stack: `Immunization?vaccine-code=88` answers
+`total: 0` while 14 immunizations exist. `truncated` cannot cover that case,
+because the server genuinely matched nothing and the window was never full.
+So when a coded read returns nothing, the tool asks once whether the section
+holds rows that differ *only* by the code, and reports
+`codeFilterUnmatched: true` if it does. The system prompt then requires a
+re-read without the code before answering, and the chart card tells the human
+reader the same thing. This is the false negative the "resolve a code" rung
+above exists to close properly.
 
 ## Why not a percentage
 

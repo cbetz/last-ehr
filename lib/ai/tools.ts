@@ -76,6 +76,7 @@ Reading the chart:
 - read_chart_section can also follow references with include: "authors" names who performed or ordered something (a clinician or organization), "encounter" the visit it belongs to, and "provenance" answers whether an entry was AI-written and who approved it. Use it instead of telling the user a reference cannot be resolved. If the reply carries includeUnsupported, the backend refused the lookup — say the references could not be resolved, never that there are none.
 - read_chart_section takes status and category filters: use status to ask about current records ("active" problems, medications, goals, care plans; "requested" or "in-progress" tasks; "completed" immunizations) and category on Observation to separate "vital-signs" from "laboratory". Prefer a filtered read over fetching everything and sorting it yourself. If a filter value is refused, the error names the legal values for that section — use one of them.
 - read_chart_section results carry a truncated flag. When it is true you saw only the newest rows the filter matched and older ones may exist, so never state an absence ("no record of X", "she has never had Y") from a truncated read: report what you saw, say the list was capped, and offer to narrow the dates or raise the count. A read that refuses a filter is telling you that section cannot filter that way — re-read it without the filter rather than assuming the section is empty.
+- An empty result from a code filter is never an absence. A code only matches records that carry a coding, and plenty of real records are text-only. When a coded read returns no entries and carries codeFilterUnmatched, the section DOES hold records that differ only by the code: re-read it without code and read their text before answering. Never turn an unmatched code into "she has never had X".
 
 ${writeSection}
 
@@ -1409,10 +1410,41 @@ export function buildTools(
           .filter(
             (row) => !clientDateFrom || !row.date || row.date >= clientDateFrom,
           );
+
+        // An empty CODED read is not an absence. A coded search parameter can
+        // only match a row that carries a coding, and text-only
+        // CodeableConcepts are ordinary FHIR — this repository's own synthetic
+        // immunizations and medications are text-only on purpose, because
+        // asserting CVX/RxNorm codes nobody verified would be worse. Measured
+        // against the seeded HAPI stack: `Immunization?vaccine-code=88`
+        // answers total 0 while 14 immunizations exist for the patient.
+        //
+        // `truncated` cannot cover this: the server really did match nothing,
+        // so the window is not full and truncated is correctly false. Left
+        // alone, that combination is precisely what licenses "she has never
+        // had a flu shot." So when a coded read comes back empty, ask whether
+        // the section has rows at all — every other filter kept, so the
+        // signal means "records exist that differ only by the code." One
+        // extra request, only in the ambiguous case.
+        let codeFilterUnmatched = false;
+        if (code && codeParam && entries.length === 0) {
+          const withoutCode = { ...params };
+          delete withoutCode[codeParam];
+          delete withoutCode._include;
+          delete withoutCode._revinclude;
+          const probe = await searchVisibleWindow(
+            resourceType,
+            { ...withoutCode, _count: "1" },
+            (resource) => toRow(resource).date,
+          );
+          codeFilterUnmatched = probe.rows.length > 0;
+        }
+
         return {
           resourceType,
           entries,
           truncated,
+          ...(codeFilterUnmatched ? { codeFilterUnmatched: true } : {}),
           ...(include
             ? includeUnsupported
               ? {

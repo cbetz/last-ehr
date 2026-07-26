@@ -1142,7 +1142,9 @@ describe("read_chart_section", () => {
     ];
     for (const [resourceType, param] of coded) {
       await exec(tools)({ patientId: "p1", resourceType, code: "12345" }, {});
-      expect(searchResources).toHaveBeenLastCalledWith(
+      // Not "last called": an empty coded read is followed by the
+      // does-this-section-have-rows probe, which deliberately omits the code.
+      expect(searchResources).toHaveBeenCalledWith(
         resourceType,
         expect.objectContaining({ [param]: "12345" }),
       );
@@ -1176,6 +1178,131 @@ describe("read_chart_section", () => {
       {},
     );
     expect(full.truncated).toBe(true);
+  });
+
+  // A coded filter can only match rows that carry a coding, and text-only
+  // CodeableConcepts are ordinary FHIR — the repository's own synthetic
+  // immunizations and medications are text-only on purpose. So an empty coded
+  // read means "nothing coded that way", not "never happened", and `truncated`
+  // cannot say so: the server genuinely matched nothing, so the window is not
+  // full and truncated is correctly false. That pairing is what would license
+  // "she has never had a flu shot."
+  describe("an empty coded read is not an absence", () => {
+    // The enclosing describe has no beforeEach, and these tests assert call
+    // COUNTS (the probe must not fire on the common path), so they need a
+    // clean mock each time.
+    beforeEach(() => searchResources.mockReset());
+
+    // Mirrors the seeded HAPI stack, where Immunization?vaccine-code=88
+    // answers total 0 while 14 text-only immunizations exist.
+    const textOnlyImmunizations = (
+      type: string,
+      params: Record<string, string> = {},
+    ) => {
+      if (type !== "Immunization") return [];
+      if (params["vaccine-code"]) return [];
+      return [
+        {
+          id: "imm-1",
+          vaccineCode: { text: "Influenza, seasonal (quadrivalent)" },
+          occurrenceDateTime: "2025-10-20T00:00:00Z",
+        },
+      ];
+    };
+
+    it("flags a coded miss when the section holds records that differ only by the code", async () => {
+      searchResources.mockImplementation(async (type: string, params = {}) =>
+        textOnlyImmunizations(type, params),
+      );
+
+      const out = (await exec(buildTools(backend))(
+        { patientId: "p1", resourceType: "Immunization", code: "88" },
+        {},
+      )) as { entries: unknown[]; truncated: boolean; codeFilterUnmatched?: boolean };
+
+      expect(out.entries).toEqual([]);
+      // truncated is legitimately false here — the window was not full.
+      expect(out.truncated).toBe(false);
+      expect(out.codeFilterUnmatched).toBe(true);
+    });
+
+    it("does not flag a coded miss when the section is genuinely empty", async () => {
+      searchResources.mockResolvedValue([]);
+
+      const out = (await exec(buildTools(backend))(
+        { patientId: "p1", resourceType: "Immunization", code: "88" },
+        {},
+      )) as { entries: unknown[]; codeFilterUnmatched?: boolean };
+
+      expect(out.entries).toEqual([]);
+      expect(out.codeFilterUnmatched).toBeUndefined();
+    });
+
+    it("keeps every other filter on the probe, so the flag means only the code differed", async () => {
+      // If the probe dropped the date window it would report records that the
+      // caller's read excluded anyway — a misleading "records exist".
+      searchResources.mockImplementation(async (type: string, params = {}) =>
+        textOnlyImmunizations(type, params),
+      );
+
+      await exec(buildTools(backend))(
+        {
+          patientId: "p1",
+          resourceType: "Immunization",
+          code: "88",
+          status: "completed",
+          dateTo: "2026-01-01",
+        },
+        {},
+      );
+
+      const probe = searchResources.mock.calls.at(-1) as [
+        string,
+        Record<string, string>,
+      ];
+      expect(probe[1]).toMatchObject({
+        patient: "p1",
+        status: "completed",
+        date: "le2026-01-01",
+        // Cheap: existence is all the flag needs.
+        _count: "1",
+      });
+      expect(probe[1]["vaccine-code"]).toBeUndefined();
+    });
+
+    it("costs nothing when the coded read matched something", async () => {
+      searchResources.mockResolvedValue([
+        {
+          id: "imm-coded",
+          vaccineCode: {
+            coding: [{ system: "http://hl7.org/fhir/sid/cvx", code: "88" }],
+            text: "Influenza",
+          },
+          occurrenceDateTime: "2025-10-20T00:00:00Z",
+        },
+      ]);
+
+      const out = (await exec(buildTools(backend))(
+        { patientId: "p1", resourceType: "Immunization", code: "88" },
+        {},
+      )) as { entries: unknown[]; codeFilterUnmatched?: boolean };
+
+      expect(out.entries).toHaveLength(1);
+      expect(out.codeFilterUnmatched).toBeUndefined();
+      // One read, no existence probe.
+      expect(searchResources).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not probe when no code filter was applied", async () => {
+      searchResources.mockResolvedValue([]);
+
+      await exec(buildTools(backend))(
+        { patientId: "p1", resourceType: "Immunization" },
+        {},
+      );
+
+      expect(searchResources).toHaveBeenCalledTimes(1);
+    });
   });
 
   // Session isolation drops foreign rows AFTER the fetch, so the surviving
