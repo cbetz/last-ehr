@@ -225,10 +225,21 @@ describe("agent FHIR tools", () => {
     )({ id: "p9" }, {});
 
     expect(out.patient.id).toBe("p9");
-    expect(out.conditions).toEqual([{ id: "c1", text: "Asthma" }]);
+    // Every free-text field crosses the untrusted-content boundary, not just
+    // notes: a condition name, an observation label and its unit are all
+    // server-chosen text, and wrapping only some of them told the model the
+    // rest were more trustworthy.
+    expect(out.conditions).toEqual([
+      { id: "c1", text: "<chart_text>Asthma</chart_text>" },
+    ]);
     expect(out.allergies).toEqual([]);
     expect(out.observations).toEqual([
-      { id: "o1", label: "Heart rate", value: "72 /min", date: "2026-01-28" },
+      {
+        id: "o1",
+        label: "<chart_text>Heart rate</chart_text>",
+        value: "<chart_text>72 /min</chart_text>",
+        date: "2026-01-28",
+      },
     ]);
     // Notes carry the untrusted-content boundary the system prompt names;
     // the chart UI strips it for display.
@@ -238,13 +249,19 @@ describe("agent FHIR tools", () => {
     expect(out.medications).toEqual([
       {
         id: "m1",
-        text: "Metformin 500 mg tablet",
-        dosage: "1 tablet twice daily",
+        text: "<chart_text>Metformin 500 mg tablet</chart_text>",
+        // A sig is free-form text and one of the more consequential strings
+        // on a chart, so it crosses the boundary too.
+        dosage: "<chart_text>1 tablet twice daily</chart_text>",
         status: "active",
       },
     ]);
     expect(out.immunizations).toEqual([
-      { id: "im1", text: "Influenza, seasonal", date: "2025-10-15" },
+      {
+        id: "im1",
+        text: "<chart_text>Influenza, seasonal</chart_text>",
+        date: "2025-10-15",
+      },
     ]);
   });
 
@@ -786,6 +803,120 @@ describe("agent FHIR tools", () => {
       return type === "Observation" && !params._tag && !params["_tag:not"];
     }) as [string, Record<string, string>] | undefined;
     expect(fallbackCall?.[1]._count).toBe("200");
+  });
+});
+
+// Every section's row text is free text the SERVER chose, so every one of them
+// must arrive inside the boundary the system prompt describes. Half of them did
+// not: 13 of 23 wrapped, 10 did not (Observation, Condition, AllergyIntolerance,
+// MedicationRequest, Immunization, Encounter, Procedure, ServiceRequest,
+// MedicationDispense, Specimen). The risk is not that a medication name is
+// especially dangerous; it is that a model told "wrapped text is quoted chart
+// content" naturally infers unwrapped text is something more trustworthy, which
+// is the exact inversion of the intent.
+describe("every chart section wraps its text in the boundary", () => {
+  const exec = (tools: ReturnType<typeof buildTools>) =>
+    tools.read_chart_section.execute as unknown as (
+      input: unknown,
+      opts: unknown,
+    ) => Promise<{ entries: { text: string }[] }>;
+
+  const MARKER = "FREE-TEXT-FROM-THE-SERVER";
+
+  // One resource carrying every text-bearing field any toRow reads, so a single
+  // fixture drives all 23 sections. `type` is both an object (Specimen,
+  // DocumentReference) and an array (Encounter) across sections, so it is an
+  // array that also carries the property.
+  const kitchenSink = {
+    id: "row-1",
+    code: { text: MARKER },
+    medicationCodeableConcept: { text: MARKER },
+    vaccineCode: { text: MARKER },
+    type: Object.assign([{ text: MARKER }], { text: MARKER }),
+    description: MARKER,
+    payload: [{ contentString: MARKER }],
+    valueString: MARKER,
+    name: MARKER,
+    display: MARKER,
+    title: MARKER,
+    category: [{ text: MARKER }],
+    class: { code: "AMB" },
+    status: "final",
+  };
+
+  const sectionTypes = (() => {
+    const schema = (buildTools(backend).read_chart_section as { inputSchema?: unknown })
+      .inputSchema as { shape?: { resourceType?: { options?: string[] } } };
+    const options = schema?.shape?.resourceType?.options;
+    if (!options?.length) throw new Error("Could not introspect the section list.");
+    return options;
+  })();
+
+  it("covers every section the tool offers", () => {
+    // Guards the guard: if a section is added, it is tested below by
+    // construction rather than by someone remembering to add a case.
+    expect(sectionTypes.length).toBeGreaterThanOrEqual(23);
+  });
+
+  // The five the one fixture does not reach, and why each is fine. Named rather
+  // than counted: if a section silently stops wrapping, or the fixture loses a
+  // field a section reads, the set below changes and the test says which.
+  const NOT_DRIVEN_BY_FIXTURE = [
+    // Its row is type/action/outcome CODES. Only outcomeDesc is free text, and
+    // that one is already wrapped.
+    "AuditEvent",
+    // Reads description.text; the fixture supplies description as a string.
+    "Goal",
+    // Reads relationship plus condition codings.
+    "FamilyMemberHistory",
+    // Reads the questionnaire reference.
+    "QuestionnaireResponse",
+    // Reads relationship plus a HumanName array.
+    "RelatedPerson",
+  ];
+
+  it("is not passing vacuously: names exactly the sections the fixture cannot drive", async () => {
+    const withoutMarker: string[] = [];
+    for (const resourceType of sectionTypes) {
+      searchResources.mockReset();
+      searchResources.mockResolvedValue([{ ...kitchenSink, resourceType }]);
+      const out = await exec(buildTools(backend))(
+        { patientId: "p1", resourceType },
+        {},
+      );
+      if (!out.entries[0]?.text.includes(MARKER)) withoutMarker.push(resourceType);
+    }
+    // Every other section really did put the fixture's free text through the
+    // boundary, so their leak check above tested something.
+    expect(withoutMarker.sort()).toEqual([...NOT_DRIVEN_BY_FIXTURE].sort());
+  });
+
+  it.each(sectionTypes)("%s wraps its row text", async (resourceType) => {
+    searchResources.mockReset();
+    searchResources.mockResolvedValue([{ ...kitchenSink, resourceType }]);
+
+    const out = await exec(buildTools(backend))({ patientId: "p1", resourceType }, {});
+
+    expect(out.entries.length, `${resourceType} produced no row`).toBe(1);
+    const text = out.entries[0].text;
+
+    // Some rows are a composite of several free-text fields joined by coded
+    // glue (a status, an intent), and those wrap each part separately. So the
+    // invariant is not "one boundary at the edges" but the sharper thing the
+    // boundary exists for: no server-chosen free text sits OUTSIDE one.
+    const outsideBoundaries = text.replace(
+      /<chart_text>[\s\S]*?<\/chart_text>/g,
+      "",
+    );
+    expect(
+      outsideBoundaries,
+      `${resourceType} leaks server free text outside the boundary: ${text}`,
+    ).not.toContain(MARKER);
+
+    // No "every row has a boundary" assertion: a few rows are legitimately
+    // all codes (AuditEvent is type/action/outcome codes unless outcomeDesc is
+    // set), and demanding a boundary there would be wrong. The aggregate test
+    // below is what keeps this from passing vacuously.
   });
 });
 
@@ -1361,7 +1492,9 @@ describe("read_chart_section", () => {
     // The conclusion is the value a loose Observation list cannot carry,
     // and it is narrative, so it must cross the boundary marker.
     expect(out.entries[0].text).toBe(
-      "CBC panel (final): <chart_text>Mild anemia, recheck in 3 months.</chart_text>",
+      // The report's NAME crosses the boundary too: it is server-chosen free
+      // text, and wrapping only the conclusion left it outside.
+      "<chart_text>CBC panel</chart_text> (final): <chart_text>Mild anemia, recheck in 3 months.</chart_text>",
     );
   });
 
