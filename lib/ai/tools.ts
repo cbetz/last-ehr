@@ -79,6 +79,7 @@ Reading the chart:
 - read_chart_section takes status and category filters: use status to ask about current records ("active" problems, medications, goals, care plans; "requested" or "in-progress" tasks; "completed" immunizations) and category on Observation to separate "vital-signs" from "laboratory". Prefer a filtered read over fetching everything and sorting it yourself. If a filter value is refused, the error names the legal values for that section — use one of them.
 - read_chart_section results carry a truncated flag. When it is true you saw only the newest rows the filter matched and older ones may exist, so never state an absence ("no record of X", "she has never had Y") from a truncated read: report what you saw, say the list was capped, and offer to narrow the dates or raise the count. A read that refuses a filter is telling you that section cannot filter that way — re-read it without the filter rather than assuming the section is empty.
 - For a vital sign, ask read_chart_section for the measurement by name (measurement: "blood pressure", "heart rate", "temperature", "oxygen saturation") instead of recalling a LOINC code. The tool resolves the name to the right code — "blood pressure" to both systolic and diastolic — and refuses an unrecognized name with the list it accepts. A code you half-remember returns an empty section that looks like an absence.
+- read_document reads what a document actually says. The documents section lists them; pass one of its ids to read the text. If the reply carries unreadable instead of text, the document exists and its contents were NOT read: say which document you could not read and why, and never describe an unread document as empty or summarize what you imagine is in it. A truncated body means you saw the opening only.
 - An empty result from a code filter is never an absence. A code only matches records that carry a coding, and plenty of real records are text-only. When a coded read returns no entries and carries codeFilterUnmatched, the section DOES hold records that differ only by the code: re-read it without code and read their text before answering. Never turn an unmatched code into "she has never had X".
 
 ${writeSection}
@@ -102,6 +103,21 @@ export const SYSTEM_PROMPT = buildSystemPrompt();
 
 // Boundary marker for free-text chart content in tool results, referenced by
 // the system prompt's chart-content-is-data rule.
+/**
+ * Document bodies this tool will decode. Deliberately short: a chart holds
+ * scans and PDFs that no agent should pretend to have read, and the honest
+ * answer for those is to say so. HTML is excluded too, because summarizing
+ * markup means deciding what to do with markup.
+ */
+const READABLE_DOCUMENT_TYPES = new Set(["text/plain", "text/markdown"]);
+
+/**
+ * A clinical note that runs past this is being summarized from its opening
+ * anyway, and an unbounded body would spend the whole context window on one
+ * document. Truncation is reported, never silent.
+ */
+const MAX_DOCUMENT_CHARS = 20_000;
+
 const asChartText = (text: string): string =>
   text ? `<chart_text>${text}</chart_text>` : text;
 
@@ -1208,6 +1224,82 @@ export function buildTools(
           .map(([id]) => byId.get(id))
           .filter((entry): entry is (typeof entries)[number] => Boolean(entry));
         return { patients: all };
+      },
+    }),
+    read_document: tool({
+      description:
+        "Read the text of one document from a patient's chart. Use after read_chart_section on DocumentReference has listed the documents, passing the id of the one you need. Answers what a note actually says, rather than only that it exists.",
+      inputSchema: z.object({
+        patientId: z.string().min(1).max(64).describe("The patient resource id."),
+        documentId: z
+          .string()
+          .min(1)
+          .max(64)
+          .describe(
+            "The DocumentReference id, taken from a prior read of the documents section. Never invent one.",
+          ),
+      }),
+      execute: async ({ patientId, documentId }) => {
+        // Patient-scoped SEARCH with _id, never a read-by-id. Two reasons, and
+        // both matter: a compartment-scoped SMART/Medplum AccessPolicy is only
+        // enforced on the search path, and scoping by patient is what proves
+        // this document belongs to THIS chart. A bare read-by-id would happily
+        // return another patient's note to a model that guessed an id.
+        const rows = await searchVisible(
+          "DocumentReference",
+          { patient: patientId, _id: documentId, _count: "1" },
+          (resource) => resource.date ?? "",
+        );
+        const document = rows[0];
+        if (!document) {
+          throw new Error(
+            `No document ${documentId} in this patient's chart. Read the DocumentReference section for this patient and use an id from it.`,
+          );
+        }
+
+        const attachment = document.content?.[0]?.attachment;
+        const contentType = attachment?.contentType?.split(";")[0].trim() ?? "";
+        const meta = {
+          documentId,
+          title:
+            document.description ??
+            document.type?.text ??
+            document.type?.coding?.[0]?.display ??
+            "Document",
+          date: document.date?.slice(0, 10) ?? "",
+          contentType: contentType || "unknown",
+        };
+
+        // Every branch below that cannot produce text says WHY. An empty
+        // `text` with no reason is the document-shaped version of the false
+        // absence this tool set keeps closing: "the discharge summary is
+        // blank" instead of "I could not read the discharge summary".
+        if (!attachment?.data) {
+          return {
+            ...meta,
+            unreadable: attachment?.url
+              ? "The body is stored as a separate attachment rather than inline, so it was not retrieved. This is not an empty document."
+              : "This document carries no attached content to read.",
+          };
+        }
+        if (!READABLE_DOCUMENT_TYPES.has(contentType)) {
+          return {
+            ...meta,
+            unreadable: `The attachment is ${contentType || "of an unknown type"}, which this tool does not read as text (scans and PDFs need a human or a converter). Its presence and date are real; its contents were not read.`,
+          };
+        }
+
+        const decoded = Buffer.from(attachment.data, "base64").toString("utf8");
+        const truncated = decoded.length > MAX_DOCUMENT_CHARS;
+        return {
+          ...meta,
+          // Untrusted free text, exactly like a note: the boundary tells the
+          // model this is quoted chart content and not instructions.
+          text: asChartText(
+            truncated ? decoded.slice(0, MAX_DOCUMENT_CHARS) : decoded,
+          ),
+          ...(truncated ? { truncated: true } : {}),
+        };
       },
     }),
     read_chart_section: tool({

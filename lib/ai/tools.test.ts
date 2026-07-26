@@ -789,6 +789,142 @@ describe("agent FHIR tools", () => {
   });
 });
 
+describe("read_document", () => {
+  const exec = (tools: ReturnType<typeof buildTools>) =>
+    tools.read_document.execute as unknown as (
+      input: unknown,
+      opts: unknown,
+    ) => Promise<{
+      documentId: string;
+      title: string;
+      contentType: string;
+      text?: string;
+      truncated?: boolean;
+      unreadable?: string;
+    }>;
+
+  const b64 = (text: string) => Buffer.from(text, "utf8").toString("base64");
+
+  const doc = (attachment: Record<string, unknown>) => ({
+    id: "doc-1",
+    resourceType: "DocumentReference",
+    description: "Cardiology consult note",
+    date: "2026-01-22T00:00:00Z",
+    content: [{ attachment }],
+  });
+
+  beforeEach(() => searchResources.mockReset());
+
+  it("is a read: never approval-gated", () => {
+    expect(buildTools(backend).read_document.needsApproval).toBeFalsy();
+  });
+
+  it("scopes the lookup to the patient and searches by _id, never reads by id", async () => {
+    // Both halves matter. A compartment-scoped AccessPolicy is only enforced
+    // on the search path, and the patient scope is what stops a guessed id
+    // returning another patient's note.
+    searchResources.mockResolvedValue([doc({ contentType: "text/plain", data: b64("PLAN: continue lisinopril.") })]);
+
+    await exec(buildTools(backend))({ patientId: "p1", documentId: "doc-1" }, {});
+
+    expect(searchResources).toHaveBeenCalledWith("DocumentReference", {
+      patient: "p1",
+      _id: "doc-1",
+      _count: "1",
+    });
+  });
+
+  it("returns the body wrapped in the untrusted-content boundary", async () => {
+    const body = "PLAN: continue lisinopril 10 mg daily.";
+    searchResources.mockResolvedValue([doc({ contentType: "text/plain", data: b64(body) })]);
+
+    const out = await exec(buildTools(backend))(
+      { patientId: "p1", documentId: "doc-1" },
+      {},
+    );
+    expect(out.text).toBe(`<chart_text>${body}</chart_text>`);
+    expect(out.title).toBe("Cardiology consult note");
+    expect(out.unreadable).toBeUndefined();
+  });
+
+  it("tolerates a charset parameter on the content type", async () => {
+    searchResources.mockResolvedValue([
+      doc({ contentType: "text/plain; charset=utf-8", data: b64("NOTE") }),
+    ]);
+    const out = await exec(buildTools(backend))(
+      { patientId: "p1", documentId: "doc-1" },
+      {},
+    );
+    expect(out.text).toContain("NOTE");
+  });
+
+  it("says a pointer-only attachment was not retrieved, not that it is empty", async () => {
+    // The seeded PDF case. Reporting this as an empty document is the
+    // document-shaped false absence.
+    searchResources.mockResolvedValue([
+      doc({ contentType: "application/pdf", url: "Binary/outside-records" }),
+    ]);
+
+    const out = await exec(buildTools(backend))(
+      { patientId: "p1", documentId: "doc-1" },
+      {},
+    );
+    expect(out.text).toBeUndefined();
+    expect(out.unreadable).toMatch(/not retrieved/i);
+    expect(out.unreadable).toMatch(/not an empty document/i);
+  });
+
+  it("refuses a non-text body rather than emitting decoded binary", async () => {
+    searchResources.mockResolvedValue([
+      doc({ contentType: "application/pdf", data: b64("%PDF-1.7 binary junk") }),
+    ]);
+
+    const out = await exec(buildTools(backend))(
+      { patientId: "p1", documentId: "doc-1" },
+      {},
+    );
+    expect(out.text).toBeUndefined();
+    expect(out.unreadable).toContain("application/pdf");
+    // The document is real even though its contents were not read.
+    expect(out.unreadable).toMatch(/presence and date are real/i);
+  });
+
+  it("does not treat HTML as readable text", async () => {
+    // Summarizing markup means deciding what to do with markup.
+    searchResources.mockResolvedValue([
+      doc({ contentType: "text/html", data: b64("<b>note</b>") }),
+    ]);
+    const out = await exec(buildTools(backend))(
+      { patientId: "p1", documentId: "doc-1" },
+      {},
+    );
+    expect(out.text).toBeUndefined();
+    expect(out.unreadable).toContain("text/html");
+  });
+
+  it("caps a long body and reports the truncation", async () => {
+    searchResources.mockResolvedValue([
+      doc({ contentType: "text/plain", data: b64("x".repeat(25_000)) }),
+    ]);
+
+    const out = await exec(buildTools(backend))(
+      { patientId: "p1", documentId: "doc-1" },
+      {},
+    );
+    expect(out.truncated).toBe(true);
+    // Boundary tags plus exactly the cap.
+    expect(out.text?.replace(/<\/?chart_text>/g, "")).toHaveLength(20_000);
+  });
+
+  it("refuses an id that is not in this patient's chart, and names the recovery", async () => {
+    searchResources.mockResolvedValue([]);
+
+    await expect(
+      exec(buildTools(backend))({ patientId: "p1", documentId: "not-mine" }, {}),
+    ).rejects.toThrow(/No document not-mine in this patient's chart/);
+  });
+});
+
 describe("read_chart_section", () => {
   const exec = (tools: ReturnType<typeof buildTools>) =>
     tools.read_chart_section.execute as unknown as (

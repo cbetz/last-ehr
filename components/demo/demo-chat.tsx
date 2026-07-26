@@ -503,6 +503,59 @@ export function DemoChat() {
                         }
                         return pendingSkeleton(part.toolCallId);
 
+                      case "tool-read_document": {
+                        if (part.state === "output-available") {
+                          // The tool returns a discriminated union: a readable
+                          // document has `text`, an unreadable one has
+                          // `unreadable`. Narrow rather than assume.
+                          const doc = part.output;
+                          const body = "text" in doc ? doc.text : undefined;
+                          const truncated =
+                            "truncated" in doc ? doc.truncated === true : false;
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <div className="rounded-lg border bg-background p-4">
+                                <p className="text-sm font-medium">
+                                  {part.output.title}
+                                  {part.output.date && (
+                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                      {part.output.date}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
+                                  {part.output.contentType}
+                                </p>
+                                {body ? (
+                                  <>
+                                    {/* The boundary is for the model; the
+                                        reader gets the note itself, in a box
+                                        that scrolls rather than widening the
+                                        page. */}
+                                    <pre className="mt-3 max-h-80 max-w-full overflow-auto whitespace-pre-wrap border-t pt-3 font-mono text-xs leading-6 text-muted-foreground">
+                                      {body.replace(/<\/?chart_text>/g, "")}
+                                    </pre>
+                                    {truncated && (
+                                      <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                        Only the opening of this document was
+                                        read. The rest exists and was not shown.
+                                      </p>
+                                    )}
+                                  </>
+                                ) : (
+                                  /* Never a blank box: an unread document must
+                                     not look like an empty one. */
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    {"unreadable" in doc ? doc.unreadable : null}
+                                  </p>
+                                )}
+                              </div>
+                            </BotCard>
+                          );
+                        }
+                        return null;
+                      }
+
                       case "tool-read_chart_section":
                         if (part.state === "output-available") {
                           return (

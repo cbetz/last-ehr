@@ -18,6 +18,7 @@ export const CHILD_TYPES: ResourceType[] = [
   "MedicationRequest",
   "Immunization",
   "Task",
+  "DocumentReference",
 ];
 
 /**

@@ -120,6 +120,80 @@ if (!runHapiE2E) {
       expect(pulse.entries.length).toBeGreaterThan(0);
     });
 
+    it("reads a real document body, and refuses the one that is only a pointer", async () => {
+      // Documents are the last read-side mechanism, and the seed carries both
+      // shapes on purpose: inline text notes, and one PDF that is a pointer
+      // only. A reader that returned nothing for the second would be inventing
+      // an empty discharge summary.
+      const patient = await patientId();
+
+      const listed = await read({
+        patientId: patient,
+        resourceType: "DocumentReference",
+      });
+      expect(listed.entries.length).toBeGreaterThan(0);
+
+      const readDocument = (documentId: string) =>
+        (
+          tools.read_document.execute as unknown as (
+            i: unknown,
+            o: unknown,
+          ) => Promise<{
+            title: string;
+            contentType: string;
+            text?: string;
+            unreadable?: string;
+          }>
+        )({ patientId: patient, documentId }, {});
+
+      const bodies = await Promise.all(
+        listed.entries.map((entry) => readDocument(entry.id)),
+      );
+
+      // At least one document yields real note text, wrapped in the boundary.
+      const readable = bodies.filter((b) => b.text);
+      expect(readable.length).toBeGreaterThan(0);
+      for (const body of readable) {
+        expect(body.contentType).toBe("text/plain");
+        expect(body.text).toMatch(/^<chart_text>/);
+        expect(body.text).toMatch(/<\/chart_text>$/);
+        expect(body.text!.length).toBeGreaterThan(50);
+      }
+
+      // Everything not readable says why, and never reads as empty.
+      for (const body of bodies.filter((b) => !b.text)) {
+        expect(body.unreadable, `${body.title} gave no reason`).toBeTruthy();
+      }
+    });
+
+    it("will not hand one patient's document to another patient's chart", async () => {
+      // The lookup is a patient-scoped search, not a read-by-id, so a real id
+      // from a DIFFERENT patient must not resolve. This is the assertion that
+      // would fail if someone "simplified" it to a direct instance read.
+      const [mine, theirs] = await Promise.all([
+        patientId(),
+        backend
+          .searchResources("Patient", { family: "Smith", _count: "5" })
+          .then((rows) => rows.find((row) => row.id)?.id),
+      ]);
+      expect(theirs).toBeTruthy();
+
+      const theirDocuments = await read({
+        patientId: theirs!,
+        resourceType: "DocumentReference",
+      });
+      expect(theirDocuments.entries.length).toBeGreaterThan(0);
+
+      await expect(
+        (
+          tools.read_document.execute as unknown as (
+            i: unknown,
+            o: unknown,
+          ) => Promise<unknown>
+        )({ patientId: mine, documentId: theirDocuments.entries[0].id }, {}),
+      ).rejects.toThrow(/No document \d+ in this patient's chart/);
+    });
+
     it("stays quiet on a section whose seed data IS coded", async () => {
       // Observations carry real LOINC, so the coded filter works normally and
       // the extra existence probe never fires.
