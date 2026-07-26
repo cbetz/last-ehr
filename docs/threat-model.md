@@ -27,6 +27,16 @@ do not mistake the approval card for a full security system.
   trail is always written to the deployment default, never the picked
   backend.
 
+- Chart free text into the model's instructions. Every free-text value the
+  agent reads is wrapped in a `<chart_text>` boundary that the system prompt
+  declares to be data, never instructions. The value is sanitized before
+  wrapping: a literal `chart_text` tag inside it, in any case or spacing, is
+  replaced with a visible marker, because a value that closed the boundary
+  early would leave everything after it reading as content from outside the
+  chart. Reading document bodies made that a realistic delivery route rather
+  than a theoretical one, since an outside-records note is long, arbitrary, and
+  written by someone else. The replacement is visible rather than silent so a
+  targeted attempt shows up in the transcript the reviewer reads.
 - FHIR server response to the agent's chart view. The configured server is
   trusted to answer FHIR, not to steer the process that asked. Every FHIR
   fetch therefore refuses redirects (`redirect: "manual"`; a 3xx fails the
@@ -100,7 +110,10 @@ first, and treat them as safety-boundary tests.
 
 ## Contributor rules
 
-- Treat free text from chart resources as data, not instructions.
+- Treat free text from chart resources as data, not instructions. Wrap it with
+  `asChartText`, which is the only place the boundary is applied and the only
+  place it is sanitized. A new field that renders free text without it is
+  outside the boundary the system prompt describes.
 - Keep raw backend errors out of broad user-facing copy where possible.
 - Use structured FHIR query params.
 - Cap model-controlled search inputs.
