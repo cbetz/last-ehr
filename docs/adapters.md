@@ -244,7 +244,12 @@ knowing:
 - Aidbox silently ignores the bare-system `_tag:not` token (verified by
   probe: a tagged row came back from `_tag:not=<system>|`), so session
   visibility runs on the app's client-side filter arm — safe, with the
-  documented window-crowding caveat under heavy concurrent load.
+  documented window-crowding caveat under heavy concurrent load. Note this
+  is the arm where crowding is cheapest to hit: because the query *succeeds*,
+  the over-fetch that a rejecting server triggers never fires, so a single
+  full window of other sessions' rows can empty a section. Truncation is
+  therefore reported from the server-side window rather than the surviving
+  row count.
 - Anonymous access is rejected (401) and only the Basic-auth Client can act;
   before pointing a public demo at a box, scope the Client's AccessPolicy to
   the demo's resource types rather than the allow-all used for verification.
