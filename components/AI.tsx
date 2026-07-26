@@ -42,12 +42,17 @@ export default function AISection() {
           </div>
           <div className="max-w-2xl lg:justify-self-end">
             <p className="text-lg leading-8 text-muted-foreground">
-              The published package is read-only by default — bounded chart
-              reads over Medplum or the local HAPI stack — and its only write
-              mode is proposal-shaped: the client renders the exact fields
-              and a human approves each write. The checkout Local Lab lets a
-              developer inspect the bounded read surface against four
-              synthetic HAPI charts before connecting a real project.
+              The published package is read-only by default, with bounded
+              chart reads and one write mode that is proposal-shaped: the
+              client renders the exact fields and a human approves each write.
+              The checkout Local Lab lets a developer inspect the bounded read
+              surface against four synthetic HAPI charts before connecting a
+              real project.
+            </p>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">
+              Scope worth stating: the MCP package targets Medplum or the local
+              HAPI stack, which is narrower than the web app on purpose. The
+              five verified backends below all work through the web agent.
             </p>
             <div className="mt-6 grid divide-y divide-border border-y border-border text-sm text-muted-foreground sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               <p className="flex gap-2 py-3.5 sm:px-4 sm:first:pl-0">
@@ -81,8 +86,8 @@ export default function AISection() {
             </span>
             <span className="text-primary">read-only by default</span>
           </div>
-          <div className="grid divide-y divide-border sm:grid-cols-[minmax(0,0.96fr)_minmax(0,1.04fr)] sm:divide-x sm:divide-y-0">
-            <div className="p-5 sm:p-6">
+          <div className="grid grid-cols-[minmax(0,1fr)] divide-y divide-border sm:grid-cols-[minmax(0,0.96fr)_minmax(0,1.04fr)] sm:divide-x sm:divide-y-0">
+            <div className="min-w-0 p-5 sm:p-6">
               <p className="font-mono text-[0.67rem] uppercase tracking-[0.13em] text-muted-foreground">Use with Medplum</p>
               <pre className="mt-5 overflow-x-auto bg-[#11152b] p-4 font-mono text-[0.81rem] leading-7 text-[#eef2ff] sm:p-5">
                 <code><span className="text-[#7f91ba]">$</span> npx -y @lastehr/mcp init --client claude-code</code>
@@ -92,7 +97,7 @@ export default function AISection() {
                 Medplum token. By default the package exposes only reads.
               </p>
             </div>
-            <div className="p-5 sm:p-6">
+            <div className="min-w-0 p-5 sm:p-6">
               <p className="font-mono text-[0.67rem] uppercase tracking-[0.13em] text-muted-foreground">Inspect locally</p>
               <pre className="mt-5 overflow-x-auto bg-[#11152b] p-4 font-mono text-[0.81rem] leading-7 text-[#eef2ff] sm:p-5">
                 <code><span className="text-[#7f91ba]">$</span> npm run mcp:demo -- --client claude-code</code>

@@ -37,6 +37,7 @@ import {
   ConversionCard,
   conversionCardDismissed,
 } from "@/components/demo/conversion-card";
+import { AssistantMarkdown } from "@/components/demo/assistant-markdown";
 import { DismissibleNotice } from "@/components/demo/dismissible-notice";
 import { useDemoBackend } from "@/components/demo/demo-backend";
 import { DevPanel } from "@/components/demo/dev-panel";
@@ -457,7 +458,7 @@ export function DemoChat() {
                       case "text":
                         return part.text ? (
                           <BotMessage key={`${message.id}-${i}`}>
-                            {part.text}
+                            <AssistantMarkdown>{part.text}</AssistantMarkdown>
                           </BotMessage>
                         ) : null;
 

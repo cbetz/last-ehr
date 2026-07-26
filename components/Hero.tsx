@@ -112,8 +112,8 @@ export default function Hero() {
               </span>
               <span className="text-primary">write / paused</span>
             </div>
-            <div className="grid border-b border-border sm:grid-cols-[0.78fr_1.22fr]">
-              <div className="border-b border-border p-4 sm:border-b-0 sm:border-r sm:p-5">
+            <div className="grid grid-cols-[minmax(0,1fr)] border-b border-border sm:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
+              <div className="min-w-0 border-b border-border p-4 sm:border-b-0 sm:border-r sm:p-5">
                 <p className="font-mono text-[0.68rem] uppercase tracking-[0.13em] text-muted-foreground">
                   Agent request
                 </p>
