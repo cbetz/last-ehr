@@ -5,6 +5,52 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+- **`@lastehr/mcp` 0.3.0 reads the chart as broadly as the web agent does.**
+  The published package offered two read tools while the web app offered four.
+  It now offers `search_patients`, `show_patient_info`, `read_chart_section`
+  (23 patient-scoped sections with code, measurement-name, status, category and
+  date filters) and `read_document`, all `readOnlyHint`, and they are the SAME
+  implementations the web agent uses rather than a reduced copy.
+
+  That sharing is the point. Each honesty property in the read path came from a
+  real false negative found against a live FHIR server: truncation measured at
+  the server window, a coded miss reported as unmatched rather than absent, a
+  refused filter refused with its legal values, document bodies decoded but
+  never fetched from a server-authored URL. A second implementation in the
+  package would have re-earned all of them, and the package is the copy people
+  install.
+
+  Three things the shared core did not survive intact, all fixed here:
+
+  - **The transport scrubbed the refusals.** `callMcpTool` replaced every error
+    with "verify the backend access policy", including the read core's own
+    static refusals — so a model that sent `status: "active"` to Task was told
+    to check its server configuration instead of being handed the legal value
+    list. Model-input refusals are now a distinct `ChartReadRefusal` and pass
+    through verbatim; backend errors are still scrubbed, since a FHIR server may
+    put resource fragments in one. Recognized structurally rather than by
+    comparing message text, which is how the one prior special case worked.
+  - **The boundary sanitizer had an evasion.** `</chart_text foo>` is still
+    plausibly a closing tag to a model, and the pattern shipped in 0.2.9
+    required `>` immediately after the name, so it survived into a wrapped
+    value. Widened, with ordinary clinical prose (`BP < 140/90`, `a<b and c>d`)
+    asserted to round-trip unchanged.
+  - **The package's `show_patient_info` wrapped nothing.** It was a separate
+    hand-rolled copy that applied the `<chart_text>` boundary to no field, not
+    even note text. It now uses the shared whole-chart read, which wraps every
+    free-text value.
+
+  The MCP `instructions` string now declares the boundary convention and what
+  each honesty flag means. Unlike the web app, an MCP server does not control
+  the client's system prompt, and a flag whose meaning is never stated is a
+  flag that does nothing.
+
+  The checkout-only Local Lab deliberately keeps its two tools. Not a safety
+  gate — its fixture client already refuses any resource type outside a
+  six-type allowlist — but an honesty one: the section reader advertises 23
+  sections, 17 of which that Lab would refuse, and its own instructions promise
+  exactly two tools.
+
 ## 0.2.9 — 2026-07-25
 
 **Security.** `@lastehr/mcp` 0.2.0 and `@lastehr/agent-write-conformance`

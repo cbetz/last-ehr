@@ -92,14 +92,21 @@ if (!runHapiE2E) {
           expect(chart.patient).toEqual(
             expect.objectContaining({ id: john?.id }),
           );
+          // Free text arrives inside the untrusted-content boundary now that the
+          // Lab shares the web agent's whole-chart read. The old hand-rolled
+          // copy in the package wrapped nothing, not even note text.
           expect(chart.conditions).toEqual(
             expect.arrayContaining([
-              expect.objectContaining({ text: "Essential hypertension" }),
+              expect.objectContaining({
+                text: "<chart_text>Essential hypertension</chart_text>",
+              }),
             ]),
           );
           expect(chart.medications).toEqual(
             expect.arrayContaining([
-              expect.objectContaining({ text: "Lisinopril 10 mg tablet" }),
+              expect.objectContaining({
+                text: "<chart_text>Lisinopril 10 mg tablet</chart_text>",
+              }),
             ]),
           );
         } catch (error) {

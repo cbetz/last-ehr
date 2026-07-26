@@ -13,8 +13,7 @@ import {
   MCP_WRITE_TAG,
   writeToolOptionsFromConfig,
   type FhirWriteClient,
-  type WriteToolOptions,
-} from "./write-tools.js";
+  type WriteToolOptions, WRITE_TOOL_NAMES } from "./write-tools.js";
 
 // Full protocol round-trips over a real (in-memory) MCP client/server pair:
 // the elicitation approval is exercised as the wire exchange it is, not a
@@ -106,6 +105,8 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     expect(names).toEqual([
       "search_patients",
       "show_patient_info",
+      "read_chart_section",
+      "read_document",
       "add_note",
       "record_observation",
       "record_superseding_observation",
@@ -116,7 +117,12 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     const readOnlyNames = (
       await withoutApprovals.mcpClient.listTools()
     ).tools.map((tool) => tool.name);
-    expect(readOnlyNames).toEqual(["search_patients", "show_patient_info"]);
+    expect(readOnlyNames).toEqual([
+      "search_patients",
+      "show_patient_info",
+      "read_chart_section",
+      "read_document",
+    ]);
 
     // Fail closed: calling a hidden write tool is an unknown tool, and
     // nothing is created.
@@ -131,13 +137,16 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
   it("annotates reads as read-only and writes as non-read-only", async () => {
     const { mcpClient } = await connect({ elicitation: true });
     const tools = (await mcpClient.listTools()).tools;
+    // Derived from WRITE_TOOL_NAMES, not a hand-listed pair of reads: a new
+    // read tool is then annotated correctly by construction instead of by
+    // someone remembering to extend this test.
+    const writeNames = WRITE_TOOL_NAMES as readonly string[];
+    expect(tools.length).toBeGreaterThan(writeNames.length);
     for (const tool of tools) {
-      const readOnly = tool.annotations?.readOnlyHint;
-      if (tool.name === "search_patients" || tool.name === "show_patient_info") {
-        expect(readOnly).toBe(true);
-      } else {
-        expect(readOnly).toBe(false);
-      }
+      expect(
+        tool.annotations?.readOnlyHint,
+        `${tool.name} carries the wrong read-only hint`,
+      ).toBe(!writeNames.includes(tool.name));
     }
   });
 

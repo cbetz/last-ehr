@@ -99,6 +99,10 @@ describe("MCP Local Lab safety boundary", () => {
     const { tools } = await createMcpDemoServer({ client });
 
     const definitions = listMcpTools(tools);
+    // Two on purpose. @lastehr/mcp also offers read_chart_section and
+    // read_document; the Lab drops them because it would refuse 17 of the 23
+    // sections, and a tool that mostly errors is a worse surface than no tool.
+    // See createSyntheticLabTools.
     expect(definitions.map((tool) => tool.name)).toEqual([
       "search_patients",
       "show_patient_info",
