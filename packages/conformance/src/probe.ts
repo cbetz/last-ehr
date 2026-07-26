@@ -46,8 +46,18 @@ export function createRestProbe(
       // A hung store must fail the run, not hang it (and not silently
       // race the MCP call timeout mid-check).
       signal: AbortSignal.timeout(30_000),
+      // The probe's whole job is to check the server independently of the
+      // MCP server's claims. Following a redirect would let the store under
+      // test decide which host actually answers the verification query, so a
+      // 3xx fails the check instead.
+      redirect: "manual",
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
+    if (response.status >= 300 && response.status < 400) {
+      throw new Error(
+        `FHIR probe ${method} failed with HTTP ${response.status} (redirect refused)`,
+      );
+    }
     if (!response.ok) {
       // Status only: probe errors surface to the operator's terminal, and
       // FHIR OperationOutcome bodies can carry resource details.
