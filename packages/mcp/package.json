@@ -1,6 +1,6 @@
 {
   "name": "@lastehr/mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "mcpName": "io.github.cbetz/last-ehr",
   "description": "FHIR chart tools for MCP clients: read-only by default, with an opt-in elicitation-gated write profile where a human approves each proposed write.",
   "license": "Apache-2.0",

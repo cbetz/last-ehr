@@ -1,6 +1,6 @@
 {
   "name": "@lastehr/agent-write-conformance",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Conformance suite for the Approval-Gated Agent Writes on FHIR protocol (v0.1 draft): drives any MCP server implementing the write profile with a scripted reviewer and verifies gate mechanics against a live FHIR store.",
   "license": "Apache-2.0",
   "author": "Chris Betz",

@@ -5,6 +5,104 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
+## 0.2.9 — 2026-07-25
+
+**Security.** `@lastehr/mcp` 0.2.0 and `@lastehr/agent-write-conformance`
+0.1.0 follow HTTP redirects and read response bodies without a size or time
+bound. Upgrade if you point either at a server you do not fully control.
+
+- **No FHIR fetch follows a redirect or reads an unbounded body.** The
+  transport builds every URL it fetches from the configured base plus a path
+  derived from a `ResourceType` union, which makes it easy to assume a
+  configured server cannot steer it. Node's `fetch` defaults granted it three
+  powers anyway, none of which needed paging or any new feature to reach:
+
+  - **The destination.** With no `redirect` option, Node's default is
+    `"follow"`. Verified by probe: a cross-origin `302` answering an ordinary
+    `/Patient?_count=25` was followed silently, and the redirect target's
+    Bundle came back as the FHIR server's answer — attacker-chosen content
+    entering the chart, and the model's context, as if the store had returned
+    it. Node does strip `authorization` on a cross-origin hop (so Aidbox's
+    Basic credential and the Firely/Oystehr bearer tokens are not exposed)
+    but does not strip custom headers.
+  - **The memory.** An unbounded `res.text()` buffered 40 MiB in 60 ms from a
+    hostile server. A `content-length` precheck does not help; a chunked
+    response carries no such header.
+  - **The duration.** With no `signal`, a trickling body holds a request open
+    indefinitely.
+
+  All three FHIR fetch sites now refuse redirects (a 3xx becomes a failure
+  that names no host, because a redirect target *is* a host and errors reach
+  logs and the dev panel), bound the request with `AbortSignal.timeout`, and
+  read bodies under a 16 MiB ceiling. On the MCP write path the refusal lands
+  before the `Location`-header id fallback, so a 3xx cannot redirect an
+  approved write off-host. The two packages publish standalone and import
+  nothing from `lib/`, so the control is necessarily duplicated; a
+  source-level guard fails if any copy stops applying it.
+
+- **Truncation is measured at the server window, not the surviving rows.**
+  `read_chart_section` derived `truncated` from the row count that survived
+  session-isolation filtering — rows dropped *after* the fetch. So a full
+  server window spent on other sessions' rows left zero visible rows and
+  reported `truncated: false`, and because the system prompt only forbids
+  asserting an absence from a *truncated* read, `false` actively licensed
+  "she has never had a flu shot" from a window that never showed one.
+  Reachable on Aidbox with a single full window (it ignores the bare-system
+  `_tag:not` token, so the query succeeds and the over-fetch fallback never
+  fires) and on HAPI with a full over-fetched window. Fullness is now
+  measured per query arm against what that arm asked the server for, and on
+  match rows only for the include path so `_include` entries cannot fake
+  truncation.
+
+- **An empty coded read reports an unmatched code, not an absence.** A coded
+  search parameter can only match a record that carries a coding, and
+  text-only `CodeableConcept`s are ordinary FHIR — this repository's own
+  synthetic immunizations and medications are text-only on purpose, because
+  asserting CVX/RxNorm codes nobody verified would be worse. Measured on the
+  seeded stack, `Immunization?vaccine-code=88` answers `total: 0` while 14
+  immunizations exist. `truncated` cannot cover that case and correctly does
+  not: the server genuinely matched nothing, so the window was never full. An
+  empty coded read now asks once whether the section holds rows differing
+  *only* by the code and reports `codeFilterUnmatched`, the prompt requires a
+  re-read without the code before answering, and the chart card tells the
+  human reader the same thing.
+
+- **Ask for a vital by name instead of a remembered LOINC code.**
+  `read_chart_section` takes a `measurement` name on Observation and resolves
+  it through the same pinned table `record_observation` codes writes with, so
+  a read and a write mean the same thing by one label. `"blood pressure"`
+  resolves to *both* systolic and diastolic, comma-ORed into one parameter
+  value, because searching one alone answers half the question and reports
+  the result as complete. An unrecognized name is refused with the list of
+  accepted names rather than searched for. **Axis C goes from 1 of 4
+  mechanisms to 1 fully plus 1 partly** — deliberately not counted as a full
+  rung, because this covers vital signs and nothing else.
+
+- **Result paging is now a recorded decision, not a gap.** It was
+  investigated as the answer to "has he ever had X" and rejected:
+  `Bundle.link[next]` is a server-authored absolute URL (HAPI's carries an
+  opaque `_getpages` cursor on the *root* path, so it cannot be reconstructed
+  on a type path), page 2's query would be authored by the server and free to
+  drop `patient=` or the session tag, and a filter answers the question
+  exactly where paging brute-forces it. `Bundle.total` does not rescue it
+  either — probed on HAPI, `_count=2` returns a `next` link and **no
+  `total`**, while `_count=200` returns `total: 14`; the total is reported
+  only when the result set already fits.
+
+- **Code resolution uses a local table rather than `$expand`, on evidence.**
+  Probed against HAPI: no terminology operation is advertised in the
+  `CapabilityStatement`, `$expand` on the CVX vaccine-code value set answers
+  412 (`CodeSystem could not be found`), `$lookup` for LOINC `8480-6` answers
+  404, and `$validate-code` answered HTTP 200 for a CVX code against a server
+  with no CVX loaded. A terminology check that reports "not a valid code"
+  when it means "I do not have that code system" manufactures the exact false
+  negative it would be added to prevent.
+
+- The chart card no longer prints "No matching records in this section" when
+  the read was capped, a reference lookup was refused, or a code filter
+  matched nothing — the human reader is the safety boundary and now gets at
+  least as much honesty as the model does.
+
 - `read_chart_section` can follow references. A new `include` option
   (`authors`, `encounter`, `facility`, `location`, `provenance`) returns the
   resources a section points at, so author and performer references stop
