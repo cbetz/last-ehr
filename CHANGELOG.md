@@ -84,10 +84,13 @@ bound. Upgrade if you point either at a server you do not fully control.
   opaque `_getpages` cursor on the *root* path, so it cannot be reconstructed
   on a type path), page 2's query would be authored by the server and free to
   drop `patient=` or the session tag, and a filter answers the question
-  exactly where paging brute-forces it. `Bundle.total` does not rescue it
-  either — probed on HAPI, `_count=2` returns a `next` link and **no
-  `total`**, while `_count=200` returns `total: 14`; the total is reported
-  only when the result set already fits.
+  exactly where paging brute-forces it. `Bundle.total` is not a dependable
+  substitute either: it is optional in R4 and HAPI omits it on many paged
+  searches (absent for the 34-row and 14-row result sets probed, present for
+  an 8-row patient-scoped one, all three with a `next` link). Which reads get
+  a total is a server-side decision; `_total=accurate` forces one at the cost
+  of a full count per read, and its support varies. A truncation signal that
+  silently degrades on some reads is worse than one that always holds.
 
 - **Code resolution uses a local table rather than `$expand`, on evidence.**
   Probed against HAPI: no terminology operation is advertised in the

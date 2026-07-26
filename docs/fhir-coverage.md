@@ -210,13 +210,24 @@ oversight.
 - **Page 2's query would be authored by the server**, which is free to drop
   `patient=` or the session `_tag`. The post-fetch visibility filter would stop
   being a fallback and become the only thing enforcing patient scope.
-- **`Bundle.total` does not rescue it either.** Measured on the seeded HAPI
-  stack: `_count=2` returns a `next` link and **no `total` at all**, while
-  `_count=200` returns `total: 14`. HAPI reports the total only when the result
-  set already fits — it is absent in exactly the truncated case that would need
-  it. (`_summary=count` does return it, at the cost of a second request per
-  section.) Any use of `total` must fail closed when absent, which lands back on
-  the window signal already in place.
+- **`Bundle.total` is not a dependable substitute.** `total` is optional in R4
+  (`total?: number`) and HAPI omits it on many paged searches. Measured on the
+  seeded stack, every row below returned a `next` link:
+
+  | Query | `Bundle.total` |
+  | --- | --- |
+  | `Observation?_count=2` (34 matching) | absent |
+  | `Immunization?_count=2` (14 matching) | absent |
+  | `Observation?patient=1933&_count=2` (8 matching) | 8 |
+  | `Observation?_count=2&_total=accurate` | 34 |
+
+  So it is not "absent whenever truncated": a patient-scoped read often does get
+  a total. It is simply **not guaranteed**, and which reads get one is a
+  server-side decision this project does not control. `_total=accurate` forces
+  it, at the cost of a full count on every read, and that parameter's support
+  varies by server. A truncation signal that silently degrades on some reads is
+  worse than one that always holds, so truncation is reported from the window
+  instead. Any future use of `total` must fail closed when it is absent.
 - **A filter answers the question exactly; paging answers it by brute force.**
   A coded or dated read collapses the result set below the window, so one
   request settles it — and paging hundreds of rows into model context is worse

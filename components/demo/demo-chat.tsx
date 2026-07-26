@@ -576,7 +576,7 @@ export function DemoChat() {
                                   <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
                                     Only the newest {part.output.entries.length}{" "}
                                     matching records were read. Older ones may
-                                    exist — narrow the dates or ask for more.
+                                    exist, so narrow the dates or ask for more.
                                   </p>
                                 )}
                                 {chartReadIncludeUnsupported(part.output) && (
@@ -588,8 +588,8 @@ export function DemoChat() {
                                 )}
                                 {chartReadCodeFilterUnmatched(part.output) && (
                                   <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
-                                    This section does hold records — none of
-                                    them carry that code. Records with text-only
+                                    This section does hold records. None of them
+                                    carry that code, and records with text-only
                                     entries cannot match a coded search. Read
                                     the section without a code to see them.
                                   </p>
