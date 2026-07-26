@@ -48,7 +48,11 @@ silently ignores the bare-system `_tag:not` token, so per-session
 visibility runs on the client-side filter arm — a visitor's own writes are
 never affected (they ride a separate tagged query), but under heavy
 concurrent demo load other sessions' rows can crowd seed rows out of the
-server-side result window. Offer an Aidbox picker option only on a box you
+server-side result window. Because the client-side filter drops those rows
+after the fetch, a crowded window is reported to the model as truncated
+(measured against what each query asked the server for, not against how
+many rows survived the filter) so an emptied section can never be read as
+an exhaustive search. Offer an Aidbox picker option only on a box you
 own and seed.
 
 Oystehr's eligibility evidence (2026-07-21, operator-owned developer-tier

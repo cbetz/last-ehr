@@ -257,11 +257,22 @@ export function buildTools(
     resourceType: K,
     params: Record<string, string>,
     dateOf: (res: ExtractResource<K>) => string,
-  ): Promise<{ matches: ExtractResource<K>[]; related: RelatedRow[] }> => {
+  ): Promise<{
+    matches: ExtractResource<K>[];
+    related: RelatedRow[];
+    windowFull: boolean;
+  }> => {
     type Entry = {
       resource?: { resourceType?: string; id?: string } & Record<string, unknown>;
       search?: { mode?: string };
     };
+    // Window fullness is measured on MATCH rows only: _include entries
+    // inflate the bundle, so counting every entry would report truncation
+    // on a complete result set.
+    const matchCount = (entries: Entry[]) =>
+      entries.filter(
+        (entry) => !entry.search?.mode || entry.search.mode === "match",
+      ).length;
     const readBundle = async (extra: Record<string, string>) => {
       const bundle = (await backend.search(resourceType, {
         ...params,
@@ -270,22 +281,34 @@ export function buildTools(
       return bundle.entry ?? [];
     };
 
+    const asked = Number(params._count) || 25;
+    let windowFull = false;
+    const note = (entries: Entry[], askedFor: number) => {
+      if (matchCount(entries) >= askedFor) windowFull = true;
+      return entries;
+    };
     const entries = sessionId
       ? (
           await Promise.all([
-            readBundle({ "_tag:not": `${DEMO_TAG_SYSTEM}|` }).catch(() =>
-              // Same HAPI-1218 fallback as searchVisible: over-fetch, then
-              // let the visibility filter below do the work.
-              readBundle({
-                _count: String(
-                  Math.min(Math.max((Number(params._count) || 25) * 4, 100), 200),
-                ),
+            readBundle({ "_tag:not": `${DEMO_TAG_SYSTEM}|` })
+              .then((rows) => note(rows, asked))
+              .catch(() => {
+                // Same HAPI-1218 fallback as searchVisible: over-fetch, then
+                // let the visibility filter below do the work.
+                const fallbackCount = Math.min(
+                  Math.max(asked * 4, 100),
+                  200,
+                );
+                return readBundle({ _count: String(fallbackCount) }).then(
+                  (rows) => note(rows, fallbackCount),
+                );
               }),
+            readBundle({ _tag: `${DEMO_TAG_SYSTEM}|session-${sessionId}` }).then(
+              (rows) => note(rows, asked),
             ),
-            readBundle({ _tag: `${DEMO_TAG_SYSTEM}|session-${sessionId}` }),
           ])
         ).flat()
-      : await readBundle({});
+      : note(await readBundle({}), asked);
 
     // An entry is an include when the server says so, or when its type
     // simply is not what we searched for — servers vary on setting mode.
@@ -337,49 +360,63 @@ export function buildTools(
         text: describeRelated(entry.resource),
       });
     }
-    return { matches, related };
+    return { matches, related, windowFull };
   };
 
-  const searchVisible = async <K extends ResourceType>(
+  // Rows plus whether ANY arm's server-side window came back full. A full
+  // window means the server had at least that many matching rows, so older
+  // ones may exist beyond it — regardless of how many survived isVisible.
+  // Row count alone cannot carry this: on a backend that rejects or ignores
+  // the bare-system :not token, foreign sessions' rows fill the window and
+  // then get dropped client-side, so a FULL window can yield FEW visible
+  // rows and read as an exhaustive search.
+  const searchVisibleWindow = async <K extends ResourceType>(
     resourceType: K,
     params: Record<string, string>,
     dateOf: (res: ExtractResource<K>) => string,
-  ): Promise<ExtractResource<K>[]> => {
-    if (!sessionId) return backend.searchResources(resourceType, params);
+  ): Promise<{ rows: ExtractResource<K>[]; windowFull: boolean }> => {
+    const asked = (p: Record<string, string>) => Number(p._count) || 25;
+    if (!sessionId) {
+      const rows = await backend.searchResources(resourceType, params);
+      return { rows, windowFull: rows.length >= asked(params) };
+    }
+    let untaggedAsked = asked(params);
     const [untagged, own] = await Promise.all([
       backend
         .searchResources(resourceType, {
           ...params,
           "_tag:not": `${DEMO_TAG_SYSTEM}|`,
         })
-        .catch(() =>
+        .catch(() => {
           // Some servers reject the bare-system token outright (HAPI:
           // HAPI-1218) instead of honoring or ignoring it. Rerun without
           // the tag filter, OVER-FETCHING so that foreign sessions' rows —
           // which the isVisible pass below drops — cannot empty the window
           // a small _count would otherwise leave (a busy shared demo's
           // newest rows are often other sessions' writes).
-          backend.searchResources(resourceType, {
+          const fallbackCount = Math.min(
+            Math.max((Number(params._count) || 25) * 4, 100),
+            200,
+          );
+          untaggedAsked = fallbackCount;
+          return backend.searchResources(resourceType, {
             ...params,
-            _count: String(
-              Math.min(
-                Math.max((Number(params._count) || 25) * 4, 100),
-                200,
-              ),
-            ),
-          }),
-        ),
+            _count: String(fallbackCount),
+          });
+        }),
       backend.searchResources(resourceType, {
         ...params,
         _tag: `${DEMO_TAG_SYSTEM}|session-${sessionId}`,
       }),
     ]);
+    const windowFull =
+      untagged.length >= untaggedAsked || own.length >= asked(params);
     // The two result sets are disjoint by construction; the id-dedupe only
     // guards against a backend answering both queries with overlapping rows
     // (guaranteed on the fallback path above). isVisible then drops foreign
     // sessions' rows for backends that ignored or rejected the :not filter.
     const seen = new Set<string>();
-    return [...untagged, ...own]
+    const rows = [...untagged, ...own]
       .filter((res) => {
         if (!res.id) return true;
         if (seen.has(res.id)) return false;
@@ -389,7 +426,15 @@ export function buildTools(
       .filter(isVisible)
       .sort((a, b) => dateOf(b).localeCompare(dateOf(a)))
       .slice(0, Number(params._count) || undefined);
+    return { rows, windowFull };
   };
+
+  const searchVisible = async <K extends ResourceType>(
+    resourceType: K,
+    params: Record<string, string>,
+    dateOf: (res: ExtractResource<K>) => string,
+  ): Promise<ExtractResource<K>[]> =>
+    (await searchVisibleWindow(resourceType, params, dateOf)).rows;
 
   // Opt-in Provenance on approved writes (LASTEHR_WRITE_PROVENANCE=true),
   // aligning with the AI Transparency IG's pattern: the agent software as
@@ -1319,6 +1364,7 @@ export function buildTools(
         let resources: ExtractResource<typeof resourceType>[];
         let related: { id: string; resourceType: string; text: string }[] = [];
         let includeUnsupported = false;
+        let windowFull = false;
         if (include) {
           try {
             const withIncludes = await searchVisibleWithIncludes(
@@ -1328,27 +1374,36 @@ export function buildTools(
             );
             resources = withIncludes.matches;
             related = withIncludes.related;
+            windowFull = withIncludes.windowFull;
           } catch {
             includeUnsupported = true;
             delete params._include;
             delete params._revinclude;
-            resources = await searchVisible(
+            const read = await searchVisibleWindow(
               resourceType,
               params,
               (resource) => toRow(resource).date,
             );
+            resources = read.rows;
+            windowFull = read.windowFull;
           }
         } else {
-          resources = await searchVisible(
+          const read = await searchVisibleWindow(
             resourceType,
             params,
             (resource) => toRow(resource).date,
           );
+          resources = read.rows;
+          windowFull = read.windowFull;
         }
-        // A full window means the server had at least this many matching
-        // rows, so older ones may exist beyond it. The model is told (see
-        // SYSTEM_PROMPT) never to report an absence from a truncated read.
-        const truncated = resources.length >= requested;
+        // A full window means the SERVER had at least as many matching rows
+        // as we asked for, so older ones may exist beyond it. This must come
+        // from the server-side window, not the surviving row count: session
+        // isolation drops foreign rows AFTER the fetch, so a full window can
+        // leave few (or zero) visible rows and would otherwise read as an
+        // exhaustive search. The model is told (see SYSTEM_PROMPT) never to
+        // report an absence from a truncated read.
+        const truncated = windowFull || resources.length >= requested;
         const entries = resources
           .map((resource) => toRow(resource))
           .filter(

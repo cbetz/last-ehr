@@ -1178,6 +1178,65 @@ describe("read_chart_section", () => {
     expect(full.truncated).toBe(true);
   });
 
+  // Session isolation drops foreign rows AFTER the fetch, so the surviving
+  // row count cannot carry truncation: a FULL server window of other
+  // sessions' rows leaves zero visible rows. Reporting truncated:false there
+  // tells the model the search was exhaustive, and SYSTEM_PROMPT then permits
+  // "she has never had a flu shot" — from a window that never showed one.
+  // Both shapes below are real, demo-eligible backend behaviors.
+  const foreign = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `other-${i}`,
+      vaccineCode: { text: "Flu shot" },
+      occurrenceDateTime: `2026-01-${String((i % 28) + 1).padStart(2, "0")}T00:00:00Z`,
+      meta: { tag: [{ system: "http://lastehr.demo", code: "session-B" }] },
+    }));
+
+  it("reports truncation when a full window is spent on other sessions' rows (backend ignores :not)", async () => {
+    // Aidbox silently ignores the bare-system :not token, so the seed query
+    // SUCCEEDS and the over-fetch fallback never fires — one full window of
+    // foreign rows is enough to empty the section.
+    searchResources.mockImplementation(
+      async (type: string, params: Record<string, string> = {}) => {
+        if (params._tag === "http://lastehr.demo|session-A") return [];
+        return foreign(Number(params._count));
+      },
+    );
+
+    const out = await exec(buildTools(backend, "A"))(
+      { patientId: "p1", resourceType: "Immunization", count: 5 },
+      {},
+    );
+    expect(out.entries).toEqual([]);
+    expect(out.truncated).toBe(true);
+  });
+
+  it("reports truncation when the over-fetch fallback window is also full (backend rejects :not)", async () => {
+    // HAPI rejects the token (HAPI-1218), so the fallback re-asks with a
+    // bumped _count. Fullness must be measured against what THAT arm asked
+    // for, not against the caller's count.
+    searchResources.mockImplementation(
+      async (type: string, params: Record<string, string> = {}) => {
+        if (params["_tag:not"]) throw new Error("HAPI-1218: Missing _tag parameter");
+        if (params._tag === "http://lastehr.demo|session-A") return [];
+        return foreign(Number(params._count));
+      },
+    );
+
+    const out = await exec(buildTools(backend, "A"))(
+      { patientId: "p1", resourceType: "Immunization", count: 5 },
+      {},
+    );
+    expect(out.entries).toEqual([]);
+    expect(out.truncated).toBe(true);
+    // The fallback over-fetches (min(max(count*4,100),200)); a full window
+    // there is still a full window.
+    expect(searchResources).toHaveBeenCalledWith(
+      "Immunization",
+      expect.objectContaining({ _count: "100" }),
+    );
+  });
+
   it("sorts every section newest-first at the server, not just in the returned rows", async () => {
     // Without _sort the server picks the window (usually insertion order),
     // so the client-side sort would order an arbitrary slice. Each value is
