@@ -60,3 +60,57 @@ describe("docs/fhir-coverage.md stays true to the code", () => {
     expect(doc).toContain("## What will never be added");
   });
 });
+
+// Public copy used to be kept count-free precisely so it could not go stale,
+// and a stale count in the README is what caught us last time. The positioning
+// now leads with the numbers, so instead of avoiding them they get pinned: any
+// file that states an Axis A count must agree with this page, and this page is
+// already checked against the code above.
+describe("public copy agrees with the coverage page", () => {
+  const axisA = doc.match(/\*\*(\d+) of (\d+) US Core resource types\*\*/);
+  if (!axisA) {
+    throw new Error("Axis A headline count not found in docs/fhir-coverage.md.");
+  }
+  const [, readable, total] = axisA;
+
+  // Every surface that quotes the read-coverage number to the public.
+  const copy = [
+    "README.md",
+    "components/Hero.tsx",
+    "app/layout.tsx",
+    "components/json-ld.tsx",
+  ];
+
+  it.each(copy)("%s quotes the same readable-type count", (file) => {
+    const source = readFileSync(file, "utf8");
+    // Tolerate line wrapping and possessive forms between the two numbers.
+    const counts = [...source.matchAll(/(\d+)\s+of\s+(?:\[?US Core|US Core)/g)];
+    const totals = [...source.matchAll(/(\d+)\s+readable resource types/g)];
+    for (const [, stated] of counts) {
+      expect(stated, `${file} states "${stated} of US Core"`).toBe(readable);
+    }
+    for (const [, stated] of totals) {
+      expect(stated, `${file} states "${stated} readable resource types"`).toBe(
+        total,
+      );
+    }
+    // Every one of these files must actually make the claim; a silent drop
+    // would pass the loops above by matching nothing.
+    expect(
+      counts.length + totals.length,
+      `${file} no longer states the read-coverage count`,
+    ).toBeGreaterThan(0);
+  });
+
+  it("keeps the section count consistent wherever it is stated", () => {
+    const sections = String(chartSections().length);
+    for (const file of copy) {
+      const source = readFileSync(file, "utf8");
+      for (const [, stated] of source.matchAll(
+        /(?:across\s+)?(\d+)\s+(?:patient-scoped\s+)?sections/g,
+      )) {
+        expect(stated, `${file} states "${stated} sections"`).toBe(sections);
+      }
+    }
+  });
+});

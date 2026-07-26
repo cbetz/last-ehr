@@ -6,11 +6,11 @@ import { JsonLd } from "@/components/json-ld";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.lastehr.com"),
   title: {
-    default: "Last EHR: Approval-gated FHIR agents",
+    default: "Last EHR: the agent layer for your FHIR EHR",
     template: "%s | Last EHR",
   },
   description:
-    "Make every AI chart write a reviewable proposal: an open draft protocol for agent-initiated FHIR writes, with web and MCP bindings and a conformance suite.",
+    "The agent layer for a headless FHIR EHR. Reads the chart broadly (25 of US Core's 27 readable resource types), is built so it cannot report an absence it never checked for, and turns every write into a proposal a human approves. Five backends, one interface, protocol and conformance suite included.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
@@ -36,17 +36,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Last EHR",
-    title: "Last EHR: Approval-gated FHIR agents",
+    title: "Last EHR: the agent layer for your FHIR EHR",
     description:
-      "An open draft protocol for agent-initiated FHIR writes, with web and MCP bindings and a conformance suite. Open source and synthetic-data-first.",
+      "Reads the chart broadly, will not report an absence it never checked for, and turns every write into a proposal a human approves. Five FHIR backends, one interface. Open source and synthetic-data-first.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Last EHR: Approval-gated FHIR agents",
+    title: "Last EHR: the agent layer for your FHIR EHR",
     description:
-      "Make every AI chart write a reviewable proposal. An open draft protocol for agent-initiated FHIR writes, with web and MCP bindings and a conformance suite.",
+      "Read the chart broadly. Write only what a human approved. 25 of US Core's 27 readable resource types, five FHIR backends, and an open protocol with a conformance suite.",
     site: "@lastehr",
     creator: "@lastehr",
   },
