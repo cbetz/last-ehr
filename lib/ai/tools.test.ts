@@ -19,6 +19,7 @@ const backend = {
 } as FhirBackend;
 
 describe("agent FHIR tools", () => {
+  const tools = () => buildTools(backend);
   beforeEach(() => {
     search.mockReset();
     createResource.mockReset();
@@ -62,6 +63,52 @@ describe("agent FHIR tools", () => {
       name: "Smith & Sons",
       _count: "20",
     });
+  });
+
+  it("finds a patient by full name even where `name` matches only one part", async () => {
+    // R4's `name` matches any PART of a HumanName, and servers differ on
+    // whether a multi-word value is matched as a whole string. Probed on HAPI:
+    // name="Maria Garcia" answers 0 while either word answers 1. Without the
+    // retry the agent tells the user a patient who is on the server is not in
+    // the system, which is the false-negative class this tool set exists to
+    // avoid — and the tool's own description invites a full name.
+    const maria = { resource: { resourceType: "Patient", id: "p1" } };
+    const otherGarcia = { resource: { resourceType: "Patient", id: "p2" } };
+    search.mockImplementation(async (_type: string, params: Record<string, string>) => {
+      if (params.name === "Maria Garcia") return { entry: [] };
+      if (params.name === "Maria") return { entry: [maria] };
+      if (params.name === "Garcia") return { entry: [maria, otherGarcia] };
+      return { entry: [] };
+    });
+
+    const out = (await (
+      tools().search_patients.execute as (i: unknown, o: unknown) => Promise<{
+        patients: { resource?: { id?: string } }[];
+      }>
+    )({ name: "Maria Garcia" }, {})) as { patients: { resource?: { id?: string } }[] };
+
+    // Only the patient matching EVERY word: the retry must not widen "Maria
+    // Garcia" into "anyone named Maria or Garcia".
+    expect(out.patients.map((p) => p.resource?.id)).toEqual(["p1"]);
+  });
+
+  it("does not retry per word when the whole-name search already matched", async () => {
+    search.mockResolvedValue({ entry: [{ resource: { resourceType: "Patient", id: "p1" } }] });
+    await (tools().search_patients.execute as (i: unknown, o: unknown) => unknown)(
+      { name: "Maria Garcia" },
+      {},
+    );
+    // One request on the common path; the retry is for the empty case only.
+    expect(search).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry for a single-word name that genuinely matched nothing", async () => {
+    search.mockResolvedValue({ entry: [] });
+    await (tools().search_patients.execute as (i: unknown, o: unknown) => unknown)(
+      { name: "Nonexistent" },
+      {},
+    );
+    expect(search).toHaveBeenCalledTimes(1);
   });
 
   it("add_note writes a Communication scoped to the named patient", async () => {

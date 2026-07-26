@@ -1170,11 +1170,44 @@ export function buildTools(
       execute: async ({ name }) => {
         // Structured params, never string interpolation: a name containing
         // & or = must stay a name, not become extra search parameters.
-        const bundle = await backend.search("Patient", {
-          name,
-          _count: "20",
-        });
-        return { patients: bundle.entry ?? [] };
+        const byName = (value: string) =>
+          backend.search("Patient", { name: value, _count: "20" });
+
+        const bundle = await byName(name);
+        const entries = bundle.entry ?? [];
+        if (entries.length > 0) return { patients: entries };
+
+        // R4 defines `name` as matching any part of a HumanName, and servers
+        // differ on whether a multi-word value is matched as a whole string.
+        // Probed on HAPI: `name=Maria Garcia` answers 0 while `name=Maria` and
+        // `name=Garcia` each answer 1 — so a user asking for a patient by full
+        // name, which this tool's own description invites, would be told she
+        // is not in the system. Retry per word and keep only patients matching
+        // EVERY word, which is at least as precise as searching one word and
+        // never widens the result set.
+        const words = name.trim().split(/\s+/).filter(Boolean).slice(0, 3);
+        if (words.length < 2) return { patients: entries };
+
+        const perWord = await Promise.all(words.map(byName));
+        const counts = new Map<string, number>();
+        const byId = new Map<string, (typeof entries)[number]>();
+        for (const result of perWord) {
+          // Distinct ids per word, so one word matching a patient twice
+          // cannot stand in for another word not matching at all.
+          const seen = new Set<string>();
+          for (const entry of result.entry ?? []) {
+            const id = entry.resource?.id;
+            if (!id || seen.has(id)) continue;
+            seen.add(id);
+            counts.set(id, (counts.get(id) ?? 0) + 1);
+            byId.set(id, entry);
+          }
+        }
+        const all = [...counts.entries()]
+          .filter(([, hits]) => hits === words.length)
+          .map(([id]) => byId.get(id))
+          .filter((entry): entry is (typeof entries)[number] => Boolean(entry));
+        return { patients: all };
       },
     }),
     read_chart_section: tool({
