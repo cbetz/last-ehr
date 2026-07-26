@@ -4,6 +4,16 @@ import { Patient } from "@medplum/fhirtypes";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 
+/**
+ * Chart free text reaches the model inside a `<chart_text>` boundary so the
+ * system prompt can declare it data, never instructions. The boundary is for
+ * the model; the reader gets the text. Every free-text field carries it now,
+ * not only notes, so stripping happens through this one helper at every render
+ * site rather than being remembered field by field.
+ */
+const chartText = (value: string | undefined): string =>
+  (value ?? "").replace(/<\/?chart_text>/g, "");
+
 type Labeled = { id: string; text: string };
 type ObsRow = { id: string; label: string; value: string; date: string };
 type Note = { id: string; text: string; date: string };
@@ -94,7 +104,7 @@ export function PatientCard({
             {conditions.length > 0 ? (
               <ul className="list-none space-y-2 p-2">
                 {conditions.map((c) => (
-                  <li key={c.id}>{c.text}</li>
+                  <li key={c.id}>{chartText(c.text)}</li>
                 ))}
               </ul>
             ) : (
@@ -113,7 +123,7 @@ export function PatientCard({
             {allergies.length > 0 ? (
               <ul className="list-none space-y-2 p-2">
                 {allergies.map((a) => (
-                  <li key={a.id}>{a.text}</li>
+                  <li key={a.id}>{chartText(a.text)}</li>
                 ))}
               </ul>
             ) : (
@@ -133,10 +143,10 @@ export function PatientCard({
               <ul className="list-none space-y-3 p-2">
                 {medications.map((m) => (
                   <li key={m.id} className="space-y-1">
-                    <p className="font-medium">{m.text}</p>
+                    <p className="font-medium">{chartText(m.text)}</p>
                     {m.dosage && (
                       <p className="text-sm text-muted-foreground">
-                        {m.dosage}
+                        {chartText(m.dosage)}
                       </p>
                     )}
                   </li>
@@ -175,8 +185,8 @@ export function PatientCard({
                     {observations.map((o) => (
                       <tr key={o.id}>
                         <td className="pr-4 font-semibold">{o.date || ""}</td>
-                        <td className="pr-4">{o.label}</td>
-                        <td>{o.value}</td>
+                        <td className="pr-4">{chartText(o.label)}</td>
+                        <td>{chartText(o.value)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -199,7 +209,7 @@ export function PatientCard({
               <ul className="list-none space-y-2 p-2">
                 {immunizations.map((i) => (
                   <li key={i.id} className="flex justify-between gap-4">
-                    <span>{i.text}</span>
+                    <span>{chartText(i.text)}</span>
                     {i.date && (
                       <span className="shrink-0 text-sm text-muted-foreground">
                         {i.date}
@@ -229,7 +239,7 @@ export function PatientCard({
                         boundary for the model; the reader just gets the
                         note. */}
                     <p className="text-sm">
-                      {n.text.replace(/<\/?chart_text>/g, "")}
+                      {chartText(n.text)}
                     </p>
                     {n.date && (
                       <p className="text-xs text-muted-foreground">{n.date}</p>

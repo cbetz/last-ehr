@@ -772,11 +772,13 @@ export function buildTools(
       categories: OBSERVATION_CATEGORIES,
       toRow: (r: ExtractResource<"Observation">) => ({
         id: r.id ?? "",
-        text: `${r.code?.text ?? r.code?.coding?.[0]?.display ?? "Observation"}: ${
+        text: asChartText(
+          `${r.code?.text ?? r.code?.coding?.[0]?.display ?? "Observation"}: ${
           r.valueQuantity
             ? `${r.valueQuantity.value ?? ""} ${r.valueQuantity.unit ?? ""}`.trim()
             : (r.valueString ?? "")
         }`,
+        ),
         date: r.effectiveDateTime?.slice(0, 10) ?? "",
       }),
     },
@@ -804,7 +806,9 @@ export function buildTools(
       statuses: CONDITION_CLINICAL_STATUSES,
       toRow: (r: ExtractResource<"Condition">) => ({
         id: r.id ?? "",
-        text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Condition",
+        text: asChartText(
+          r.code?.text ?? r.code?.coding?.[0]?.display ?? "Condition",
+        ),
         date: r.recordedDate?.slice(0, 10) ?? "",
       }),
     },
@@ -816,7 +820,9 @@ export function buildTools(
       statuses: ALLERGY_CLINICAL_STATUSES,
       toRow: (r: ExtractResource<"AllergyIntolerance">) => ({
         id: r.id ?? "",
-        text: r.code?.text ?? r.code?.coding?.[0]?.display ?? "Allergy",
+        text: asChartText(
+          r.code?.text ?? r.code?.coding?.[0]?.display ?? "Allergy",
+        ),
         date: r.recordedDate?.slice(0, 10) ?? "",
       }),
     },
@@ -829,11 +835,13 @@ export function buildTools(
       statuses: MEDICATION_REQUEST_STATUSES,
       toRow: (r: ExtractResource<"MedicationRequest">) => ({
         id: r.id ?? "",
-        text: `${
+        text: asChartText(
+          `${
           r.medicationCodeableConcept?.text ??
           r.medicationCodeableConcept?.coding?.[0]?.display ??
           "Medication"
         }${r.status ? ` (${r.status})` : ""}`,
+        ),
         date: r.authoredOn?.slice(0, 10) ?? "",
       }),
     },
@@ -846,10 +854,11 @@ export function buildTools(
       statuses: IMMUNIZATION_STATUSES,
       toRow: (r: ExtractResource<"Immunization">) => ({
         id: r.id ?? "",
-        text:
+        text: asChartText(
           r.vaccineCode?.text ??
           r.vaccineCode?.coding?.[0]?.display ??
           "Immunization",
+        ),
         date: r.occurrenceDateTime?.slice(0, 10) ?? "",
       }),
     },
@@ -917,13 +926,15 @@ export function buildTools(
       statuses: ENCOUNTER_STATUSES,
       toRow: (r: ExtractResource<"Encounter">) => ({
         id: r.id ?? "",
-        text: `${
+        text: asChartText(
+          `${
           r.type?.[0]?.text ??
           r.type?.[0]?.coding?.[0]?.display ??
           "Encounter"
         }${r.class?.code ? ` (${r.class.code})` : ""}${
           r.status ? ` — ${r.status}` : ""
         }`,
+        ),
         date: r.period?.start?.slice(0, 10) ?? "",
       }),
     },
@@ -939,9 +950,12 @@ export function buildTools(
         // The report's own conclusion is the value a loose Observation
         // list cannot carry, and it is narrative — so it crosses the
         // untrusted-content boundary.
-        text: `${
-          r.code?.text ?? r.code?.coding?.[0]?.display ?? "Report"
-        }${r.status ? ` (${r.status})` : ""}${
+        // Both free-text parts cross the boundary: the report's name as much
+        // as its conclusion. Wrapping only the narrative left the server's
+        // code.text outside it.
+        text: `${asChartText(
+          r.code?.text ?? r.code?.coding?.[0]?.display ?? "Report",
+        )}${r.status ? ` (${r.status})` : ""}${
           r.conclusion ? `: ${asChartText(r.conclusion)}` : ""
         }`,
         date: r.effectiveDateTime?.slice(0, 10) ?? "",
@@ -956,9 +970,11 @@ export function buildTools(
       statuses: EVENT_STATUSES,
       toRow: (r: ExtractResource<"Procedure">) => ({
         id: r.id ?? "",
-        text: `${
+        text: asChartText(
+          `${
           r.code?.text ?? r.code?.coding?.[0]?.display ?? "Procedure"
         }${r.status ? ` (${r.status})` : ""}`,
+        ),
         date:
           r.performedDateTime?.slice(0, 10) ??
           r.performedPeriod?.start?.slice(0, 10) ??
@@ -974,11 +990,13 @@ export function buildTools(
       statuses: SERVICE_REQUEST_STATUSES,
       toRow: (r: ExtractResource<"ServiceRequest">) => ({
         id: r.id ?? "",
-        text: `${
+        text: asChartText(
+          `${
           r.code?.text ?? r.code?.coding?.[0]?.display ?? "Order"
         }${r.intent ? ` (${r.intent})` : ""}${
           r.status ? ` — ${r.status}` : ""
         }`,
+        ),
         date: r.authoredOn?.slice(0, 10) ?? "",
       }),
     },
@@ -1090,11 +1108,13 @@ export function buildTools(
       statuses: MEDICATION_DISPENSE_STATUSES,
       toRow: (r: ExtractResource<"MedicationDispense">) => ({
         id: r.id ?? "",
-        text: `${
+        text: asChartText(
+          `${
           r.medicationCodeableConcept?.text ??
           r.medicationCodeableConcept?.coding?.[0]?.display ??
           "Medication"
         }${r.status ? ` (${r.status})` : ""}`,
+        ),
         date: r.whenHandedOver?.slice(0, 10) ?? "",
       }),
     },
@@ -1140,9 +1160,11 @@ export function buildTools(
       statuses: SPECIMEN_STATUSES,
       toRow: (r: ExtractResource<"Specimen">) => ({
         id: r.id ?? "",
-        text: `${
+        text: asChartText(
+          `${
           r.type?.text ?? r.type?.coding?.[0]?.display ?? "Specimen"
         }${r.status ? ` (${r.status})` : ""}`,
+        ),
         date: r.collection?.collectedDateTime?.slice(0, 10) ?? "",
       }),
     },
@@ -1716,18 +1738,28 @@ export function buildTools(
           patient,
           conditions: conditions.map((c) => ({
             id: c.id ?? "",
-            text: c.code?.text ?? c.code?.coding?.[0]?.display ?? "Condition",
+            text: asChartText(
+              c.code?.text ?? c.code?.coding?.[0]?.display ?? "Condition",
+            ),
           })),
           allergies: allergies.map((a) => ({
             id: a.id ?? "",
-            text: a.code?.text ?? a.code?.coding?.[0]?.display ?? "Allergy",
+            text: asChartText(
+              a.code?.text ?? a.code?.coding?.[0]?.display ?? "Allergy",
+            ),
           })),
           observations: observations.filter(isVisible).map((o) => ({
             id: o.id ?? "",
-            label: o.code?.text ?? o.code?.coding?.[0]?.display ?? "Observation",
-            value: o.valueQuantity
-              ? `${o.valueQuantity.value ?? ""} ${o.valueQuantity.unit ?? ""}`.trim()
-              : (o.valueString ?? ""),
+            label: asChartText(
+              o.code?.text ?? o.code?.coding?.[0]?.display ?? "Observation",
+            ),
+            // The unit and a valueString are server free text too, so the
+            // whole value crosses the boundary rather than just the label.
+            value: asChartText(
+              o.valueQuantity
+                ? `${o.valueQuantity.value ?? ""} ${o.valueQuantity.unit ?? ""}`.trim()
+                : (o.valueString ?? ""),
+            ),
             date: o.effectiveDateTime?.slice(0, 10) ?? "",
           })),
           notes: notes.filter(isVisible).map((n) => ({
@@ -1743,19 +1775,23 @@ export function buildTools(
           })),
           medications: medications.filter(isVisible).map((m) => ({
             id: m.id ?? "",
-            text:
+            text: asChartText(
               m.medicationCodeableConcept?.text ??
-              m.medicationCodeableConcept?.coding?.[0]?.display ??
-              "Medication",
-            dosage: m.dosageInstruction?.[0]?.text ?? "",
+                m.medicationCodeableConcept?.coding?.[0]?.display ??
+                "Medication",
+            ),
+            // A dosage instruction is free-form sig text, and one of the more
+            // consequential strings on the chart.
+            dosage: asChartText(m.dosageInstruction?.[0]?.text ?? ""),
             status: m.status ?? "",
           })),
           immunizations: immunizations.filter(isVisible).map((i) => ({
             id: i.id ?? "",
-            text:
+            text: asChartText(
               i.vaccineCode?.text ??
-              i.vaccineCode?.coding?.[0]?.display ??
-              "Immunization",
+                i.vaccineCode?.coding?.[0]?.display ??
+                "Immunization",
+            ),
             date: i.occurrenceDateTime?.slice(0, 10) ?? "",
           })),
         };
