@@ -32,6 +32,29 @@ export type SyntheticObservation = {
   date: string;
 };
 
+/**
+ * A clinical note. `body` is the note text; the seed base64-encodes it into
+ * `Attachment.data`, which is how a small text document is legitimately
+ * carried inline in FHIR.
+ *
+ * `contentType` varies on purpose. Real charts hold PDFs and scans that no
+ * agent can read as text, and a reader that quietly returns nothing for those
+ * is the same false negative as an empty coded search — so the fixtures
+ * include one, and one document whose body is not inline at all.
+ */
+export type SyntheticDocument = {
+  text: string;
+  /** LOINC document type code. */
+  loinc: string;
+  display: string;
+  date: string;
+  contentType: string;
+  /** Inline note text. Omit for a document whose body is not retrievable. */
+  body?: string;
+  /** Set instead of `body` when the attachment only points somewhere. */
+  urlPath?: string;
+};
+
 export type SyntheticPatient = {
   key: string;
   family: string;
@@ -45,6 +68,7 @@ export type SyntheticPatient = {
   allergies: SyntheticAllergy[];
   immunizations: SyntheticImmunization[];
   observations: SyntheticObservation[];
+  documents: SyntheticDocument[];
 };
 
 export const patients: SyntheticPatient[] = [
@@ -95,6 +119,43 @@ export const patients: SyntheticPatient[] = [
       { category: "laboratory", text: "Serum creatinine", loinc: "2160-0", value: 0.95, unit: "mg/dL", ucum: "mg/dL", date: "2026-01-20" },
       { category: "laboratory", text: "Serum potassium", loinc: "2823-3", value: 4.1, unit: "mEq/L", ucum: "meq/L", date: "2026-01-20" },
     ],
+    documents: [
+      {
+        text: "Cardiology consult note",
+        loinc: "34099-2",
+        display: "Cardiology Consult note",
+        date: "2026-01-22",
+        contentType: "text/plain",
+        body: [
+          "CARDIOLOGY CONSULTATION",
+          "",
+          "Reason for referral: elevated blood pressure with LDL above goal.",
+          "",
+          "Assessment: Blood pressure 142/88 today, consistent with the home",
+          "readings the patient brought. Total cholesterol 215 mg/dL. Renal",
+          "function is normal (creatinine 0.95) and potassium is 4.1, so an",
+          "ACE inhibitor remains appropriate.",
+          "",
+          "Plan:",
+          "1. Continue lisinopril 10 mg daily.",
+          "2. Continue atorvastatin 20 mg nightly.",
+          "3. Repeat lipid panel and basic metabolic panel in three months.",
+          "4. Discussed sodium reduction and 150 minutes of activity per week.",
+          "",
+          "Follow-up in three months, sooner if home readings exceed 150/95.",
+        ].join("\n"),
+      },
+      {
+        // No inline body: the attachment only points at a scan. An agent must
+        // say so rather than report an empty document.
+        text: "Outside hospital records (scanned)",
+        loinc: "18842-5",
+        display: "Discharge summary",
+        date: "2025-11-03",
+        contentType: "application/pdf",
+        urlPath: "Binary/synthetic-outside-records",
+      },
+    ],
   },
   {
     key: "synthetic-002",
@@ -144,6 +205,31 @@ export const patients: SyntheticPatient[] = [
       { category: "vital-signs", text: "Systolic blood pressure", loinc: "8480-6", value: 128, unit: "mmHg", ucum: "mm[Hg]", date: "2026-05-28" },
       { category: "vital-signs", text: "Diastolic blood pressure", loinc: "8462-4", value: 82, unit: "mmHg", ucum: "mm[Hg]", date: "2026-05-28" },
     ],
+    documents: [
+      {
+        text: "Progress note",
+        loinc: "11506-3",
+        display: "Progress note",
+        date: "2026-02-11",
+        contentType: "text/plain",
+        body: [
+          "PROGRESS NOTE",
+          "",
+          "Subjective: Reports two weeks of intermittent wheeze, worse at night",
+          "and after cold-air exposure. Using the rescue inhaler roughly three",
+          "times a week, up from once.",
+          "",
+          "Objective: Scattered expiratory wheeze bilaterally. No accessory",
+          "muscle use. Speaking in full sentences.",
+          "",
+          "Assessment: Asthma, not well controlled by symptom frequency.",
+          "",
+          "Plan: Reviewed inhaler technique, which was poor on first pass and",
+          "corrected. Start a daily controller and reassess in four weeks.",
+          "Written asthma action plan given.",
+        ].join("\n"),
+      },
+    ],
   },
   {
     key: "synthetic-003",
@@ -182,6 +268,30 @@ export const patients: SyntheticPatient[] = [
       { category: "laboratory", text: "LDL cholesterol", loinc: "2089-1", value: 145, unit: "mg/dL", ucum: "mg/dL", date: "2026-04-10" },
       { category: "laboratory", text: "HDL cholesterol", loinc: "2085-9", value: 38, unit: "mg/dL", ucum: "mg/dL", date: "2026-04-10" },
       { category: "laboratory", text: "Triglycerides", loinc: "2571-8", value: 180, unit: "mg/dL", ucum: "mg/dL", date: "2026-04-10" },
+    ],
+    documents: [
+      {
+        text: "Emergency department note",
+        loinc: "34111-5",
+        display: "Emergency department note",
+        date: "2025-12-18",
+        contentType: "text/plain",
+        body: [
+          "EMERGENCY DEPARTMENT NOTE",
+          "",
+          "Presented after a mechanical fall on ice, landing on the left hip.",
+          "Ambulatory at the scene. No head strike, no loss of consciousness,",
+          "no anticoagulant use.",
+          "",
+          "Exam: Tender over the left greater trochanter. Full range of motion",
+          "with discomfort. Neurovascularly intact distally.",
+          "",
+          "Imaging: Left hip and pelvis radiographs show no acute fracture.",
+          "",
+          "Disposition: Discharged with analgesia and return precautions for",
+          "inability to bear weight or worsening pain.",
+        ].join("\n"),
+      },
     ],
   },
   {
@@ -230,6 +340,26 @@ export const patients: SyntheticPatient[] = [
       { category: "vital-signs", text: "Body weight", loinc: "29463-7", value: 62, unit: "kg", ucum: "kg", date: "2026-05-22" },
       { category: "vital-signs", text: "Body height", loinc: "8302-2", value: 167, unit: "cm", ucum: "cm", date: "2026-05-22" },
       { category: "laboratory", text: "Total cholesterol", loinc: "2093-3", value: 180, unit: "mg/dL", ucum: "mg/dL", date: "2026-03-05" },
+    ],
+    documents: [
+      {
+        text: "Annual wellness visit note",
+        loinc: "34117-2",
+        display: "History and physical note",
+        date: "2026-03-04",
+        contentType: "text/plain",
+        body: [
+          "ANNUAL WELLNESS VISIT",
+          "",
+          "Interval history: No new complaints. Sleep and appetite are normal.",
+          "",
+          "Preventive care: Immunizations reviewed and up to date, including a",
+          "seasonal influenza vaccine this past October. Note the influenza",
+          "entry in the chart carries no CVX code, only the descriptive text.",
+          "",
+          "Plan: Routine screening per age and risk. Return in one year.",
+        ].join("\n"),
+      },
     ],
   },
 ];

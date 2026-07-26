@@ -152,7 +152,7 @@ medications/conditions/allergies, which still write `code.text` only.
 
 ## Axis C — resolution mechanisms
 
-**1 of 4 fully, 1 partly.** Each remaining one is a thing a clinician expects
+**2 of 4 fully, 1 partly.** Each remaining one is a thing a clinician expects
 an agent to be able to do and it cannot.
 
 | Mechanism | Status | What it would unlock |
@@ -160,7 +160,34 @@ an agent to be able to do and it cannot.
 | Follow a reference (`_include` / `_revinclude`) | ✅ | "who ordered this", "who wrote that note", and the AI-transparency read — via an allowlisted `include` option per section, never a raw parameter |
 | Page a result set | ❌ **decided against** — see below | would brute-force what a filter answers exactly |
 | Resolve a code | ⚠️ **partly** — measurement names resolve to LOINC from a curated table; nothing resolves for problems, medications, or vaccines | asking for a vital by name instead of by remembered code |
-| Read a document body | ❌ | "what does the discharge summary actually say" — the agent can report only that a document exists |
+| Read a document body | ✅ | "what does the discharge summary actually say" — `read_document` decodes an inline text attachment; a scan or pointer-only attachment is reported as unread, never as empty |
+
+### What reading a document does and does not do
+
+`read_document` takes a `DocumentReference` id from a prior read of the
+documents section and returns the note text. Three things bound it:
+
+- **It decodes `Attachment.data` and never dereferences `Attachment.url`.** An
+  inline body is already inside the resource the tool fetched, so reading it
+  adds no outbound request at all. A `url` is a server-authored address, which
+  is the same class of primitive that [paging](#why-result-paging-is-not-implemented)
+  was rejected for. A pointer-only attachment is therefore reported as *not
+  retrieved*, with the reason.
+- **It reads `text/plain` and `text/markdown` only.** Real charts hold scans
+  and PDFs. Decoding one of those into model context would produce plausible
+  garbage, so the tool says what the attachment is and that its contents were
+  not read. The document's existence and date are still reported, because those
+  are real.
+- **It is a patient-scoped search by `_id`, not a read-by-id.** That keeps the
+  compartment-scoped AccessPolicy on the search path (see
+  [why there is no read-by-id](#why-there-is-no-read-by-id)) and makes patient
+  scope the thing that authorizes the read, so a guessed or borrowed id from
+  another patient's chart is refused rather than returned. Asserted against a
+  live server with a real id from a different patient.
+
+Bodies are capped and truncation is reported, and the text carries the same
+untrusted-content boundary as a note: a document is free text written by
+someone else, and nothing in it is an instruction.
 
 ### Why code resolution uses a local table, not `$expand`
 
