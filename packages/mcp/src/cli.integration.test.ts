@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, symlinkSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  statSync,
+  symlinkSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -37,6 +43,24 @@ describe("the built CLI actually runs", () => {
 
   it("prints the version when executed directly", () => {
     expect(run(dist)).toBe(MCP_SERVER_VERSION);
+  });
+
+  it("is executable, so a shell can run it through the bin link", () => {
+    // The npm `bin` is a symlink to this file and it carries a #!/usr/bin/env
+    // node shebang, so a shell needs the exec bit. tsc writes 0644, and npm
+    // only chmods bin targets at INSTALL time — which means the published
+    // package self-heals while the workspace link does not. Inside the
+    // checkout, `npx -y @lastehr/mcp` therefore failed with "Permission
+    // denied" for anyone following the README.
+    //
+    // Deliberately executed as a program rather than `node <path>`: passing the
+    // path to node bypasses both the mode and the shebang, which is exactly why
+    // the tests below missed this.
+    expect(statSync(dist).mode & 0o111, "dist/cli.js is not executable").not.toBe(0);
+    expect(readFileSync(dist, "utf8").split("\n", 1)[0]).toBe("#!/usr/bin/env node");
+    expect(
+      execFileSync(dist, ["--version"], { encoding: "utf8" }).trim(),
+    ).toBe(MCP_SERVER_VERSION);
   });
 
   it("prints the version when executed through a bin symlink, as npx does", () => {
