@@ -6,20 +6,36 @@
 [![npm: @lastehr/agent-write-conformance](https://img.shields.io/npm/v/%40lastehr%2Fagent-write-conformance?label=%40lastehr%2Fagent-write-conformance)](https://www.npmjs.com/package/@lastehr/agent-write-conformance)
 [![Official MCP Registry](https://img.shields.io/badge/Official%20MCP%20Registry-active-2563eb)](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr)
 
-**Make every AI chart write a reviewable proposal.** Last EHR defines and
-tests **[Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md)**
-(v0.1 draft) — a small protocol for the step between "the agent wants to
-write" and "the chart changed": Proposal → Decision → Commit → Audit. Two
-implementations run here — a web approval card and MCP elicitation-gated
-write tools — plus a [conformance suite](./docs/conformance.md) that checks
-implementations with its own FHIR reads. Independent implementations and
-criticism are invited.
+**Read the chart broadly. Write only what a human approved.** Last EHR is the
+agent layer for a headless FHIR EHR. It does three things, and the write
+protocol is only one of them.
 
-This repository is the reference implementation: the agent reads the chart
-and proposes writes, and nothing is saved until you approve. Bring your own
-FHIR backend and model key for a real agent — Medplum for the authenticated
-path, or any verified adapter for synthetic evaluation — or start with the
-zero-key local synthetic walkthrough.
+**It reads the chart broadly.** 25 of [US Core 9.0.0](https://hl7.org/fhir/us/core/)'s
+27 readable resource types, across 23 patient-scoped sections, following
+references so authors, encounters, and provenance stop being dead pointers.
+Counted in the open, with the ceiling published rather than implied, in
+[FHIR coverage](./docs/fhir-coverage.md).
+
+**It is built so the agent cannot fake an absence.** "She has never had a flu
+shot" is the answer a chart agent must never invent, so a read reports when
+its window was capped, when a reference lookup was refused, and when a code
+filter matched nothing in a section that does hold records. Filters that a
+section cannot apply are refused with the legal values instead of silently
+dropped. These are safety-boundary tests, not best-effort behavior.
+
+**Every write is a proposal.** Show the exact resource, require an explicit
+human decision, commit exactly what was reviewed, and record what created it.
+That half is a small protocol,
+**[Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md)**
+(v0.1 draft): Proposal → Decision → Commit → Audit. Two implementations run
+here, a web approval card and MCP elicitation-gated write tools, plus a
+[conformance suite](./docs/conformance.md) that checks implementations with
+its own FHIR reads. Independent implementations and criticism are invited.
+
+Five FHIR backends sit behind one interface. This repository is the reference
+implementation: bring your own FHIR backend and model key for a real agent
+(Medplum for the authenticated path, or any verified adapter for synthetic
+evaluation), or start with the zero-key local synthetic walkthrough.
 
 > **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, Aidbox, or Oystehr for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
 
@@ -35,6 +51,7 @@ zero-key local synthetic walkthrough.
 | --- | --- |
 | See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo): no sign-up. |
 | Read the protocol | [Approval-Gated Agent Writes on FHIR, v0.1 draft](./docs/agent-write-protocol.md) |
+| See exactly what the agent can reach in FHIR | [FHIR coverage](./docs/fhir-coverage.md): counted against US Core, ceiling included |
 | Test an MCP (stdio) implementation of the protocol | `npx @lastehr/agent-write-conformance` — see the [conformance guide](./docs/conformance.md) |
 | Give an MCP client bounded chart tools — read-only by default, opt-in approved writes (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
@@ -107,7 +124,7 @@ Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (
 flowchart LR
     B["Browser chat"] --> A["/api/chat<br/>streamText + FHIR tools"]
     A -- "reads<br/>search_patients, show_patient_info, read_chart_section" --> M[("Your FHIR backend<br/>(Medplum, HAPI, Firely, Aidbox, Oystehr)")]
-    A -- "writes<br/>add_note, record_observation, create_task" --> C{"Approval card"}
+    A -- "writes<br/>add_note, record_observation,<br/>record_superseding_observation, create_task" --> C{"Approval card"}
     C -- "Approve & save" --> M
     C -- "Cancel" --> N["Nothing saved"]
     M -. "Every call runs as the signed-in user,<br/>bounded by your AccessPolicy.<br/>The layer stores no PHI." .-> A

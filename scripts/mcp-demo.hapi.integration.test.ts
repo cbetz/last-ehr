@@ -72,15 +72,15 @@ if (!runHapiE2E) {
               arguments: { name: "Smith" },
             }),
           );
+          // Projected summaries, not raw Bundle.entry. Selecting by name rather
+          // than by MRN: the projection deliberately drops `identifier`, since
+          // an MRN in model context is PHI the agent's task never needs.
           const entries = (search.patients ?? []) as Array<{
-            resource?: { id?: string; identifier?: Array<{ value?: string }> };
+            id?: string;
+            name?: string;
           }>;
           expect(entries.length).toBeGreaterThanOrEqual(2);
-          const john = entries.find((entry) =>
-            entry.resource?.identifier?.some(
-              (identifier) => identifier.value === "synthetic-001",
-            ),
-          )?.resource;
+          const john = entries.find((patient) => patient.name?.includes("John"));
           expect(john?.id).toBeTruthy();
 
           const chart = textResult(
@@ -92,14 +92,21 @@ if (!runHapiE2E) {
           expect(chart.patient).toEqual(
             expect.objectContaining({ id: john?.id }),
           );
+          // Free text arrives inside the untrusted-content boundary now that the
+          // Lab shares the web agent's whole-chart read. The old hand-rolled
+          // copy in the package wrapped nothing, not even note text.
           expect(chart.conditions).toEqual(
             expect.arrayContaining([
-              expect.objectContaining({ text: "Essential hypertension" }),
+              expect.objectContaining({
+                text: "<chart_text>Essential hypertension</chart_text>",
+              }),
             ]),
           );
           expect(chart.medications).toEqual(
             expect.arrayContaining([
-              expect.objectContaining({ text: "Lisinopril 10 mg tablet" }),
+              expect.objectContaining({
+                text: "<chart_text>Lisinopril 10 mg tablet</chart_text>",
+              }),
             ]),
           );
         } catch (error) {

@@ -38,7 +38,10 @@ the local images on the first run.
 
 Its boundary is deliberately narrow:
 
-- exactly `search_patients` and `show_patient_info`, both with `readOnlyHint`;
+- exactly `search_patients` and `show_patient_info`, both with `readOnlyHint`
+  — the Local Lab deliberately drops `read_chart_section` and `read_document`
+  that `@lastehr/mcp` offers, because its fixture client serves six resource
+  types and the section reader advertises 23, so 17 would refuse;
 - only the four records carrying this repository's synthetic fixture
   identifiers are discoverable;
 - the generated configuration targets `127.0.0.1:8080/fhir`, and the server
@@ -137,21 +140,52 @@ Maintainers publish that immutable record through the manual `Publish MCP Regist
 
 ## Tool surface
 
-By default the package exposes exactly two tools, both marked with MCP's
+By default the package exposes four read tools, all marked with MCP's
 `readOnlyHint`:
 
 - `search_patients`
 - `show_patient_info`
+- `read_chart_section` — one of 23 patient-scoped sections, with code,
+  measurement-name, status, category and date filters
+- `read_document` — the text of one document already listed in the chart
+
+As of `0.3.0` those are the *same implementations* the Last EHR web agent uses
+(`packages/mcp/src/chart-read.ts`), not a reduced copy. That is deliberate:
+each of their honesty properties came from a real false negative found against
+a live FHIR server, and a second implementation would have re-earned every one.
 
 The retired `0.1.x` line was permanently read-only, and read-only remains the
 default forever. As of `0.2.0` there is exactly one opt-in beyond it, the
 proposal-shaped write profile below.
 
+### What a reply tells you it could not see
+
+An empty result is never proof of absence, and the server says why. These are
+the fields to check before telling anyone a patient has no record of something:
+
+| Field | Meaning |
+| --- | --- |
+| `truncated` | The server's window came back full, so older records may exist beyond it. Measured at the window, not at the surviving row count. |
+| `codeFilterUnmatched` | The section does hold records; none carry the code you filtered by. Text-only `CodeableConcept`s cannot match a coded search. |
+| `includeUnsupported` | The backend refused the reference lookup. Not the same as there being no references. |
+| `unreadable` (documents) | The document exists and its contents were not read: a scan, or a body stored as a pointer rather than inline. |
+
+A filter a section cannot apply is **refused with that section's legal
+values**, and those refusals reach the client verbatim rather than being
+scrubbed into a generic backend error — the message exists so the caller can
+correct itself. Backend errors are still scrubbed, since a FHIR server may put
+resource fragments in one.
+
+Chart free text arrives wrapped in `<chart_text>` tags: that content is data,
+never instructions. The server declares this, and the flag meanings above, in
+its MCP `instructions`, because unlike the web app it does not control the
+client's system prompt.
+
 ## Proposal-shaped writes (0.2.0, opt-in)
 
 `LASTEHR_MCP_WRITES=proposal` adds the web demo's write actions —
-`add_note` (Communication), `record_observation` (Observation), and
-`create_task` (Task) — as
+`add_note` (Communication), `record_observation` and
+`record_superseding_observation` (Observation), and `create_task` (Task) — as
 **elicitation-gated proposals**: the tool builds the exact FHIR resource it
 would create, presents those fields to the human through MCP elicitation
 (client-rendered accept/decline/cancel with a single "Approve and save?"
@@ -179,8 +213,9 @@ The profile is a binding of the repository's framework-neutral
   approved write naming the agent as author and the reviewer as verifier —
   see the [protocol's Audit section](./agent-write-protocol.md#4-audit).
 - **Narrowable, never widenable.** `LASTEHR_WRITE_TOOLS_DISABLED`
-  (comma-separated: `add_note`, `record_observation`, `create_task`)
-  unregisters write tools entirely — unlisted and uncallable, with unknown names refusing
+  (comma-separated: `add_note`, `record_observation`,
+  `record_superseding_observation`, `create_task`) unregisters write tools
+  entirely — unlisted and uncallable, with unknown names refusing
   startup. Embedders can pass a deny-only `policy` hook in
   `WriteToolOptions`: checked before the reviewer is asked, re-checked at
   commit, fail-closed, and its denials are attributed to configuration,

@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Last EHR: Open-source approval-gated FHIR agents",
+    name: "Last EHR: the open-source agent layer for your FHIR EHR",
     short_name: "Last EHR",
     description:
-      "An open-source reference implementation for approval-gated FHIR agents. The agent reads the chart and proposes writes; nothing is saved until you approve it.",
+      "The open-source agent layer for a headless FHIR EHR. It reads the chart broadly, will not report an absence it never checked for, and turns every write into a proposal a human approves.",
     start_url: "/",
     display: "standalone",
     background_color: "#101219",

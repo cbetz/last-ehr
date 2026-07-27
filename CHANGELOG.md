@@ -3,7 +3,284 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.3.0 — 2026-07-26
+
+One read core, shared by the web agent and `@lastehr/mcp` 0.3.0, so the
+published package reads the chart as broadly as the demo does. The honesty
+properties in that core each came from a real false negative found against a
+live FHIR server, and this is the release where the artifact people install
+gets all of them.
+
+
+- **`@lastehr/mcp` 0.3.0 reads the chart as broadly as the web agent does.**
+  The published package offered two read tools while the web app offered four.
+  It now offers `search_patients`, `show_patient_info`, `read_chart_section`
+  (23 patient-scoped sections with code, measurement-name, status, category and
+  date filters) and `read_document`, all `readOnlyHint`, and they are the SAME
+  implementations the web agent uses rather than a reduced copy.
+
+  That sharing is the point. Each honesty property in the read path came from a
+  real false negative found against a live FHIR server: truncation measured at
+  the server window, a coded miss reported as unmatched rather than absent, a
+  refused filter refused with its legal values, document bodies decoded but
+  never fetched from a server-authored URL. A second implementation in the
+  package would have re-earned all of them, and the package is the copy people
+  install.
+
+  Three things the shared core did not survive intact, all fixed here:
+
+  - **The transport scrubbed the refusals.** `callMcpTool` replaced every error
+    with "verify the backend access policy", including the read core's own
+    static refusals — so a model that sent `status: "active"` to Task was told
+    to check its server configuration instead of being handed the legal value
+    list. Model-input refusals are now a distinct `ChartReadRefusal` and pass
+    through verbatim; backend errors are still scrubbed, since a FHIR server may
+    put resource fragments in one. Recognized structurally rather than by
+    comparing message text, which is how the one prior special case worked.
+  - **The boundary sanitizer had an evasion.** `</chart_text foo>` is still
+    plausibly a closing tag to a model, and the pattern shipped in 0.2.9
+    required `>` immediately after the name, so it survived into a wrapped
+    value. Widened, with ordinary clinical prose (`BP < 140/90`, `a<b and c>d`)
+    asserted to round-trip unchanged.
+  - **The package's `show_patient_info` wrapped nothing.** It was a separate
+    hand-rolled copy that applied the `<chart_text>` boundary to no field, not
+    even note text. It now uses the shared whole-chart read, which wraps every
+    free-text value.
+
+  The MCP `instructions` string now declares the boundary convention and what
+  each honesty flag means. Unlike the web app, an MCP server does not control
+  the client's system prompt, and a flag whose meaning is never stated is a
+  flag that does nothing.
+
+- **Patient search results are projected, not raw `Bundle.entry`.** A raw entry
+  carries `fullUrl` — the backend host, verified as
+  `http://localhost:8080/fhir/Patient/2463` — plus `meta` (whose tags carry the
+  demo's session capability token), `identifier` (MRNs), `address` and
+  `telecom`, none of which a name search needs. All of it was reaching the
+  browser and an MCP client's model. The repo's rule that backend detail must
+  never reach the browser was being honored in the dev panel and skipped on this
+  path.
+
+  `search_patients` and `show_patient_info` now return `{ id, name, birthDate,
+  gender, photoUrl }`, with the name inside the `<chart_text>` boundary because a
+  name is free text the server chose. Both surfaces and both chart components
+  changed together; TypeScript found every consumer.
+
+  Dropping `identifier` is deliberate and has a cost worth naming: a caller can
+  no longer match a search result by MRN. An MRN in model context is PHI the
+  agent's task does not need, and the resource id is what fetches the chart.
+
+  The checkout-only Local Lab deliberately keeps its two tools. Not a safety
+  gate — its fixture client already refuses any resource type outside a
+  six-type allowlist — but an honesty one: the section reader advertises 23
+  sections, 17 of which that Lab would refuse, and its own instructions promise
+  exactly two tools.
+
+## 0.2.9 — 2026-07-25
+
+**Security.** `@lastehr/mcp` 0.2.0 and `@lastehr/agent-write-conformance`
+0.1.0 follow HTTP redirects and read response bodies without a size or time
+bound. Upgrade if you point either at a server you do not fully control.
+
+- **No FHIR fetch follows a redirect or reads an unbounded body.** The
+  transport builds every URL it fetches from the configured base plus a path
+  derived from a `ResourceType` union, which makes it easy to assume a
+  configured server cannot steer it. Node's `fetch` defaults granted it three
+  powers anyway, none of which needed paging or any new feature to reach:
+
+  - **The destination.** With no `redirect` option, Node's default is
+    `"follow"`. Verified by probe: a cross-origin `302` answering an ordinary
+    `/Patient?_count=25` was followed silently, and the redirect target's
+    Bundle came back as the FHIR server's answer — attacker-chosen content
+    entering the chart, and the model's context, as if the store had returned
+    it. Node does strip `authorization` on a cross-origin hop (so Aidbox's
+    Basic credential and the Firely/Oystehr bearer tokens are not exposed)
+    but does not strip custom headers.
+  - **The memory.** An unbounded `res.text()` buffered 40 MiB in 60 ms from a
+    hostile server. A `content-length` precheck does not help; a chunked
+    response carries no such header.
+  - **The duration.** With no `signal`, a trickling body holds a request open
+    indefinitely.
+
+  All three FHIR fetch sites now refuse redirects (a 3xx becomes a failure
+  that names no host, because a redirect target *is* a host and errors reach
+  logs and the dev panel), bound the request with `AbortSignal.timeout`, and
+  read bodies under a 16 MiB ceiling. On the MCP write path the refusal lands
+  before the `Location`-header id fallback, so a 3xx cannot redirect an
+  approved write off-host. The two packages publish standalone and import
+  nothing from `lib/`, so the control is necessarily duplicated; a
+  source-level guard fails if any copy stops applying it.
+
+- **Truncation is measured at the server window, not the surviving rows.**
+  `read_chart_section` derived `truncated` from the row count that survived
+  session-isolation filtering — rows dropped *after* the fetch. So a full
+  server window spent on other sessions' rows left zero visible rows and
+  reported `truncated: false`, and because the system prompt only forbids
+  asserting an absence from a *truncated* read, `false` actively licensed
+  "she has never had a flu shot" from a window that never showed one.
+  Reachable on Aidbox with a single full window (it ignores the bare-system
+  `_tag:not` token, so the query succeeds and the over-fetch fallback never
+  fires) and on HAPI with a full over-fetched window. Fullness is now
+  measured per query arm against what that arm asked the server for, and on
+  match rows only for the include path so `_include` entries cannot fake
+  truncation.
+
+- **An empty coded read reports an unmatched code, not an absence.** A coded
+  search parameter can only match a record that carries a coding, and
+  text-only `CodeableConcept`s are ordinary FHIR — this repository's own
+  synthetic immunizations and medications are text-only on purpose, because
+  asserting CVX/RxNorm codes nobody verified would be worse. Measured on the
+  seeded stack, `Immunization?vaccine-code=88` answers `total: 0` while 14
+  immunizations exist. `truncated` cannot cover that case and correctly does
+  not: the server genuinely matched nothing, so the window was never full. An
+  empty coded read now asks once whether the section holds rows differing
+  *only* by the code and reports `codeFilterUnmatched`, the prompt requires a
+  re-read without the code before answering, and the chart card tells the
+  human reader the same thing.
+
+- **Ask for a vital by name instead of a remembered LOINC code.**
+  `read_chart_section` takes a `measurement` name on Observation and resolves
+  it through the same pinned table `record_observation` codes writes with, so
+  a read and a write mean the same thing by one label. `"blood pressure"`
+  resolves to *both* systolic and diastolic, comma-ORed into one parameter
+  value, because searching one alone answers half the question and reports
+  the result as complete. An unrecognized name is refused with the list of
+  accepted names rather than searched for. **Axis C goes from 1 of 4
+  mechanisms to 1 fully plus 1 partly** — deliberately not counted as a full
+  rung, because this covers vital signs and nothing else.
+
+- **Result paging is now a recorded decision, not a gap.** It was
+  investigated as the answer to "has he ever had X" and rejected:
+  `Bundle.link[next]` is a server-authored absolute URL (HAPI's carries an
+  opaque `_getpages` cursor on the *root* path, so it cannot be reconstructed
+  on a type path), page 2's query would be authored by the server and free to
+  drop `patient=` or the session tag, and a filter answers the question
+  exactly where paging brute-forces it. `Bundle.total` is not a dependable
+  substitute either: it is optional in R4 and HAPI omits it on many paged
+  searches (absent for the 34-row and 14-row result sets probed, present for
+  an 8-row patient-scoped one, all three with a `next` link). Which reads get
+  a total is a server-side decision; `_total=accurate` forces one at the cost
+  of a full count per read, and its support varies. A truncation signal that
+  silently degrades on some reads is worse than one that always holds.
+
+- **Code resolution uses a local table rather than `$expand`, on evidence.**
+  Probed against HAPI: no terminology operation is advertised in the
+  `CapabilityStatement`, `$expand` on the CVX vaccine-code value set answers
+  412 (`CodeSystem could not be found`), `$lookup` for LOINC `8480-6` answers
+  404, and `$validate-code` answered HTTP 200 for a CVX code against a server
+  with no CVX loaded. A terminology check that reports "not a valid code"
+  when it means "I do not have that code system" manufactures the exact false
+  negative it would be added to prevent.
+
+- The chart card no longer prints "No matching records in this section" when
+  the read was capped, a reference lookup was refused, or a code filter
+  matched nothing — the human reader is the safety boundary and now gets at
+  least as much honesty as the model does.
+
+- `read_chart_section` can follow references. A new `include` option
+  (`authors`, `encounter`, `facility`, `location`, `provenance`) returns the
+  resources a section points at, so author and performer references stop
+  being dead pointers. **Axis A goes 21 → 25 of US Core 9.0.0's 27 types**
+  and the first of four resolution mechanisms closes, because Practitioner,
+  Organization, Location, and Provenance cannot be scoped to a patient and
+  are reachable no other way.
+
+  This makes the AI-transparency read work for the first time:
+  `include: "provenance"` uses `_revinclude=Provenance:target`, the only
+  query that finds provenance for a patient's *resources* rather than for
+  the Patient resource itself, so the agent can answer "which entries here
+  were AI-written, and who approved them".
+
+  The model still authors no search parameter — it picks from an
+  allowlisted vocabulary and the tool supplies the token, refusing an
+  option a section cannot honor with the ones it can.
+
+  Two isolation hazards handled, both verified live against HAPI with two
+  concurrent demo sessions: the server returns includes for **every** match
+  it found, including rows belonging to other sessions that the visibility
+  filter is about to drop, so matches are filtered first and an included
+  resource survives only if it is still connected to a surviving match.
+  A foreign session's Provenance — and every trace of it — is absent from
+  the reply, while the owning session still sees its own.
+
+  A backend that rejects the parameter degrades to a plain read and says
+  `includeUnsupported`, never letting an unsupported lookup read as "no
+  related records exist".
+
+- Six more chart sections — Device, FamilyMemberHistory, MedicationDispense,
+  QuestionnaireResponse, RelatedPerson, Specimen — taking readable US Core
+  9.0.0 resource types from 15 of 27 to **21 of 27**. Every patient
+  parameter, date parameter, sort, and status filter probed against HAPI
+  before exposure, then read end-to-end through the tool.
+
+  That completes the patient-scopeable set: the six US Core types still
+  unreachable (Location, Medication, Organization, Practitioner,
+  PractitionerRole, Provenance) are all unreachable for the *same* reason —
+  none can be scoped to a patient, so none can be a chart section. One
+  mechanism, `_include`/`_revinclude`, takes this axis from 21 to 27.
+
+- docs/fhir-coverage.md is now guarded by a test. Twice a rung updated its
+  tables and left the surrounding prose stale (it claimed a "10-value"
+  section allowlist when there were 17, and listed the code filter on 5
+  sections when it was on 9). The counts are now derived from the tool
+  schema and asserted, along with every section appearing in the Axis A
+  table and every write tool being named. The page whose entire value is
+  that its numbers are right can no longer quietly stop being right.
+
+- `record_superseding_observation` is now in `@lastehr/mcp` too, so both
+  bindings offer the same write surface. The MCP form fetches the original
+  before asking, so the elicitation names the row being superseded and a
+  bogus or cross-patient id is refused **without bothering a reviewer with
+  a proposal that cannot commit** — the same pre-elicitation policy
+  ordering the write profile already uses.
+
+- New gated write `record_superseding_observation`: when a value already on
+  the chart is wrong, the agent can propose a corrected one. Today's answer
+  to "that weight was wrong" is "I can't."
+
+  It uses the standard R4 `observation-replaces` extension — whose own HL7
+  comment names it "an alternative to updating the Observation with a new
+  version with status = 'amended' or 'corrected'" — so the whole capability
+  is ONE approved create and needs no change to the write protocol, which
+  holds updates out of scope in v0.1. Putting the link on the resource
+  rather than in a separate Provenance matters: the supersession claim is
+  what distinguishes a correction from a duplicate, so it must be part of
+  the create that the human approved, not a second write that could fail
+  and leave two contradictory values with nothing joining them.
+
+  The limit is stated on the approval card, in the tool result the model
+  paraphrases, and in the system prompt: the earlier entry stays on the
+  chart as a final result. It is not deleted and not marked
+  `entered-in-error` — both require an update. The new entry copies the
+  original's `effective[x]` so the trend shows one measurement restated
+  rather than an impossible jump, with `issued` recording when the
+  correction was filed. The tool refuses a bogus id rather than minting a
+  dangling reference, and refuses an observation belonging to another
+  patient. `status` stays `final`: "corrected" and "amended" describe a
+  resource's own prior lifecycle, and this one was never final before.
+
+
+- Agent-written observations are now coded, in both bindings. A recognized
+  vital gains a LOINC `coding` and the `vital-signs` category — both
+  required by US Core Vital Signs — from a pinned local table
+  (`lib/fhir/vitals.ts`), and the approval card renders the derived codes
+  from that same function, so the reviewer sees the LOINC and UCUM codes
+  that will save rather than discovering them on the chart.
+
+  This also retires a live untruth: `valueQuantity.code` used to receive
+  the unit string a human typed, asserting that "bpm" was a UCUM code when
+  the UCUM code is `/min`. The system and code are now set only when the
+  unit actually resolves, and the typed unit is kept as the display value.
+  An unrecognized label stays plain text with NO category rather than a
+  guessed classification.
+
+  Verified end-to-end on HAPI: an agent-written heart rate now carries
+  LOINC 8867-4, `category=vital-signs`, and `valueQuantity.code=/min`, and
+  is findable by the `category: vital-signs` read filter — which could not
+  have found it before, since agent writes carried no category at all.
+  The `@lastehr/mcp` copy of the table is guarded by a test that runs both
+  modules over a matrix of labels and units and asserts identical output,
+  so the two bindings cannot drift into coding the same write differently.
 
 - `read_chart_section` grew from 10 sections to 17, taking readable US Core
   9.0.0 resource types from 9 of 27 to 15 of 27: Encounter ("what happened

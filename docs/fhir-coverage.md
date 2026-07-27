@@ -15,7 +15,7 @@ types**, counted from the published
 generated 2026-05-31), unmodified. US Core is the denominator because it is
 the floor US implementers are actually asked about.
 
-**15 of 27 US Core resource types**, plus 3 types US Core does not profile.
+**25 of 27 US Core resource types**, plus 3 types US Core does not profile.
 
 | Readable today | In US Core 9.0.0 |
 | --- | --- |
@@ -34,6 +34,12 @@ the floor US implementers are actually asked about.
 | ServiceRequest | ✅ |
 | CareTeam | ✅ |
 | Coverage | ✅ |
+| Device | ✅ |
+| FamilyMemberHistory | ✅ |
+| MedicationDispense | ✅ |
+| QuestionnaireResponse | ✅ |
+| RelatedPerson | ✅ |
+| Specimen | ✅ |
 | Communication | ❌ — not a US Core profile |
 | Task | ❌ — not a US Core profile |
 | AuditEvent | ❌ — not a US Core profile |
@@ -43,9 +49,28 @@ Core clinical profiles. Worth stating plainly because **two of the three
 types the agent can write are outside this denominator** — the write surface
 and the read denominator are not the same set.
 
-The 12 US Core types with no read path today: Device, FamilyMemberHistory,
-Location, Medication, MedicationDispense, Organization, Practitioner,
-PractitionerRole, Provenance, QuestionnaireResponse, RelatedPerson, Specimen.
+Four of those — Practitioner, Organization, Location, and Provenance — are
+now reachable by **following a reference** rather than as sections, because
+none of them can be scoped to a patient. `read_chart_section` takes an
+`include` option (`authors`, `encounter`, `facility`, `location`,
+`provenance`) and returns the referenced resources alongside the matches.
+
+The 2 US Core types still unreachable: **Medication** and
+**PractitionerRole**. Both are reachable by the same mechanism the moment a
+backend models them as references (`MedicationRequest.medicationReference`,
+a `PractitionerRole` performer) rather than inline codeable concepts, which
+the synthetic data here does not. No new mechanism is needed — only data
+that uses one.
+
+**The AI-transparency read works now.** `include: "provenance"` on any
+section uses `_revinclude=Provenance:target`, which is the only query that
+finds provenance for a patient's *resources* — so the agent can finally
+answer "which entries here were AI-written, and who approved them":
+
+```
+Observation/2209 — author: Last EHR agent (model-proposed);
+                   verifier: Human reviewer (approval gate) (recorded 2026-02-10)
+```
 
 Three of those absences are deliberate rather than pending, and the reasons
 are worth stating:
@@ -74,7 +99,8 @@ AuditEvent's `patient` parameter covers `entity.what`.
 
 ## Axis B — write types behind a rendered human approval
 
-**3**: Communication (`add_note`), Observation (`record_observation`), Task
+**3 types across 4 tools**: Communication (`add_note`), Observation
+(`record_observation` and `record_superseding_observation`), Task
 (`create_task`).
 
 This is the axis that is the product. Every one of these is a *create* whose
@@ -84,23 +110,161 @@ No update, no patch, no delete is reachable by any agent tool — deliberately;
 the protocol's v0.1 draft holds updates and deletes out of scope until it has
 field experience with creates.
 
-`record_observation` does not yet satisfy the US Core Vital Signs or
-Laboratory Result profiles: it writes `code.text` with no `coding` and no
-`category`, and it copies the human-supplied unit string into
-`valueQuantity.code`, which is a valid UCUM code for some units and not for
-others. Tracked in the [roadmap](../ROADMAP.md).
+**Correcting a wrong value without an update.** `record_superseding_observation`
+files the corrected value as a *new* observation carrying the standard R4
+[`observation-replaces`](https://hl7.org/fhir/R4/extension-observation-replaces.html)
+extension, whose own HL7 comment names it "an alternative to updating the
+Observation with a new version with status = 'amended' or 'corrected'." One
+create, one approval, one machine-readable link — the supersession claim
+rides the resource rather than a separate Provenance, so there is no second
+write that could fail and leave an unlinked duplicate.
+
+The limit is real and stated on the approval card, in the tool result, and
+in the system prompt: **the earlier entry stays on the chart as a final
+result.** It is not deleted and not marked `entered-in-error`, because both
+require an update. The superseding entry copies the original's
+`effective[x]` (so the chart shows one measurement event restated, not a
+physiologically impossible jump) and carries `issued` = the moment the
+correction was filed. Two entries then share an effective time, so
+`_sort=-date` ordering between them is undefined — readers should follow the
+extension, not the clock. This is the same limit Epic's public FHIR API has
+for vitals; it is parity, not an unusual deficit.
+
+There is no equivalent for notes or tasks: R4 gives Communication only
+`inResponseTo` (threading, not supersession) and Task nothing at all, so
+those tools deliberately have no superseding variant rather than a
+homegrown link.
+
+`record_observation` codes its writes from a pinned local table
+([`lib/fhir/vitals.ts`](https://github.com/cbetz/last-ehr/blob/main/lib/fhir/vitals.ts)):
+a recognized vital gains a LOINC `coding` and the `vital-signs` category —
+both required by US Core Vital Signs — and `valueQuantity.system`/`code` are
+set only when the unit resolves to a real UCUM code. An unrecognized label
+stays plain `code.text` with **no** category, and an unrecognized unit gets
+no UCUM code, because a guessed classification is worse than an honestly
+uncoded row. The table is local by choice rather than a terminology server:
+the mapping is visible in the approval card, so the reviewer sees the codes
+that will save, and the write path gains no network dependency.
+
+Not yet coded: laboratory results (no `laboratory` category is ever
+asserted, since the agent cannot tell a lab from a vital by label alone) and
+medications/conditions/allergies, which still write `code.text` only.
 
 ## Axis C — resolution mechanisms
 
-**0 of 4.** Each one is a thing a clinician expects an agent to be able to do
-and it cannot.
+**2 of 4 fully, 1 partly.** Each remaining one is a thing a clinician expects
+an agent to be able to do and it cannot.
 
 | Mechanism | Status | What it would unlock |
 | --- | --- | --- |
-| Follow a reference (`_include` / `_revinclude`) | ❌ | "who ordered this", "who wrote that note", and the AI-transparency read above — every author/performer reference is a dead pointer today, and Practitioner/Organization/Location are reachable no other way |
-| Page a result set | ❌ | "has he *ever* had a flu shot", answered from the record instead of one window |
-| Resolve a code (`$expand` / `$validate-code`) | ❌ | LOINC/SNOMED/RxNorm coding rather than free-text `code.text` |
-| Read a document body | ❌ | "what does the discharge summary actually say" — the agent can report only that a document exists |
+| Follow a reference (`_include` / `_revinclude`) | ✅ | "who ordered this", "who wrote that note", and the AI-transparency read — via an allowlisted `include` option per section, never a raw parameter |
+| Page a result set | ❌ **decided against** — see below | would brute-force what a filter answers exactly |
+| Resolve a code | ⚠️ **partly** — measurement names resolve to LOINC from a curated table; nothing resolves for problems, medications, or vaccines | asking for a vital by name instead of by remembered code |
+| Read a document body | ✅ | "what does the discharge summary actually say" — `read_document` decodes an inline text attachment; a scan or pointer-only attachment is reported as unread, never as empty |
+
+### What reading a document does and does not do
+
+`read_document` takes a `DocumentReference` id from a prior read of the
+documents section and returns the note text. Three things bound it:
+
+- **It decodes `Attachment.data` and never dereferences `Attachment.url`.** An
+  inline body is already inside the resource the tool fetched, so reading it
+  adds no outbound request at all. A `url` is a server-authored address, which
+  is the same class of primitive that [paging](#why-result-paging-is-not-implemented)
+  was rejected for. A pointer-only attachment is therefore reported as *not
+  retrieved*, with the reason.
+- **It reads `text/plain` and `text/markdown` only.** Real charts hold scans
+  and PDFs. Decoding one of those into model context would produce plausible
+  garbage, so the tool says what the attachment is and that its contents were
+  not read. The document's existence and date are still reported, because those
+  are real.
+- **It is a patient-scoped search by `_id`, not a read-by-id.** That keeps the
+  compartment-scoped AccessPolicy on the search path (see
+  [why there is no read-by-id](#why-there-is-no-read-by-id)) and makes patient
+  scope the thing that authorizes the read, so a guessed or borrowed id from
+  another patient's chart is refused rather than returned. Asserted against a
+  live server with a real id from a different patient.
+
+Bodies are capped and truncation is reported, and the text carries the same
+untrusted-content boundary as a note: a document is free text written by
+someone else, and nothing in it is an instruction.
+
+### Why code resolution uses a local table, not `$expand`
+
+The standard mechanism is a terminology operation against the configured
+server. Probed on the repository's HAPI stack, it does not hold up:
+
+- **Support is not discoverable.** HAPI's `CapabilityStatement` advertises no
+  `$expand`, `$validate-code`, or `$lookup` — only proprietary admin
+  operations — so a client cannot tell whether they will work.
+- **They fail for the code systems that matter.** `$expand` on the CVX
+  vaccine-code value set answers 412 (`CodeSystem could not be found`), and
+  `$lookup` for LOINC `8480-6` answers 404. A default stack has neither
+  loaded, and LOINC's license makes "just load it" an operator decision, not a
+  dependency this project can assume.
+- **`$validate-code` answers the wrong thing when a system is missing.** It
+  returned HTTP 200 for a CVX code against a server with no CVX. A terminology
+  check that reports "not a valid code" when it means "I do not have that code
+  system" manufactures exactly the false negative this page keeps closing.
+
+So a measurement name resolves through the same pinned table
+[`lib/fhir/vitals.ts`](https://github.com/cbetz/last-ehr/blob/main/lib/fhir/vitals.ts)
+that `record_observation` codes writes with. A read and a write therefore mean
+the same thing by one label — asserted by test — and the read path gains no
+network dependency and no server capability requirement.
+
+The honest limit: **this covers vital signs and nothing else.** There is no
+resolution for problems, medications, or vaccines, which is why an uncoded
+immunization still cannot be found by code (see the `codeFilterUnmatched`
+guard below). Extending the table to those means curating clinical code sets,
+and a wrong entry is a false negative on a chart — so each addition needs a
+verified source rather than a plausible one.
+
+### Why result paging is not implemented
+
+Paging was investigated as the answer to "has he *ever* had a flu shot" and
+rejected. The reasons are recorded here so it is not re-proposed as an
+oversight.
+
+- **It would dereference a server-authored URL — the transport's first.** Every
+  URL fetched today is built from the configured base plus a path derived from a
+  `ResourceType` union. `Bundle.link[next]` is not that, and it cannot be
+  reconstructed: HAPI's next link is a **root-path** absolute URL carrying an
+  opaque `_getpages` cursor, so `GET /fhir/Patient?_getpages=…` answers 400
+  where `GET /fhir?_getpages=…` answers 200. A raw-absolute-URL primitive would
+  need an origin validator duplicated across three publish boundaries. See the
+  [threat model](./threat-model.md).
+- **Page 2's query would be authored by the server**, which is free to drop
+  `patient=` or the session `_tag`. The post-fetch visibility filter would stop
+  being a fallback and become the only thing enforcing patient scope.
+- **`Bundle.total` is not a dependable substitute.** `total` is optional in R4
+  (`total?: number`) and HAPI omits it on many paged searches. Measured on the
+  seeded stack, every row below returned a `next` link:
+
+  | Query | `Bundle.total` |
+  | --- | --- |
+  | `Observation?_count=2` (34 matching) | absent |
+  | `Immunization?_count=2` (14 matching) | absent |
+  | `Observation?patient=1933&_count=2` (8 matching) | 8 |
+  | `Observation?_count=2&_total=accurate` | 34 |
+
+  So it is not "absent whenever truncated": a patient-scoped read often does get
+  a total. It is simply **not guaranteed**, and which reads get one is a
+  server-side decision this project does not control. `_total=accurate` forces
+  it, at the cost of a full count on every read, and that parameter's support
+  varies by server. A truncation signal that silently degrades on some reads is
+  worse than one that always holds, so truncation is reported from the window
+  instead. Any future use of `total` must fail closed when it is absent.
+- **A filter answers the question exactly; paging answers it by brute force.**
+  A coded or dated read collapses the result set below the window, so one
+  request settles it — and paging hundreds of rows into model context is worse
+  for the model than a narrow read.
+
+The exhaustiveness question paging was meant to settle is instead answered by
+reporting truncation honestly (below), and narrowing is the job of the
+filters. **The higher-value rung is code resolution**, not paging: a coded
+filter is what makes a narrow read possible, and today an uncoded record
+cannot be found by one at all.
 
 ## RESTful interactions
 
@@ -135,8 +299,9 @@ work — a safety regression wearing a coverage win.
 
 The tool builds every query. The model chooses a section and filters and
 never supplies raw search parameters, so the model's entire search vocabulary
-is: a patient name, a section from a 10-value allowlist, an Observation-only
-code token, `dateFrom`, `dateTo`, and a count of 1-100.
+is: a patient name, a section from a 23-value allowlist, a
+measurement name, a code token, a status, a category, `dateFrom`, `dateTo`,
+and a count of 1-100.
 
 | Feature | Status |
 | --- | --- |
@@ -144,12 +309,13 @@ code token, `dateFrom`, `dateTo`, and a count of 1-100.
 | Newest-first server-side `_sort` on every section | ✅ each value probed for real ordering |
 | Single date bound | ✅ |
 | Date range | ⚠️ one bound is applied server-side and the other filtered from the returned rows; correct results, but a range wider than the window reports `truncated` |
-| `code` token filter | ✅ Observation, Condition, AllergyIntolerance, MedicationRequest, Immunization (`vaccine-code`) — coded records only |
+| `measurement` name resolved to LOINC | ✅ Observation — a name ("blood pressure", "pulse") resolved from the same curated table the write path codes with; `blood pressure` resolves to both systolic and diastolic, comma-ORed in one parameter value |
+| `code` token filter | ✅ on 9 sections (Observation, Condition, AllergyIntolerance, MedicationRequest, Immunization, Encounter, DiagnosticReport, Procedure, ServiceRequest) — coded records only |
 | `status` filter | ✅ every section, mapped to that type's own parameter (`clinical-status`, `lifecycle-status`, `status`) and validated against its R4 value set |
 | `category` filter | ✅ Observation — separates `vital-signs` from `laboratory` |
-| Paging (`Bundle.link[next]`) | ❌ — `_count` is a cap, not a page |
+| Paging (`Bundle.link[next]`) | ❌ **decided against**, not merely absent — `_count` is a cap, not a page; see [why](#why-result-paging-is-not-implemented) |
 | Repeated parameters | ❌ — the structured-params contract carries one value per key |
-| `_include` / `_revinclude` / chained / `_has` | ❌ |
+| `_include` / `_revinclude` | ✅ allowlisted options per section; chained and `_has` still ❌ |
 
 The model gets one filter vocabulary; the tool maps it to each section's own
 search parameter and validates the value against that section's R4 value set.
@@ -167,9 +333,29 @@ query would answer "nothing in that window" for a patient who *does* have the
 allergy. A refused filter is recoverable; a confident false negative on a
 chart is not.
 
-**Every read reports truncation.** When a result fills the window, the reply
-carries `truncated: true` and the system prompt forbids the agent from
-stating an absence from a truncated read.
+**Every read reports truncation, measured at the server window.** When a
+query's server-side window comes back full, the reply carries
+`truncated: true` and the system prompt forbids the agent from stating an
+absence from a truncated read. Fullness is deliberately *not* the count of
+rows the reply contains: session isolation drops other sessions' rows after
+the fetch, so a full window can leave few or zero visible rows, and a
+row-count signal would have called that an exhaustive search. It is measured
+per query arm against what that arm asked the server for.
+
+**An empty coded read is reported as an unmatched code, never as an
+absence.** A coded search parameter can only match a record that carries a
+coding, and text-only `CodeableConcept`s are ordinary FHIR — this
+repository's own synthetic immunizations and medications are text-only on
+purpose, because asserting CVX/RxNorm codes nobody verified would be worse.
+Measured on the seeded stack: `Immunization?vaccine-code=88` answers
+`total: 0` while 14 immunizations exist. `truncated` cannot cover that case,
+because the server genuinely matched nothing and the window was never full.
+So when a coded read returns nothing, the tool asks once whether the section
+holds rows that differ *only* by the code, and reports
+`codeFilterUnmatched: true` if it does. The system prompt then requires a
+re-read without the code before answering, and the chart card tells the human
+reader the same thing. This is the false negative the "resolve a code" rung
+above exists to close properly.
 
 ## Why not a percentage
 

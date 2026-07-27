@@ -6,7 +6,7 @@ safe path and contributors know where an adapter is needed.
 
 | Configuration | Web app | SMART launch | MCP | Status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Medplum, hosted or self-hosted | Yes | Yes | Read-only by default; opt-in gated write proposals | Supported | The authenticated path. `@lastehr/mcp` exposes two chart-reading tools by default, plus the opt-in write profile; Medplum owns identity, tenancy, AccessPolicy, and audit logs. |
+| Medplum, hosted or self-hosted | Yes | Yes | Read-only by default; opt-in gated write proposals | Supported | The authenticated path. `@lastehr/mcp` exposes four chart-reading tools by default (the same read implementations the web agent uses), plus the opt-in write profile; Medplum owns identity, tenancy, AccessPolicy, and audit logs. |
 | HAPI FHIR from this repository's Docker Compose stack | Yes | No | Read-only by default; opt-in gated write proposals (local synthetic only) | Local evaluation only | The included HAPI server has no auth and Compose binds it to loopback by default. Use synthetic data on one machine; do not expose it or treat browser-session filtering as access control. `@lastehr/mcp` honors `FHIR_BACKEND=hapi` with the same local-only caveats; separately, `npm run mcp:demo` offers two fixture-restricted, read-only MCP tools from a checkout, including an optional zero-key scripted walkthrough restricted to one seeded record and one fixed observation. |
 | Firely Server (`FHIR_BACKEND=firely`) | Yes | No | No | Synthetic evaluation only | Verified against Firely's public synthetic sandbox (`https://server.fire.ly`) with both contract harnesses and the FHIR Agent Safety Eval. Anonymous or static bearer token (`FIRELY_ACCESS_TOKEN`); the adapter never runs an OAuth flow, and the sandbox enforces no access control, so synthetic data only. |
 | Another no-auth, standard FHIR R4 server | Evaluation only | No | No | Unverified | It may work through the HAPI REST transport, but is not supported until both contract harnesses and the four synthetic workflows pass. |
@@ -48,7 +48,11 @@ silently ignores the bare-system `_tag:not` token, so per-session
 visibility runs on the client-side filter arm — a visitor's own writes are
 never affected (they ride a separate tagged query), but under heavy
 concurrent demo load other sessions' rows can crowd seed rows out of the
-server-side result window. Offer an Aidbox picker option only on a box you
+server-side result window. Because the client-side filter drops those rows
+after the fetch, a crowded window is reported to the model as truncated
+(measured against what each query asked the server for, not against how
+many rows survived the filter) so an emptied section can never be read as
+an exhaustive search. Offer an Aidbox picker option only on a box you
 own and seed.
 
 Oystehr's eligibility evidence (2026-07-21, operator-owned developer-tier

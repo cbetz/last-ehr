@@ -78,11 +78,36 @@ describe("ScriptedDemoBackend", () => {
           value: 72,
           unit: "bpm",
           system: "http://unitsofmeasure.org",
-          code: "bpm",
+          // The real UCUM code for beats per minute; "bpm" is not one.
+          code: "/min",
         },
         extension: [{ url: "https://example.test/unwanted", valueString: "nope" }],
       }),
     ).resolves.toMatchObject({ id: "observation-1" });
+    // The wrapper rebuilds the resource, so it must reproduce the same
+    // conformant coding the real write tools produce rather than a
+    // stripped-down lookalike.
+    expect(backend.createResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: expect.objectContaining({
+          coding: [
+            { system: "http://loinc.org", code: "8867-4", display: "Heart rate" },
+          ],
+          text: "Heart rate",
+        }),
+        category: [
+          {
+            coding: [
+              {
+                system: "http://terminology.hl7.org/CodeSystem/observation-category",
+                code: "vital-signs",
+              },
+            ],
+          },
+        ],
+        valueQuantity: expect.objectContaining({ code: "/min", unit: "bpm" }),
+      }),
+    );
     expect(backend.createResource).toHaveBeenCalledWith(
       expect.objectContaining({
         meta: {

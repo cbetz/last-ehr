@@ -8,6 +8,56 @@ import type {
 import type { FhirWriteClient } from "./write-tools.js";
 
 /**
+ * Deliberately duplicated from lib/fhir/rest.ts rather than imported: this is
+ * a separately published package that depends only on the MCP SDK and zod.
+ * A source-level guard (hapi.test.ts) fails if either fetch here stops
+ * revoking both defaults, so the copies cannot drift apart silently.
+ *
+ * A configured server is trusted to answer FHIR, not to steer this process:
+ * refuse redirects rather than letting it point an ordinary search at any
+ * host the process can reach, and bound both time and bytes.
+ */
+const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
+
+/** Hardening shared by every request; spread last so nothing overrides it. */
+const hardened = (): RequestInit => ({
+  redirect: "manual",
+  signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+});
+
+function refuseRedirect(res: Response): void {
+  // Naming the target would put a host in an error string; the status is
+  // enough for whoever configured the base URL.
+  if (res.status >= 300 && res.status < 400) {
+    throw Object.assign(
+      new Error(`FHIR request failed: HTTP ${res.status} (redirect refused)`),
+      { statusCode: res.status },
+    );
+  }
+}
+
+/** JSON body under a hard ceiling; an unbounded read can exhaust the process. */
+async function readCappedJson<T>(res: Response): Promise<T> {
+  if (!res.body) return (await res.json()) as T;
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done || !value) break;
+    total += value.byteLength;
+    if (total > MAX_RESPONSE_BYTES) {
+      await reader.cancel();
+      throw new Error("FHIR request failed: response body exceeded the size ceiling");
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return JSON.parse(text + decoder.decode()) as T;
+}
+
+/**
  * Minimal FHIR R4 REST client for FHIR_BACKEND=hapi — the repository's
  * local, no-auth evaluation stack. It mirrors the web app's shared transport
  * semantics: structured search params only (never raw query strings), the
@@ -39,14 +89,16 @@ export class HapiReadClient implements FhirWriteClient {
         : "";
     const res = await this.fetchFn(`${this.baseUrl}/${resourceType}${query}`, {
       headers: { accept: "application/fhir+json" },
+      ...hardened(),
     });
+    refuseRedirect(res);
     if (!res.ok) {
       throw Object.assign(
         new Error(`FHIR request failed: HTTP ${res.status}`),
         { statusCode: res.status },
       );
     }
-    return (await res.json()) as Bundle<ExtractResource<K>>;
+    return await readCappedJson<Bundle<ExtractResource<K>>>(res);
   }
 
   async createResource<T extends Resource>(
@@ -64,8 +116,12 @@ export class HapiReadClient implements FhirWriteClient {
           prefer: "return=representation",
         },
         body: JSON.stringify(resource),
+        ...hardened(),
       },
     );
+    // Before the Location fallback below: a 3xx carries a Location too, and
+    // following it would let a server redirect an approved write off-host.
+    refuseRedirect(res);
     if (!res.ok) {
       throw Object.assign(
         new Error(`FHIR request failed: HTTP ${res.status}`),
@@ -78,7 +134,10 @@ export class HapiReadClient implements FhirWriteClient {
     // failure — a retry after that would duplicate an approved write.
     let created: (T & { id?: string }) | undefined;
     try {
-      created = (await res.json()) as T & { id?: string };
+      // A cap breach lands in the catch and falls through to the Location
+      // header, which is the right outcome here: the write already happened,
+      // and retrying it would duplicate an approved write.
+      created = await readCappedJson<T & { id?: string }>(res);
     } catch {
       created = undefined;
     }

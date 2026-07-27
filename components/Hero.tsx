@@ -10,9 +10,10 @@ import { buttonVariants } from "./ui/button";
 import { IconGitHub } from "./ui/icons";
 
 const proofPoints = [
-  "Open protocol, v0.1 draft — criticism invited",
-  "Two running bindings: web and MCP",
-  "Independent conformance suite, dogfooded in CI",
+  "25 of US Core's 27 readable types, counted in the open",
+  "Cannot report an absence it never checked for",
+  "Open protocol, v0.1 draft, criticism invited",
+  "Five FHIR backends behind one interface",
 ];
 
 const ledgerSteps = [
@@ -36,13 +37,19 @@ export default function Hero() {
             Open-source clinical agent infrastructure
           </p>
           <h1 className="mt-5 max-w-3xl text-[clamp(2.7rem,5vw,4.6rem)] font-semibold leading-[0.96] tracking-[-0.07em] text-balance">
-            Make every AI chart write a <span className="text-primary">reviewable proposal</span>.
+            Read the chart broadly. Write only what a{" "}
+            <span className="text-primary">human approved</span>.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl sm:leading-9">
-            Last EHR defines and tests a small protocol for agent-initiated
-            FHIR writes: show the exact proposed resource, require an explicit
-            human decision, commit exactly what was reviewed, and record what
-            created it. The live demo is its reference implementation.
+            Last EHR is the agent layer for a headless FHIR EHR. It reads the
+            chart broadly: 25 of US Core&apos;s 27 readable resource types,
+            across 23 sections, following references. And it is built so the
+            agent cannot claim something isn&apos;t in the chart when it never
+            looked. Every write is a proposal: the exact resource shown, an
+            explicit human decision, committed exactly as reviewed, recorded
+            with what created it. That write half is a small protocol with a
+            conformance suite, and the live demo is its reference
+            implementation. Five FHIR backends, one interface.
           </p>
           <p className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[0.72rem] tracking-[0.12em] text-muted-foreground">
             <span className="uppercase text-primary">Proposal → Decision → Commit → Audit</span>
@@ -76,7 +83,7 @@ export default function Hero() {
             </Link>
           </div>
 
-          <div className="mt-7 grid gap-2 border-y marketing-rule py-4 text-sm text-muted-foreground sm:grid-cols-3 sm:gap-4">
+          <div className="mt-7 grid gap-2 border-y marketing-rule py-4 text-sm text-muted-foreground sm:grid-cols-2 sm:gap-x-6 sm:gap-y-2.5">
             {proofPoints.map((point) => (
               <span key={point} className="inline-flex items-start gap-2 leading-5">
                 <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
@@ -105,8 +112,8 @@ export default function Hero() {
               </span>
               <span className="text-primary">write / paused</span>
             </div>
-            <div className="grid border-b border-border sm:grid-cols-[0.78fr_1.22fr]">
-              <div className="border-b border-border p-4 sm:border-b-0 sm:border-r sm:p-5">
+            <div className="grid grid-cols-[minmax(0,1fr)] border-b border-border sm:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
+              <div className="min-w-0 border-b border-border p-4 sm:border-b-0 sm:border-r sm:p-5">
                 <p className="font-mono text-[0.68rem] uppercase tracking-[0.13em] text-muted-foreground">
                   Agent request
                 </p>

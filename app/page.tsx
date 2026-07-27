@@ -18,6 +18,17 @@ import { SignupForm } from "@/components/SignupForm";
 import { SiteFooter } from "@/components/site-footer";
 import { buttonVariants } from "@/components/ui/button";
 
+// Mirrors docs/support.md, which is the source of truth for what each backend
+// is verified for. Deliberately not a logo wall: "verified" means different
+// things here, and the differences are the useful part.
+const backends: Array<[string, string, string]> = [
+  ["Medplum", "Supported", "The authenticated path. Medplum owns identity, tenancy, AccessPolicy, and audit logs."],
+  ["HAPI FHIR", "Local evaluation", "The repository's Docker Compose stack. No auth, loopback-bound, synthetic data on one machine."],
+  ["Oystehr", "Synthetic evaluation", "OAuth2 M2M against a developer-tier project. The only backend so far that honors server-side session isolation with no client-side fallback."],
+  ["Aidbox", "Synthetic evaluation", "HTTP Basic from an Aidbox Client. Needs a box you own and seed; its AccessPolicy stays the security boundary."],
+  ["Firely Server", "Synthetic evaluation", "Verified against the public synthetic sandbox, which is shared and periodically wiped, so it is unsuitable for a public demo."],
+];
+
 const entryPoints = [
   {
     number: "01",
@@ -52,7 +63,11 @@ const entryPoints = [
 ];
 
 const evidenceRows = [
-  ["Web agent", "Three write tools are proposal-shaped and approval-gated."],
+  ["Web agent", "Every write tool is proposal-shaped and approval-gated."],
+  [
+    "Read coverage",
+    "Counted in the open against US Core, with the ceiling and the deliberate exclusions published rather than implied.",
+  ],
   [
     "MCP write profile",
     "Elicitation-gated proposals behind an explicit opt-in; write tools are offered only to approval-capable clients.",
@@ -67,10 +82,11 @@ const evidenceRows = [
 
 const docRoutes = [
   ["01", "Protocol", "Approval-Gated Agent Writes on FHIR — the v0.1 draft", "/docs/agent-write-protocol"],
-  ["02", "Evaluate", "Synthetic web demo and MCP Local Lab", "/docs/quickstart"],
-  ["03", "Understand", "Approval gates, threat model, support boundary", "/docs/approval-gates"],
-  ["04", "Integrate", "Medplum, MCP, conformance, and backend adapters", "/docs/mcp"],
-  ["05", "Contribute", "Executable starter, contracts, and open roadmap", "/docs/adapters"],
+  ["02", "Coverage", "What the agent can and cannot reach in FHIR, counted", "/docs/fhir-coverage"],
+  ["03", "Evaluate", "Synthetic web demo and MCP Local Lab", "/docs/quickstart"],
+  ["04", "Understand", "Approval gates, threat model, support boundary", "/docs/approval-gates"],
+  ["05", "Integrate", "Medplum, MCP, conformance, and backend adapters", "/docs/mcp"],
+  ["06", "Contribute", "Executable starter, contracts, and open roadmap", "/docs/adapters"],
 ];
 
 export default function Home() {
@@ -137,6 +153,27 @@ export default function Home() {
                 integration coverage. The Safety Eval runs on those same
                 disposable synthetic workflows and writes a scrubbed report, not
                 a broad marketing badge.
+              </p>
+              <p className="mt-5 text-lg leading-8 text-muted-foreground">
+                Five backends run through it today, and what each one is
+                verified for is published rather than averaged into a logo wall:
+              </p>
+              <ul className="mt-5 divide-y divide-border border-y border-border">
+                {backends.map(([name, status, note]) => (
+                  <li key={name} className="grid gap-1 py-3 sm:grid-cols-[7.5rem_1fr] sm:gap-4">
+                    <span className="text-sm font-semibold">{name}</span>
+                    <span className="text-sm leading-6 text-muted-foreground">
+                      <span className="text-foreground">{status}.</span> {note}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                Adding one is a small class plus contract tests. The
+                <Link href="/docs/support" className="mx-1 underline decoration-border underline-offset-4 hover:text-foreground">
+                  support matrix
+                </Link>
+                states what &ldquo;verified&rdquo; means for each.
               </p>
               <Link
                 href="/docs/adapters"

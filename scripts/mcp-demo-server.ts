@@ -44,14 +44,30 @@ export function assertLocalHapiMcpUrl(value: string): string {
   return value;
 }
 
+/**
+ * The Local Lab keeps the two whole-chart reads and deliberately drops
+ * read_chart_section and read_document, which @lastehr/mcp does offer.
+ *
+ * Not a safety gate — the fixture client already refuses any resource type
+ * outside its six-type allowlist, so the section reader could not escape it.
+ * It is an honesty one: the section reader advertises 23 sections, 17 of which
+ * this Lab would refuse, and the Lab's whole purpose is a surface small enough
+ * to inspect. Its own instructions promise exactly two tools, and offering a
+ * tool that mostly errors would make that promise false while looking
+ * generous.
+ */
+const LOCAL_LAB_TOOLS = new Set(["search_patients", "show_patient_info"]);
+
 function createSyntheticLabTools(client: MedplumReadClient): McpReadTool[] {
-  return createReadTools(client).map((tool) => ({
-    ...tool,
-    description:
-      tool.name === "search_patients"
-        ? "Search the four seeded synthetic patients by name. This checkout-only Local Lab is read-only and never searches outside the fixture set."
-        : "Show a seeded synthetic patient's chart by resource id. This checkout-only Local Lab is read-only and rejects unseeded patient ids.",
-  }));
+  return createReadTools(client)
+    .filter((tool) => LOCAL_LAB_TOOLS.has(tool.name))
+    .map((tool) => ({
+      ...tool,
+      description:
+        tool.name === "search_patients"
+          ? "Search the four seeded synthetic patients by name. This checkout-only Local Lab is read-only and never searches outside the fixture set."
+          : "Show a seeded synthetic patient's chart by resource id. This checkout-only Local Lab is read-only and rejects unseeded patient ids.",
+    }));
 }
 
 export type McpDemoServerOptions = {

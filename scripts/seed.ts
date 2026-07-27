@@ -4,6 +4,7 @@ import type {
   CodeableConcept,
   Coding,
   Condition,
+  DocumentReference,
   Immunization,
   MedicationRequest,
   Observation,
@@ -160,6 +161,51 @@ async function createChart(
           ? { system: "http://unitsofmeasure.org", code: o.ucum }
           : {}),
       },
+    });
+    count++;
+  }
+
+  for (const d of p.documents) {
+    await backend.createResource<DocumentReference>({
+      resourceType: "DocumentReference",
+      status: "current",
+      type: codeable(d.display, { system: "http://loinc.org", code: d.loinc }),
+      // US Core expects a category; "clinical-note" is the one that fits every
+      // fixture here.
+      category: [
+        {
+          coding: [
+            {
+              system:
+                "http://hl7.org/fhir/us/core/CodeSystem/us-core-documentreference-category",
+              code: "clinical-note",
+            },
+          ],
+        },
+      ],
+      subject,
+      date: `${d.date}T00:00:00Z`,
+      description: d.text,
+      content: [
+        {
+          attachment: {
+            contentType: d.contentType,
+            title: d.text,
+            // A small text note is legitimately carried inline. The reader
+            // decodes this without any new outbound request; see
+            // read_document in lib/ai/tools.ts.
+            ...(d.body
+              ? {
+                  data: Buffer.from(d.body, "utf8").toString("base64"),
+                  size: Buffer.byteLength(d.body, "utf8"),
+                }
+              : {}),
+            // A pointer instead of a body, which the reader must report as
+            // unretrievable rather than as an empty document.
+            ...(d.urlPath ? { url: d.urlPath } : {}),
+          },
+        },
+      ],
     });
     count++;
   }

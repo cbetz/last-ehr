@@ -11,6 +11,7 @@ import {
   wipePatient,
   CHILD_TYPES,
 } from "@/scripts/seed-lib";
+import { patients } from "@/scripts/fixtures/patients";
 import { AidboxBackend } from "@/lib/fhir/aidbox";
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { FirelyBackend } from "@/lib/fhir/firely";
@@ -104,8 +105,33 @@ describe("wipePatient", () => {
       "AllergyIntolerance",
       "MedicationRequest",
       "Immunization",
+      "DocumentReference",
     ]) {
       expect(CHILD_TYPES).toContain(type);
+    }
+  });
+
+  it("wipes every type the fixtures can create, so a re-seed cannot duplicate", () => {
+    // Derived from the fixture data, not restated: adding a populated fixture
+    // array whose type the wipe misses silently accumulates a duplicate chart
+    // on every seed. That is exactly how DocumentReference was missed.
+    const seeded: Array<[keyof (typeof patients)[number], string]> = [
+      ["conditions", "Condition"],
+      ["medications", "MedicationRequest"],
+      ["allergies", "AllergyIntolerance"],
+      ["immunizations", "Immunization"],
+      ["observations", "Observation"],
+      ["documents", "DocumentReference"],
+    ];
+    for (const [field, type] of seeded) {
+      const populated = patients.some(
+        (patient) => (patient[field] as unknown[]).length > 0,
+      );
+      if (!populated) continue;
+      expect(
+        CHILD_TYPES,
+        `fixtures populate ${String(field)}, so the wipe must cover ${type}`,
+      ).toContain(type);
     }
   });
 });

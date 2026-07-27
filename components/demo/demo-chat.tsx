@@ -19,6 +19,11 @@ import {
 } from "@/components/chat";
 import { PatientCard } from "@/components/chat/patient";
 import { ConfirmWrite } from "@/components/chat/confirm-write";
+import {
+  codeObservation,
+  OBSERVATION_REPLACES_EXTENSION,
+  UCUM_SYSTEM,
+} from "@/lib/fhir/vitals";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
 import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
@@ -32,6 +37,7 @@ import {
   ConversionCard,
   conversionCardDismissed,
 } from "@/components/demo/conversion-card";
+import { AssistantMarkdown } from "@/components/demo/assistant-markdown";
 import { DismissibleNotice } from "@/components/demo/dismissible-notice";
 import { useDemoBackend } from "@/components/demo/demo-backend";
 import { DevPanel } from "@/components/demo/dev-panel";
@@ -59,6 +65,72 @@ const DEV_EVENT_CAP = 200;
 // The chat API writes its error bodies for users (rate limit, expired session,
 // model failure), and the transport surfaces that body as error.message. Show
 // messages we recognize verbatim; anything else gets a generic fallback.
+// Approval-card rendering of the observation coding, derived from the same
+// pinned table the write tool uses (lib/fhir/vitals.ts) so the card cannot
+// drift from what saves.
+function observationCodingRows(
+  label: string,
+  unit: string,
+): { label: string; value: string }[] {
+  const coded = codeObservation(label, unit);
+  const loinc = coded.code.coding?.[0];
+  return [
+    ...(loinc
+      ? [{ label: "Code", value: `LOINC ${loinc.code} — ${loinc.display}` }]
+      : [{ label: "Code", value: `${label} (text only — no standard code)` }]),
+    ...(coded.ucum
+      ? [{ label: "Unit", value: `UCUM ${coded.ucum}` }]
+      : [{ label: "Unit", value: `${unit} (no UCUM code — saved as text)` }]),
+  ];
+}
+
+function observationPreview(
+  patientId: string,
+  label: string,
+  value: number,
+  unit: string,
+) {
+  const coded = codeObservation(label, unit);
+  return {
+    resourceType: "Observation",
+    status: "final",
+    code: coded.code,
+    ...(coded.category ? { category: coded.category } : {}),
+    subject: { reference: `Patient/${patientId}` },
+    effectiveDateTime: "<server time when approved>",
+    valueQuantity: {
+      value,
+      unit,
+      ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
+    },
+  };
+}
+
+// read_chart_section returns `related`, `truncated`, `includeUnsupported`,
+// and `codeFilterUnmatched` conditionally, so the card reads them defensively
+// rather than widening the tool's return type for the sake of the view.
+type ChartReadOutput = {
+  entries: { id: string; text: string; date: string }[];
+  truncated?: boolean;
+  related?: { id: string; resourceType: string; text: string }[];
+  includeUnsupported?: boolean;
+  codeFilterUnmatched?: boolean;
+};
+
+const chartReadTruncated = (output: unknown): boolean =>
+  (output as ChartReadOutput | undefined)?.truncated === true;
+
+const chartReadIncludeUnsupported = (output: unknown): boolean =>
+  (output as ChartReadOutput | undefined)?.includeUnsupported === true;
+
+const chartReadCodeFilterUnmatched = (output: unknown): boolean =>
+  (output as ChartReadOutput | undefined)?.codeFilterUnmatched === true;
+
+const chartReadRelated = (
+  output: unknown,
+): { id: string; resourceType: string; text: string }[] =>
+  (output as ChartReadOutput | undefined)?.related ?? [];
+
 const FRIENDLY_ERROR_PREFIXES = [
   "Rate limit reached",
   "Your demo session expired",
@@ -386,7 +458,7 @@ export function DemoChat() {
                       case "text":
                         return part.text ? (
                           <BotMessage key={`${message.id}-${i}`}>
-                            {part.text}
+                            <AssistantMarkdown>{part.text}</AssistantMarkdown>
                           </BotMessage>
                         ) : null;
 
@@ -431,6 +503,59 @@ export function DemoChat() {
                         }
                         return pendingSkeleton(part.toolCallId);
 
+                      case "tool-read_document": {
+                        if (part.state === "output-available") {
+                          // The tool returns a discriminated union: a readable
+                          // document has `text`, an unreadable one has
+                          // `unreadable`. Narrow rather than assume.
+                          const doc = part.output;
+                          const body = "text" in doc ? doc.text : undefined;
+                          const truncated =
+                            "truncated" in doc ? doc.truncated === true : false;
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <div className="rounded-lg border bg-background p-4">
+                                <p className="text-sm font-medium">
+                                  {part.output.title}
+                                  {part.output.date && (
+                                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                      {part.output.date}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className="mt-1 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
+                                  {part.output.contentType}
+                                </p>
+                                {body ? (
+                                  <>
+                                    {/* The boundary is for the model; the
+                                        reader gets the note itself, in a box
+                                        that scrolls rather than widening the
+                                        page. */}
+                                    <pre className="mt-3 max-h-80 max-w-full overflow-auto whitespace-pre-wrap border-t pt-3 font-mono text-xs leading-6 text-muted-foreground">
+                                      {body.replace(/<\/?chart_text>/g, "")}
+                                    </pre>
+                                    {truncated && (
+                                      <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                        Only the opening of this document was
+                                        read. The rest exists and was not shown.
+                                      </p>
+                                    )}
+                                  </>
+                                ) : (
+                                  /* Never a blank box: an unread document must
+                                     not look like an empty one. */
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    {"unreadable" in doc ? doc.unreadable : null}
+                                  </p>
+                                )}
+                              </div>
+                            </BotCard>
+                          );
+                        }
+                        return null;
+                      }
+
                       case "tool-read_chart_section":
                         if (part.state === "output-available") {
                           return (
@@ -467,7 +592,60 @@ export function DemoChat() {
                                   </ul>
                                 ) : (
                                   <p className="mt-2 text-sm text-muted-foreground">
-                                    No matching records in this section.
+                                    {/* Never a bare "none exist" when the
+                                        read was capped or a lookup was
+                                        refused — the reader is the safety
+                                        boundary and gets at least as much
+                                        honesty as the model does. */}
+                                    {chartReadCodeFilterUnmatched(part.output)
+                                      ? "No record in this section carries that code."
+                                      : chartReadTruncated(part.output)
+                                        ? "No matching records in the window that was read."
+                                        : "No matching records in this section."}
+                                  </p>
+                                )}
+                                {chartReadRelated(part.output).length > 0 && (
+                                  <div className="mt-4 border-t pt-3">
+                                    <p className="font-mono text-[0.65rem] uppercase tracking-[0.13em] text-muted-foreground">
+                                      Referenced records
+                                    </p>
+                                    <ul className="mt-2 space-y-1.5">
+                                      {chartReadRelated(part.output).map((row) => (
+                                        <li
+                                          key={`${row.resourceType}/${row.id}`}
+                                          className="flex items-baseline gap-2 text-sm"
+                                        >
+                                          <span className="shrink-0 border border-border px-1.5 py-0.5 font-mono text-[0.6rem] text-muted-foreground">
+                                            {row.resourceType}
+                                          </span>
+                                          <span className="min-w-0">
+                                            {row.text.replace(/<\/?chart_text>/g, "")}
+                                          </span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                                {chartReadTruncated(part.output) && (
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    Only the newest {part.output.entries.length}{" "}
+                                    matching records were read. Older ones may
+                                    exist, so narrow the dates or ask for more.
+                                  </p>
+                                )}
+                                {chartReadIncludeUnsupported(part.output) && (
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    This backend would not resolve the
+                                    referenced records, so none are shown. That
+                                    is not the same as there being none.
+                                  </p>
+                                )}
+                                {chartReadCodeFilterUnmatched(part.output) && (
+                                  <p className="mt-3 border-t pt-3 text-xs leading-5 text-amber-600 dark:text-amber-400">
+                                    This section does hold records. None of them
+                                    carry that code, and records with text-only
+                                    entries cannot match a coded search. Read
+                                    the section without a code to see them.
                                   </p>
                                 )}
                               </div>
@@ -561,23 +739,22 @@ export function DemoChat() {
                                     label: "Value",
                                     value: `${part.input.value} ${part.input.unit}`,
                                   },
+                                  // The derived codes are clinically
+                                  // meaningful, so the reviewer sees them
+                                  // rather than discovering them on the
+                                  // chart. Same shared function the write
+                                  // tool builds from.
+                                  ...observationCodingRows(
+                                    part.input.label,
+                                    part.input.unit,
+                                  ),
                                 ]}
-                                preview={{
-                                  resourceType: "Observation",
-                                  status: "final",
-                                  code: { text: part.input.label },
-                                  subject: {
-                                    reference: `Patient/${part.input.patientId}`,
-                                  },
-                                  effectiveDateTime:
-                                    "<server time when approved>",
-                                  valueQuantity: {
-                                    value: part.input.value,
-                                    unit: part.input.unit,
-                                    system: "http://unitsofmeasure.org",
-                                    code: part.input.unit,
-                                  },
-                                }}
+                                preview={observationPreview(
+                                  part.input.patientId,
+                                  part.input.label,
+                                  part.input.value,
+                                  part.input.unit,
+                                )}
                                 onApprove={() =>
                                   respondToApproval(
                                     "record_observation",
@@ -607,6 +784,98 @@ export function DemoChat() {
                           return (
                             <BotMessage key={part.toolCallId}>
                               Sorry, I couldn&apos;t record that:{" "}
+                              {part.errorText}
+                            </BotMessage>
+                          );
+                        }
+                        return pendingSkeleton(part.toolCallId);
+
+                      case "tool-record_superseding_observation":
+                        if (part.state === "approval-requested") {
+                          return (
+                            <BotCard key={part.toolCallId} showAvatar={false}>
+                              <ConfirmWrite
+                                title="File a superseding observation?"
+                                resourceType="Observation"
+                                fields={[
+                                  {
+                                    label: "Patient",
+                                    value: `Patient/${part.input.patientId}`,
+                                  },
+                                  // The raw id is not optional: the reviewer
+                                  // needs to see exactly which row is being
+                                  // superseded, and the conformance suite
+                                  // requires every argument value to appear
+                                  // in the rendering.
+                                  {
+                                    label: "Supersedes",
+                                    value: `Observation/${part.input.supersedes}`,
+                                  },
+                                  {
+                                    label: "New value",
+                                    value: `${part.input.value} ${part.input.unit}`,
+                                  },
+                                  // Stated where the Approve button is, not
+                                  // inside the collapsed FHIR preview.
+                                  {
+                                    label: "Note",
+                                    value:
+                                      "The earlier entry stays on the chart as a final result. This does not mark it as an error, and does not delete it. Retracting it requires the EHR's own correction workflow.",
+                                  },
+                                ]}
+                                preview={{
+                                  resourceType: "Observation",
+                                  status: "final",
+                                  code: "<copied from the superseded observation>",
+                                  subject: {
+                                    reference: `Patient/${part.input.patientId}`,
+                                  },
+                                  effectiveDateTime:
+                                    "<copied from the superseded observation>",
+                                  issued: "<server time when approved>",
+                                  valueQuantity: {
+                                    value: part.input.value,
+                                    unit: part.input.unit,
+                                  },
+                                  extension: [
+                                    {
+                                      url: OBSERVATION_REPLACES_EXTENSION,
+                                      valueReference: {
+                                        reference: `Observation/${part.input.supersedes}`,
+                                      },
+                                    },
+                                  ],
+                                }}
+                                onApprove={() =>
+                                  respondToApproval(
+                                    "record_superseding_observation",
+                                    part.approval.id,
+                                    true,
+                                  )
+                                }
+                                onCancel={() =>
+                                  respondToApproval(
+                                    "record_superseding_observation",
+                                    part.approval.id,
+                                    false,
+                                  )
+                                }
+                              />
+                            </BotCard>
+                          );
+                        }
+                        if (part.state === "output-available") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              ✓ Superseding observation saved. The earlier
+                              entry remains on the chart.
+                            </BotMessage>
+                          );
+                        }
+                        if (part.state === "output-error") {
+                          return (
+                            <BotMessage key={part.toolCallId}>
+                              Sorry, I couldn&apos;t file that correction:{" "}
                               {part.errorText}
                             </BotMessage>
                           );
