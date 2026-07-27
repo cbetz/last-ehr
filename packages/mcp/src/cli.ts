@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
 import { config as loadEnv } from "dotenv";
+import { realpathSync } from "node:fs";
+import { pathToFileURL } from "node:url";
 
 import { McpConfigurationError, loadMcpConfig } from "./config.js";
 import { isMcpClient, renderInit, type McpClient } from "./init.js";
-import { startMcpServer } from "./server.js";
+import { MCP_SERVER_VERSION, startMcpServer } from "./server.js";
 
 function hasExplicitMedplumAuth(env: NodeJS.ProcessEnv) {
   return Boolean(
@@ -36,6 +38,7 @@ function help() {
     "  npx -y @lastehr/mcp                 Start the stdio MCP server",
     "  npx -y @lastehr/mcp init [--client json|claude-code|cursor]",
     "  npx -y @lastehr/mcp doctor          Validate local configuration",
+    "  npx -y @lastehr/mcp --version       Print the package version",
     "",
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
     "Local stack: FHIR_BACKEND=hapi with HAPI_BASE_URL or FHIR_BASE_URL",
@@ -68,6 +71,11 @@ export async function runCli(
     return;
   }
 
+  if (command === "--version" || command === "-v") {
+    process.stdout.write(`${MCP_SERVER_VERSION}\n`);
+    return;
+  }
+
   if (command === "init") {
     process.stdout.write(renderInit(initClient(args.slice(1))));
     return;
@@ -97,11 +105,38 @@ export async function runCli(
   throw new McpConfigurationError(`Unknown command: ${command}`);
 }
 
-runCli().catch((error: unknown) => {
-  const message =
-    error instanceof McpConfigurationError
-      ? error.message
-      : "Last EHR MCP could not start. Verify the backend configuration and try again.";
-  console.error(message);
-  process.exitCode = 1;
-});
+/**
+ * True only when this file is the process entry point, so importing it for a
+ * test does not start a server.
+ *
+ * argv[1] must be resolved through realpath first. npm installs the `bin` as a
+ * SYMLINK (node_modules/.bin/lastehr-mcp -> dist/cli.js), so under the
+ * documented `npx -y @lastehr/mcp` invocation argv[1] is the symlink while
+ * import.meta.url is the resolved target. Comparing them unresolved makes this
+ * false in exactly the case that matters, and the CLI then exits 0 having done
+ * nothing — no server, no error, no output.
+ */
+function isEntryPoint(): boolean {
+  const entry = process.argv[1];
+  if (entry === undefined) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(entry)).href;
+  } catch {
+    // argv[1] may not exist on disk (some runners pass a virtual path); fall
+    // back to the unresolved comparison rather than refusing to start.
+    return import.meta.url === pathToFileURL(entry).href;
+  }
+}
+
+const isDirectExecution = isEntryPoint();
+
+if (isDirectExecution) {
+  runCli().catch((error: unknown) => {
+    const message =
+      error instanceof McpConfigurationError
+        ? error.message
+        : "Last EHR MCP could not start. Verify the backend configuration and try again.";
+    console.error(message);
+    process.exitCode = 1;
+  });
+}
