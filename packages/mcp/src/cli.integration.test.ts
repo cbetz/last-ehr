@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, symlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { MCP_SERVER_VERSION } from "./server.js";
 
@@ -23,6 +23,18 @@ const run = (bin: string) =>
   execFileSync(process.execPath, [bin, "--version"], { encoding: "utf8" }).trim();
 
 describe("the built CLI actually runs", () => {
+  // These exercise the compiled artifact, so they need it to exist. CI runs
+  // `npm test` BEFORE `npm run build`, and a contributor may not have built
+  // either, so the suite builds on demand rather than depending on step order —
+  // skipping instead would make it pass silently in exactly that case.
+  beforeAll(() => {
+    if (existsSync(dist)) return;
+    execFileSync("npm", ["run", "build", "--workspace=@lastehr/mcp"], {
+      cwd: resolve(import.meta.dirname, "../../.."),
+      stdio: "ignore",
+    });
+  }, 120_000);
+
   it("prints the version when executed directly", () => {
     expect(run(dist)).toBe(MCP_SERVER_VERSION);
   });
