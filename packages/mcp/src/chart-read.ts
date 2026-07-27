@@ -56,6 +56,55 @@ export interface ChartReadClient {
   ): Promise<ExtractResource<K>[]>;
 }
 
+/**
+ * What a Patient looks like once it leaves this module.
+ *
+ * The tools used to return raw `Bundle.entry` and the raw Patient resource,
+ * which meant every caller — including an arbitrary MCP client's model — also
+ * received `fullUrl` (the backend HOST: verified as
+ * `http://localhost:8080/fhir/Patient/2463`), `meta` (whose tags carry the
+ * demo's session capability token), `identifier` (MRNs), plus `address` and
+ * `telecom` that no chart-search result needs. The repo's own rule that
+ * backend detail must never reach the browser was being honored in the dev
+ * panel and skipped here, where it goes to a model as well.
+ *
+ * So the shape is a projection, not a resource. A name is free text the server
+ * chose, so it crosses the untrusted-content boundary like any other.
+ */
+export type PatientSummary = {
+  id: string;
+  /** "Family, Given", inside the boundary. */
+  name: string;
+  birthDate?: string;
+  gender?: string;
+  /**
+   * Display only. Kept because dropping it silently removes the demo's
+   * avatars; safe because the browser fetches it through next/image, whose
+   * `remotePatterns` allowlist bounds which hosts can be requested at all.
+   */
+  photoUrl?: string;
+};
+
+export function toPatientSummary(patient: {
+  id?: string;
+  name?: Array<{ family?: string; given?: string[] }>;
+  birthDate?: string;
+  gender?: string;
+  photo?: Array<{ url?: string }>;
+}): PatientSummary {
+  const name = patient.name?.[0];
+  const family = name?.family ?? "";
+  const given = name?.given?.join(" ") ?? "";
+  const display = family ? `${family}, ${given}`.replace(/, $/, "") : given;
+  return {
+    id: patient.id ?? "",
+    name: asChartText(display || "Unknown patient"),
+    ...(patient.birthDate ? { birthDate: patient.birthDate } : {}),
+    ...(patient.gender ? { gender: patient.gender } : {}),
+    ...(patient.photo?.[0]?.url ? { photoUrl: patient.photo[0].url } : {}),
+  };
+}
+
 export const DEMO_TAG_SYSTEM = "http://lastehr.demo";
 
 /**
@@ -1489,7 +1538,9 @@ export function createChartReader(
     }
 
     return {
-      patient,
+      // Projected, not the raw resource: see PatientSummary for what the raw
+      // form was handing every caller.
+      patient: toPatientSummary(patient),
       conditions: conditions.map((c) => ({
         id: c.id ?? "",
         text: asChartText(

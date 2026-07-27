@@ -5,7 +5,11 @@ import type {
 } from "@medplum/fhirtypes";
 import { z } from "zod";
 
-import { createChartReader } from "./chart-read.js";
+import {
+  createChartReader,
+  toPatientSummary,
+  type PatientSummary,
+} from "./chart-read.js";
 
 export interface FhirReadClient {
   search<K extends ResourceType>(
@@ -58,6 +62,19 @@ const searchPatientsSchema = z.object({
  * (a Medplum access policy, or the local no-auth evaluation stack's
  * everything); this MCP server never implements authorization itself.
  */
+/**
+ * Search results are projected, never raw `Bundle.entry`. A raw entry carries
+ * `fullUrl` — the backend host — plus `meta`, `identifier`, `address` and
+ * `telecom` that a name search has no use for, and it hands all of it to the
+ * caller's model.
+ */
+const summarize = (
+  entries: Array<{ resource?: Parameters<typeof toPatientSummary>[0] }>,
+): PatientSummary[] =>
+  entries.flatMap((entry) =>
+    entry.resource ? [toPatientSummary(entry.resource)] : [],
+  );
+
 export function createReadTools(client: FhirReadClient): McpReadTool[] {
   const reader = createChartReader(client);
   return [
@@ -70,14 +87,14 @@ export function createReadTools(client: FhirReadClient): McpReadTool[] {
         const { name } = searchPatientsSchema.parse(input);
         const bundle = await client.search("Patient", { name, _count: "20" });
         const entries = bundle.entry ?? [];
-        if (entries.length > 0) return { patients: entries };
+        if (entries.length > 0) return { patients: summarize(entries) };
         // R4 defines `name` as matching any PART of a HumanName, and servers
         // differ on whether a multi-word value is matched as a whole string.
         // Probed on HAPI: "Maria Garcia" answers 0 while either word answers 1,
         // so asking by full name — which this description invites — would say
         // the patient is not in the system.
         const words = name.trim().split(/\s+/).filter(Boolean).slice(0, 3);
-        if (words.length < 2) return { patients: entries };
+        if (words.length < 2) return { patients: summarize(entries) };
         const perWord = await Promise.all(
           words.map((word) => client.search("Patient", { name: word, _count: "20" })),
         );
@@ -96,12 +113,14 @@ export function createReadTools(client: FhirReadClient): McpReadTool[] {
         // Only patients matching EVERY word, so the retry cannot widen
         // "Maria Garcia" into "anyone named Maria or Garcia".
         return {
-          patients: [...hits.entries()]
-            .filter(([, count]) => count === words.length)
-            .flatMap(([id]) => {
-              const entry = byId.get(id);
-              return entry ? [entry] : [];
-            }),
+          patients: summarize(
+            [...hits.entries()]
+              .filter(([, count]) => count === words.length)
+              .flatMap(([id]) => {
+                const entry = byId.get(id);
+                return entry ? [entry] : [];
+              }),
+          ),
         };
       },
     },

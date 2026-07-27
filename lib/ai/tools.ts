@@ -2,7 +2,10 @@ import { tool, type ToolSet } from "ai";
 import { z } from "zod";
 
 import type { FhirBackend } from "@/lib/fhir/backend";
-import { createChartReader } from "@/packages/mcp/src/chart-read";
+import {
+  createChartReader,
+  toPatientSummary,
+} from "@/packages/mcp/src/chart-read";
 import { AIAST_LABEL, PROVENANCE_PARTICIPANT_TYPE } from "@/lib/fhir/labels";
 import {
   codeObservation,
@@ -177,6 +180,18 @@ export function buildTools(
   // same sections, the same filter validation, and the same honesty
   // properties. See packages/mcp/src/chart-read.ts.
   const reader = createChartReader(backend, sessionId);
+  /**
+   * Search results are projected, never raw `Bundle.entry`. A raw entry carries
+   * `fullUrl` — the backend host — plus `meta` (whose tags carry the demo
+   * session token), `identifier`, `address` and `telecom` that a name search
+   * has no use for, and it hands all of it to the model and the browser.
+   */
+  const summarize = (
+    entries: Array<{ resource?: Parameters<typeof toPatientSummary>[0] }>,
+  ) =>
+    entries.flatMap((entry) =>
+      entry.resource ? [toPatientSummary(entry.resource)] : [],
+    );
   const { isVisible, searchVisible } = reader;
 
 
@@ -294,7 +309,7 @@ export function buildTools(
 
         const bundle = await byName(name);
         const entries = bundle.entry ?? [];
-        if (entries.length > 0) return { patients: entries };
+        if (entries.length > 0) return { patients: summarize(entries) };
 
         // R4 defines `name` as matching any part of a HumanName, and servers
         // differ on whether a multi-word value is matched as a whole string.
@@ -305,7 +320,7 @@ export function buildTools(
         // EVERY word, which is at least as precise as searching one word and
         // never widens the result set.
         const words = name.trim().split(/\s+/).filter(Boolean).slice(0, 3);
-        if (words.length < 2) return { patients: entries };
+        if (words.length < 2) return { patients: summarize(entries) };
 
         const perWord = await Promise.all(words.map(byName));
         const counts = new Map<string, number>();
@@ -326,7 +341,7 @@ export function buildTools(
           .filter(([, hits]) => hits === words.length)
           .map(([id]) => byId.get(id))
           .filter((entry): entry is (typeof entries)[number] => Boolean(entry));
-        return { patients: all };
+        return { patients: summarize(all) };
       },
     }),
     // Thin wrappers over the shared reader: the logic and schemas live in

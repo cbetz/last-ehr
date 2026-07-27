@@ -45,6 +45,24 @@ self-hosters can tell what moved between pulls.
   the client's system prompt, and a flag whose meaning is never stated is a
   flag that does nothing.
 
+- **Patient search results are projected, not raw `Bundle.entry`.** A raw entry
+  carries `fullUrl` — the backend host, verified as
+  `http://localhost:8080/fhir/Patient/2463` — plus `meta` (whose tags carry the
+  demo's session capability token), `identifier` (MRNs), `address` and
+  `telecom`, none of which a name search needs. All of it was reaching the
+  browser and an MCP client's model. The repo's rule that backend detail must
+  never reach the browser was being honored in the dev panel and skipped on this
+  path.
+
+  `search_patients` and `show_patient_info` now return `{ id, name, birthDate,
+  gender, photoUrl }`, with the name inside the `<chart_text>` boundary because a
+  name is free text the server chose. Both surfaces and both chart components
+  changed together; TypeScript found every consumer.
+
+  Dropping `identifier` is deliberate and has a cost worth naming: a caller can
+  no longer match a search result by MRN. An MRN in model context is PHI the
+  agent's task does not need, and the resource id is what fetches the chart.
+
   The checkout-only Local Lab deliberately keeps its two tools. Not a safety
   gate — its fixture client already refuses any resource type outside a
   six-type allowlist — but an honesty one: the section reader advertises 23

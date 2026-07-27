@@ -72,15 +72,15 @@ if (!runHapiE2E) {
               arguments: { name: "Smith" },
             }),
           );
+          // Projected summaries, not raw Bundle.entry. Selecting by name rather
+          // than by MRN: the projection deliberately drops `identifier`, since
+          // an MRN in model context is PHI the agent's task never needs.
           const entries = (search.patients ?? []) as Array<{
-            resource?: { id?: string; identifier?: Array<{ value?: string }> };
+            id?: string;
+            name?: string;
           }>;
           expect(entries.length).toBeGreaterThanOrEqual(2);
-          const john = entries.find((entry) =>
-            entry.resource?.identifier?.some(
-              (identifier) => identifier.value === "synthetic-001",
-            ),
-          )?.resource;
+          const john = entries.find((patient) => patient.name?.includes("John"));
           expect(john?.id).toBeTruthy();
 
           const chart = textResult(

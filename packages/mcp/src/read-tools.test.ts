@@ -58,6 +58,62 @@ describe("read-only MCP tools", () => {
     }
   });
 
+  it("never hands the backend host or identifiers to the caller", async () => {
+    // A raw Bundle.entry carries fullUrl, which is the backend host. The dev
+    // panel has always been forbidden from exposing hosts; this path was
+    // handing one to an MCP client's model as well, along with meta (whose
+    // tags carry the demo session token), identifiers, address and telecom.
+    const leaky = {
+      search: async () => ({
+        entry: [
+          {
+            fullUrl: "https://fhir.internal.example/fhir/Patient/2463",
+            resource: {
+              resourceType: "Patient",
+              id: "2463",
+              name: [{ given: ["Maria"], family: "Garcia" }],
+              birthDate: "2001-07-30",
+              identifier: [{ system: "urn:mrn", value: "MRN-000123" }],
+              address: [{ line: ["12 Elm St"], city: "Springfield" }],
+              telecom: [{ system: "phone", value: "555-0100" }],
+              meta: { versionId: "7", tag: [{ system: "http://lastehr.demo", code: "session-SECRET" }] },
+            },
+          },
+        ],
+      }),
+      searchResources: async () => [],
+    } as unknown as MedplumReadClient;
+
+    const result = await callMcpTool(createReadTools(leaky), "search_patients", {
+      name: "Garcia",
+    });
+    expect(result.isError).toBeFalsy();
+    const text = result.content[0].text;
+
+    for (const leak of [
+      "fhir.internal.example",
+      "fullUrl",
+      "MRN-000123",
+      "Elm St",
+      "555-0100",
+      "session-SECRET",
+      "versionId",
+    ]) {
+      expect(text, `${leak} reached the caller`).not.toContain(leak);
+    }
+    // And the useful part survives, inside the boundary.
+    const payload = JSON.parse(text) as {
+      patients: Array<{ id: string; name: string; birthDate?: string }>;
+    };
+    expect(payload.patients).toEqual([
+      {
+        id: "2463",
+        name: "<chart_text>Garcia, Maria</chart_text>",
+        birthDate: "2001-07-30",
+      },
+    ]);
+  });
+
   it("passes a refusal of the model's own input through verbatim", async () => {
     // The transport scrubs backend errors on purpose (a FHIR server can put
     // resource fragments in one). But the read core's refusals are static

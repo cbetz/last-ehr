@@ -69,9 +69,12 @@ function patientIdFromSearch(output: unknown): string | undefined {
   const patients = output.value.patients;
   if (!Array.isArray(patients)) return undefined;
 
-  for (const entry of patients) {
-    if (!isRecord(entry) || !isRecord(entry.resource)) continue;
-    const id = entry.resource.id;
+  for (const patient of patients) {
+    if (!isRecord(patient)) continue;
+    // search_patients projects each match (see PatientSummary), so the id is
+    // on the summary. The nested `resource` form is the pre-projection shape,
+    // still accepted so a replayed transcript keeps working.
+    const id = isRecord(patient.resource) ? patient.resource.id : patient.id;
     if (typeof id === "string" && id.length > 0) return id;
   }
   return undefined;
