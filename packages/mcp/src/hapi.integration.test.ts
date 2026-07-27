@@ -33,8 +33,8 @@ const runHapiE2E = process.env.RUN_HAPI_E2E === "1";
 
     const found = await call("search_patients", { name: "Maria Garcia" });
     const patientId = (
-      found.patients as Array<{ resource?: { id?: string } }>
-    )[0]?.resource?.id;
+      found.patients as Array<{ id?: string }>
+    )[0]?.id;
     expect(patientId, "full-name search found nobody").toBeTruthy();
 
     // A coded miss must report codeFilterUnmatched, never read as an absence:
@@ -92,10 +92,10 @@ const runHapiE2E = process.env.RUN_HAPI_E2E === "1";
     });
     expect(search.isError).toBeFalsy();
     const searchPayload = JSON.parse(search.content[0].text) as {
-      patients: Array<{ resource?: { id?: string } }>;
+      patients: Array<{ id?: string }>;
     };
     expect(searchPayload.patients.length).toBeGreaterThan(0);
-    const patientId = searchPayload.patients[0]?.resource?.id;
+    const patientId = searchPayload.patients[0]?.id;
     expect(patientId).toBeTruthy();
 
     const chart = await callMcpTool(tools, "show_patient_info", {

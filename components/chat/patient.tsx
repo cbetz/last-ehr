@@ -1,6 +1,6 @@
 "use client";
 
-import { Patient } from "@medplum/fhirtypes";
+import type { PatientSummary } from "@/packages/mcp/src/chart-read";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 
@@ -29,7 +29,7 @@ export function PatientCard({
   immunizations = [],
   notes = [],
 }: {
-  patient: Patient;
+  patient: PatientSummary;
   conditions?: Labeled[];
   allergies?: Labeled[];
   medications?: Medication[];
@@ -37,12 +37,13 @@ export function PatientCard({
   immunizations?: Immunization[];
   notes?: Note[];
 }) {
-  const family = patient.name?.[0]?.family ?? "";
-  const given = patient.name?.[0]?.given?.join(" ") ?? "";
-  const fullName = `${given} ${family}`.trim() || "Unknown patient";
+  // The tool projects the patient rather than returning the raw resource, so
+  // the backend host, meta tags and identifiers never reach the browser or the
+  // model. The name arrives inside the boundary; the reader gets the text.
+  const fullName = chartText(patient.name) || "Unknown patient";
   const birthDate = patient.birthDate ?? "";
-  const photo = patient.photo?.[0]?.url;
-  const initials = (given[0] ?? family[0] ?? "?").toUpperCase();
+  const photo = patient.photoUrl;
+  const initials = (fullName.match(/[A-Za-z0-9]/)?.[0] ?? "?").toUpperCase();
 
   return (
     <div className="px-4 py-6 sm:px-6">

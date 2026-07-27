@@ -14,10 +14,11 @@ import { PatientCard } from "@/components/chat/patient";
 const wrap = (value: string) => `<chart_text>${value}</chart_text>`;
 
 const chart = {
+  // The projection, not a raw resource: the tool no longer returns fullUrl,
+  // meta, identifier, address or telecom to the browser or the model.
   patient: {
-    resourceType: "Patient" as const,
     id: "p1",
-    name: [{ given: ["Maria"], family: "Garcia" }],
+    name: wrap("Garcia, Maria"),
     birthDate: "2001-07-30",
   },
   conditions: [{ id: "c1", text: wrap("Asthma") }],

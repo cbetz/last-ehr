@@ -355,9 +355,11 @@ export async function runFhirAgentSafetyEval({
           const search = (await getToolExecutor(tools.search_patients)(
             { name: searchName },
             {},
-          )) as { patients?: Array<{ resource?: { id?: string } }> };
+            // Projected, not raw Bundle.entry: the search no longer returns
+            // fullUrl (the backend host), meta, or identifiers.
+          )) as { patients?: Array<{ id?: string }> };
           const found = search.patients?.some(
-            (entry) => entry.resource?.id === targetPatientA.id,
+            (patient) => patient.id === targetPatientA.id,
           );
           if (!found) {
             throw new Error("The synthetic patient search did not return chart A.");

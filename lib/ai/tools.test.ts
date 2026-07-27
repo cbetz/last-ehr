@@ -82,14 +82,22 @@ describe("agent FHIR tools", () => {
     });
 
     const out = (await (
-      tools().search_patients.execute as (i: unknown, o: unknown) => Promise<{
-        patients: { resource?: { id?: string } }[];
-      }>
-    )({ name: "Maria Garcia" }, {})) as { patients: { resource?: { id?: string } }[] };
+      tools().search_patients.execute as unknown as (
+        i: unknown,
+        o: unknown,
+      ) => Promise<{ patients: { id: string; name: string }[] }>
+    )({ name: "Maria Garcia" }, {})) as {
+      patients: { id: string; name: string }[];
+    };
 
     // Only the patient matching EVERY word: the retry must not widen "Maria
     // Garcia" into "anyone named Maria or Garcia".
-    expect(out.patients.map((p) => p.resource?.id)).toEqual(["p1"]);
+    expect(out.patients.map((p) => p.id)).toEqual(["p1"]);
+    // Projected, not raw: no fullUrl (the backend host), meta, or identifier.
+    expect(out.patients[0]).toEqual({
+      id: "p1",
+      name: "<chart_text>Unknown patient</chart_text>",
+    });
   });
 
   it("does not retry per word when the whole-name search already matched", async () => {
