@@ -3,7 +3,14 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.3.0 — 2026-07-26
+
+One read core, shared by the web agent and `@lastehr/mcp` 0.3.0, so the
+published package reads the chart as broadly as the demo does. The honesty
+properties in that core each came from a real false negative found against a
+live FHIR server, and this is the release where the artifact people install
+gets all of them.
+
 
 - **`@lastehr/mcp` 0.3.0 reads the chart as broadly as the web agent does.**
   The published package offered two read tools while the web app offered four.
