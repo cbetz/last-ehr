@@ -3,6 +3,29 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- `@lastehr/mcp` gains `--version` / `-v`, printing the package version without
+  starting a server or reading any configuration. Reuses `MCP_SERVER_VERSION`,
+  which `registry.test.ts` already keeps in lockstep with `package.json` and
+  `server.json`. Contributed in #155 (thanks @adity982), closing #80.
+
+  Merged with two fixes found while verifying it:
+
+  - **The entry-point guard broke `npx`.** To make the CLI importable for tests
+    it now auto-runs only when it is the process entry point, comparing
+    `argv[1]` to `import.meta.url`. But npm installs `bin` as a SYMLINK
+    (`node_modules/.bin/lastehr-mcp` -> `dist/cli.js`), so under the documented
+    `npx -y @lastehr/mcp` invocation `argv[1]` is the symlink while
+    `import.meta.url` is the resolved target: the comparison was false in
+    exactly the case that matters, and the CLI exited 0 having started nothing
+    and printed nothing. `argv[1]` is now resolved through `realpath` first.
+    Covered by a test that runs the built CLI as a real process both directly
+    and through a bin symlink, since no in-process test can observe this.
+  - A type error in the new test file. The package's own
+    `tsconfig.build.json` excludes tests, so `tsc -p tsconfig.build.json`
+    passing does not typecheck them; the repository-wide `tsc` does.
+
 ## 0.3.0 — 2026-07-26
 
 One read core, shared by the web agent and `@lastehr/mcp` 0.3.0, so the

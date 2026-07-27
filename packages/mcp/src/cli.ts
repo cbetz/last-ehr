@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { config as loadEnv } from "dotenv";
+import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { McpConfigurationError, loadMcpConfig } from "./config.js";
@@ -104,9 +105,30 @@ export async function runCli(
   throw new McpConfigurationError(`Unknown command: ${command}`);
 }
 
-const isDirectExecution =
-  process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+/**
+ * True only when this file is the process entry point, so importing it for a
+ * test does not start a server.
+ *
+ * argv[1] must be resolved through realpath first. npm installs the `bin` as a
+ * SYMLINK (node_modules/.bin/lastehr-mcp -> dist/cli.js), so under the
+ * documented `npx -y @lastehr/mcp` invocation argv[1] is the symlink while
+ * import.meta.url is the resolved target. Comparing them unresolved makes this
+ * false in exactly the case that matters, and the CLI then exits 0 having done
+ * nothing — no server, no error, no output.
+ */
+function isEntryPoint(): boolean {
+  const entry = process.argv[1];
+  if (entry === undefined) return false;
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(entry)).href;
+  } catch {
+    // argv[1] may not exist on disk (some runners pass a virtual path); fall
+    // back to the unresolved comparison rather than refusing to start.
+    return import.meta.url === pathToFileURL(entry).href;
+  }
+}
+
+const isDirectExecution = isEntryPoint();
 
 if (isDirectExecution) {
   runCli().catch((error: unknown) => {

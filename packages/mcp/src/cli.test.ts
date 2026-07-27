@@ -3,6 +3,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { runCli } from "./cli.js";
 import { MCP_SERVER_VERSION } from "./server.js";
 
+// The metadata flags read no configuration, so an empty env is the point. Cast
+// because this repo's ProcessEnv requires NODE_ENV, and the package's own build
+// excludes test files so `tsc -p tsconfig.build.json` never sees this file.
+const EMPTY_ENV = {} as NodeJS.ProcessEnv;
+
 describe("MCP CLI metadata flags", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -13,7 +18,7 @@ describe("MCP CLI metadata flags", () => {
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true);
 
-    await runCli([flag], {});
+    await runCli([flag], EMPTY_ENV);
 
     expect(write).toHaveBeenCalledOnce();
     expect(write).toHaveBeenCalledWith(`${MCP_SERVER_VERSION}\n`);
@@ -24,7 +29,7 @@ describe("MCP CLI metadata flags", () => {
       .spyOn(process.stdout, "write")
       .mockImplementation(() => true);
 
-    await runCli(["--help"], {});
+    await runCli(["--help"], EMPTY_ENV);
 
     expect(write.mock.calls[0]?.[0]).toContain("@lastehr/mcp --version");
   });
