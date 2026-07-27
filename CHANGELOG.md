@@ -3,7 +3,9 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.3.1 — 2026-07-27
+
+A contributed CLI convenience, and the two bugs found verifying it.
 
 - `@lastehr/mcp` gains `--version` / `-v`, printing the package version without
   starting a server or reading any configuration. Reuses `MCP_SERVER_VERSION`,
