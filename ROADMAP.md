@@ -1,16 +1,47 @@
 # Last EHR Roadmap
 
-Last EHR's north star is to be the open-source reference implementation for
-approval-gated AI agent workflows over FHIR charts. The project should stay
-small enough to inspect, but useful enough that teams can clone it, run it on
-synthetic data, and adapt it to their own FHIR backend.
+Last EHR's north star is to be the open-source agent layer for a headless FHIR
+EHR: a chart an agent can read broadly, cannot lie about, and can only write to
+through a human decision. Approval-gated writes are the sharpest of those three,
+not the whole of them — the read surface and the honesty properties are
+first-class goals with their own coverage numbers, not scaffolding for the gate.
+The project should stay small enough to inspect, but useful enough that teams
+can clone it, run it on synthetic data, and adapt it to their own FHIR backend.
 
 This roadmap is intentionally public. It tells users what is safe to depend on,
 and it gives contributors concrete places to help.
 
 ## Current focus
 
-### 1. Demo-to-local adoption
+### 1. Chart read breadth and honesty
+
+The read surface is a first-class goal, counted in
+[docs/fhir-coverage.md](./docs/fhir-coverage.md) rather than implied: 25 of US
+Core 9.0.0's 27 readable resource types, across 23 patient-scoped sections,
+with references followed for authors, encounter, facility, and provenance.
+Every honesty property there — truncation measured at the server window, a
+coded miss reported as unmatched rather than absent, a refused filter refused
+with its legal values — came from a real false negative found against a live
+server, and each is a test, not best-effort behavior.
+
+What is still missing, in priority order:
+
+- **Terminology beyond vitals.** A measurement name resolves to LOINC through a
+  pinned table; problems, medications, and vaccines resolve to nothing, so an
+  uncoded immunization cannot be found by code. Each addition means curating a
+  clinical code set, where a wrong entry is a false negative on a chart.
+- **Medication and PractitionerRole**, the 2 remaining US Core types. Both need
+  no new mechanism — only data that models them as references rather than
+  inline codeable concepts.
+- **Laboratory coding.** No `laboratory` category is ever asserted, because the
+  agent cannot tell a lab from a vital by label alone.
+
+Deliberately not planned: result paging (a filter answers exactly what paging
+would brute-force) and unscoped cross-patient reads (every read is scoped to
+one patient). Both are argued in the coverage doc; revisiting either means
+answering that argument, not just adding a parameter.
+
+### 2. Demo-to-local adoption
 
 - Keep the hosted demo no-signup and synthetic-data only.
 - Make the first demo path reach the approval gate in one click.
@@ -19,7 +50,7 @@ and it gives contributors concrete places to help.
 - Track where evaluators drop off: demo start, first tool call, first approval,
   local quickstart, and GitHub/docs handoff.
 
-### 2. Backend portability
+### 3. Backend portability
 
 The `FhirBackend` interface is the main extension point. Medplum works today
 for authenticated use; local HAPI, Firely Server (`FHIR_BACKEND=firely`), and
@@ -41,7 +72,7 @@ exists. Adapter status:
   delete, meta.tag discarded on create). Evidence and reopen criteria in
   [#123](https://github.com/cbetz/last-ehr/issues/123).
 
-### 2.1 Synthetic workflow evidence
+### 3.1 Synthetic workflow evidence
 
 The [FHIR Agent Safety Eval](./docs/evals.md) creates and deletes disposable
 charts, verifies the web-agent proposal/approval and denial mechanics, and
@@ -55,7 +86,7 @@ the Firely and Aidbox adapters were verified this way, and the
 mode and boundary. Still ahead: pinning each entry to a backend version, Last
 EHR revision, report/CI link, and retest date.
 
-### 3. Safer approval workflows
+### 4. Safer approval workflows
 
 Approval-gated writes are the wedge. Shipped so far: the approval card shows
 the exact proposed fields with a FHIR-shaped preview, and deployments can opt
@@ -69,10 +100,11 @@ denial. Near-term work:
 - Add policy hooks so operators can require approval by resource type,
   project, environment, or SMART scope.
 
-### 4. More useful clinical tools
+### 5. More useful clinical tools
 
-The default agent should remain narrow, but the tool catalog should grow in
-well-reviewed steps:
+The agent is narrow by default, not by ceiling: a deployment should have to opt
+into reach, and the catalog should grow in well-reviewed steps rather than as
+demo features:
 
 - Task creation and assignment
 - Encounter-scoped notes
@@ -87,7 +119,7 @@ queries like "blood pressure over six months".
 
 High-risk writes should not be added as a casual demo feature.
 
-### 5. MCP as a serious interface
+### 6. MCP as a serious interface
 
 `@lastehr/mcp` was permanently read-only in the `0.1.x` line because there
 was no Last EHR approval card in an MCP host. MCP's elicitation feature is
@@ -126,7 +158,8 @@ change until the first 1.0 line is declared.
 
 ## How to help
 
-Start with `docs/adapters.md`, `docs/approval-gates.md`, or `docs/mcp.md`, or
+Start with `docs/fhir-coverage.md` (what the agent can reach, and the gaps
+listed above), `docs/adapters.md`, `docs/approval-gates.md`, or `docs/mcp.md`, or
 pick something from the
 [good first issue](https://github.com/cbetz/last-ehr/labels/good%20first%20issue)
 label. Small PRs are preferred. If a change touches real clinical risk, open an
