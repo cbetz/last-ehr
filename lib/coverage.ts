@@ -38,13 +38,13 @@ export const READ_TOOL_COUNT = READ_TOOLS.length;
 export const PROPOSAL_TOOL_COUNT = PROPOSAL_TOOLS.length;
 
 /**
- * The honesty guards, each a test rather than best-effort behavior. Every one
- * came from a real false negative found against a live FHIR server.
+ * Each rule is a test, not best-effort behavior. Every one came from a real
+ * false negative found against a live FHIR server.
  */
 export const HONESTY_GUARDS = [
-  "A capped read window is reported, never presented as the whole chart.",
-  "A code filter that matches nothing in a section that holds records is reported as unmatched, not as absent.",
-  "A filter a section cannot apply is refused with its legal values, not dropped in silence.",
-  "A refused reference lookup is reported, so an author or encounter cannot read as missing.",
-  "A document the agent cannot decode is reported as unread, never as empty.",
+  "If a read hits a result limit, the agent says so. A partial list never reads as a complete chart.",
+  "If a code filter matches nothing in a section that does hold records, the agent reports no match, not an absence.",
+  "If a section cannot apply a filter, the agent refuses it and lists the values it accepts.",
+  "If a reference lookup fails, the agent reports the failure. A missing author or encounter never reads as absent.",
+  "If a document is a scan or a PDF, the agent reports it as unread. It never reports the document as empty.",
 ];
