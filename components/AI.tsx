@@ -1,33 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Braces, Check, ShieldCheck, Terminal } from "lucide-react";
 
-const tools = [
-  {
-    name: "search_patients",
-    detail: "Find a seeded synthetic patient by name.",
-    badge: "READ",
-  },
-  {
-    name: "show_patient_info",
-    detail: "Open one fixture-restricted chart by id.",
-    badge: "READ",
-  },
-  {
-    name: "add_note",
-    detail: "Propose a note; a human approves the exact text per action.",
-    badge: "PROPOSAL",
-  },
-  {
-    name: "record_observation",
-    detail: "Propose a vital or lab value behind the same elicitation gate.",
-    badge: "PROPOSAL",
-  },
-  {
-    name: "create_task",
-    detail: "Propose a follow-up task with an optional due date.",
-    badge: "PROPOSAL",
-  },
-];
+import { TOOL_CATALOG } from "@/lib/tool-catalog";
 
 export default function AISection() {
   return (
@@ -120,7 +94,7 @@ export default function AISection() {
               </div>
             </div>
             <ul className="mt-4 grid divide-y divide-border border-y border-border sm:grid-cols-2 sm:gap-x-8 lg:grid-cols-3">
-              {tools.map(({ name, detail, badge }) => (
+              {TOOL_CATALOG.map(({ name, detail, kind }) => (
                 <li key={name} className="py-3">
                   <span className="flex items-start justify-between gap-3">
                     <span>
@@ -129,12 +103,12 @@ export default function AISection() {
                     </span>
                     <span
                       className={
-                        badge === "READ"
+                        kind === "read"
                           ? "shrink-0 border border-primary/30 px-1.5 py-0.5 font-mono text-[0.6rem] text-primary"
                           : "shrink-0 border border-amber-500/40 px-1.5 py-0.5 font-mono text-[0.6rem] text-amber-600 dark:text-amber-400"
                       }
                     >
-                      {badge}
+                      {kind === "read" ? "READ" : "PROPOSAL"}
                     </span>
                   </span>
                 </li>

@@ -52,7 +52,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Can I use the tools from Claude Desktop or another MCP client?",
-    a: "Yes. @lastehr/mcp is an installable stdio server for Medplum. By default it exposes exactly two chart-reading tools, search_patients and show_patient_info. Writes exist only behind an explicit opt-in (LASTEHR_MCP_WRITES=proposal) where the client shows the exact proposed fields and a human approves each action. Read access can still return PHI, so use a least-privilege Medplum identity and review the MCP host's data handling.",
+    a: "Yes. @lastehr/mcp is an installable stdio server for Medplum. By default it exposes four chart-reading tools: search_patients, show_patient_info, read_chart_section, and read_document. Writes exist only behind an explicit opt-in (LASTEHR_MCP_WRITES=proposal) where the client shows the exact proposed fields and a human approves each action. Read access can still return PHI, so use a least-privilege Medplum identity and review the MCP host's data handling.",
   },
 ];
 
@@ -103,7 +103,7 @@ export default function MedplumAiAgentPage() {
               </p>
               <p>
                 Last EHR is a thin agent layer that runs on top of Medplum and
-                adds that interface. The agent has six tools:
+                adds that interface. The agent has eight tools:
               </p>
               <ol className="list-decimal space-y-2 pl-6">
                 <li>Search patients by name</li>
@@ -115,10 +115,18 @@ export default function MedplumAiAgentPage() {
                   Read one chart section with date and code filters (tasks,
                   documents, goals, care plans, and more)
                 </li>
+                <li>
+                  Read the text of one document from the chart, when the body
+                  is inline text
+                </li>
                 <li>Add a free-text note (approval-gated)</li>
                 <li>
                   Record an observation: a vital sign or lab value with a
                   numeric value and unit (approval-gated)
+                </li>
+                <li>
+                  File a superseding observation that corrects an earlier value
+                  without changing it (approval-gated)
                 </li>
                 <li>
                   Create a follow-up task with an optional due date
@@ -301,8 +309,9 @@ export default function MedplumAiAgentPage() {
                 client is configured to use.
               </p>
               <p>
-                The published package is read-only by default: two tools,
-                <code>search_patients</code> and <code>show_patient_info</code>.
+                The published package is read-only by default: four tools,
+                <code>search_patients</code>, <code>show_patient_info</code>,
+                <code>read_chart_section</code>, and <code>read_document</code>.
                 Writes exist only behind an explicit opt-in
                 (<code>LASTEHR_MCP_WRITES=proposal</code>) that carries the
                 approval-card semantics onto MCP: the client renders the exact
@@ -313,8 +322,8 @@ export default function MedplumAiAgentPage() {
               <p>
                 This is a different thing from Medplum&apos;s own MCP server:
                 theirs exposes Medplum data broadly for building your own
-                agent; this one exposes two bounded chart reads and no direct
-                writes.
+                agent; this one exposes four bounded chart reads and no
+                unapproved writes.
               </p>
             </div>
           </section>
@@ -403,7 +412,7 @@ npm run dev                  # http://localhost:3000/demo`}</code>
           <section className="container max-w-3xl py-16 text-center">
             <h2 className="text-3xl font-bold">See it on synthetic patients</h2>
             <p className="mx-auto mt-4 max-w-2xl text-xl text-muted-foreground">
-              The live demo runs the same six tools against seeded synthetic
+              The live demo runs the same eight tools against seeded synthetic
               data. Every write goes through the approval card.
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
