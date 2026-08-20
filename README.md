@@ -67,8 +67,10 @@ evaluation), or start with the zero-key local synthetic walkthrough.
    approval card shows exactly what will be saved.
 
 For MCP, `@lastehr/mcp` is deliberately a separate surface that is
-**read-only by default** (`search_patients` and `show_patient_info`), with
-one opt-in: elicitation-gated write proposals a human approves per action.
+**read-only by default** (`search_patients`, `show_patient_info`,
+`read_chart_section`, and `read_document` — the same bounded chart reads the
+web agent gets), with one opt-in: elicitation-gated write proposals a human
+approves per action.
 Configure a least-privilege Medplum token before connecting it to a real
 project; full setup is in the
 [MCP guide](./docs/mcp.md) and the [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr).
@@ -231,9 +233,10 @@ still stop at the approval card.
 
 [`@lastehr/mcp`](./packages/mcp) is a small, standalone MCP server for
 Medplum (or the local HAPI stack). It gives Claude Code, Cursor, and other
-MCP clients two bounded chart read tools, `search_patients` and
-`show_patient_info`; writes exist only as an explicit opt-in where a human
-approves each proposed write through the client's approval prompt
+MCP clients four bounded chart read tools — `search_patients`,
+`show_patient_info`, `read_chart_section`, and `read_document`, the same read
+surface the web agent has; writes exist only as an explicit opt-in where a
+human approves each proposed write through the client's approval prompt
 ([details](./docs/mcp.md)).
 
 ```bash
@@ -262,8 +265,10 @@ npm run mcp:demo -- --client claude-code
 ```
 
 It starts local HAPI, reloads the repository's synthetic fixture records, and
-prints a client registration command. The generated MCP process has exactly
-the same two read-only tool names but can only resolve those fixture patients.
+prints a client registration command. The generated MCP process exposes two of
+the package's four read-only tool names — `search_patients` and
+`show_patient_info` only, since its fixture client serves too few resource
+types for the section reader — and can only resolve those fixture patients.
 It is not included in `@lastehr/mcp`, does not make HAPI a supported package
 backend, and must never be pointed at real data. The Local Lab server needs no
 FHIR credential or provider API key, but the MCP client itself still needs its

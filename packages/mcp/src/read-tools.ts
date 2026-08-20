@@ -36,6 +36,19 @@ export type McpReadTool = {
   execute(input: unknown): Promise<unknown>;
 };
 
+/**
+ * The read tools the published package registers, in registration order.
+ * Mirrors WRITE_TOOL_NAMES in ./write-tools.ts and exists for the same
+ * reason: docs and marketing copy describe this surface by name, and it has
+ * grown twice. lib/tool-catalog.test.ts pins the published description to it.
+ */
+export const READ_TOOL_NAMES = [
+  "search_patients",
+  "show_patient_info",
+  "read_chart_section",
+  "read_document",
+] as const;
+
 const searchPatientsSchema = z.object({
   name: z
     .string()
