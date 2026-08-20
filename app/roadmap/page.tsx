@@ -37,7 +37,7 @@ const tracks = [
   {
     title: "Backend Portability",
     description:
-      "Firely Server and Aidbox now ship as verified synthetic-evaluation adapters; next are Oystehr and other FHIR R4 backends through the FhirBackend contract.",
+      "Firely Server, Aidbox, and Oystehr now ship as verified synthetic-evaluation adapters; next are other FHIR R4 backends through the FhirBackend contract.",
     icon: <GitBranch className="h-5 w-5" aria-hidden="true" />,
   },
   {

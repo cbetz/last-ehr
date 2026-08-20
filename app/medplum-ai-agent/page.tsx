@@ -44,7 +44,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Does Last EHR work with backends other than Medplum?",
-    a: "Medplum (hosted or self-hosted) is the supported authenticated path. For synthetic evaluation only, three more adapters ship in the repository: local HAPI FHIR, Firely Server, and Aidbox, each verified with the shared contract tests and the FHIR Agent Safety Eval; none is a PHI-ready deployment path. Oystehr and other targets still need an adapter with a documented auth story and the same evidence before they are called supported.",
+    a: "Medplum (hosted or self-hosted) is the supported authenticated path. For synthetic evaluation only, four more adapters ship in the repository: local HAPI FHIR, Firely Server, Aidbox, and Oystehr, each verified with the shared contract tests and the FHIR Agent Safety Eval; none is a PHI-ready deployment path. Other FHIR R4 targets still need an adapter with a documented auth story and the same evidence before they are called supported.",
   },
   {
     q: "What model providers does Last EHR support?",

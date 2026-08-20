@@ -40,7 +40,7 @@ const faqs: FaqItem[] = [
   },
   {
     q: "Does Last EHR work with backends other than Medplum?",
-    a: "Medplum, hosted or self-hosted, is the authenticated path. For synthetic evaluation there are three more adapters: the included local HAPI FHIR stack, Firely Server, and Aidbox, each verified with contract tests and the FHIR Agent Safety Eval. None of those three is an authenticated or PHI-ready mode. Oystehr and other FHIR R4 backends still need an adapter before they are supported. See the support matrix and adapter guide for the exact boundary.",
+    a: "Medplum, hosted or self-hosted, is the authenticated path. For synthetic evaluation there are four more adapters: the included local HAPI FHIR stack, Firely Server, Aidbox, and Oystehr, each verified with contract tests and the FHIR Agent Safety Eval. None of those four is an authenticated or PHI-ready mode. Other FHIR R4 backends still need an adapter before they are supported. See the support matrix and adapter guide for the exact boundary.",
   },
   {
     q: "What clinical data can the agent read and write?",
