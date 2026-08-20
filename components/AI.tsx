@@ -7,7 +7,15 @@ export default function AISection() {
   return (
     <section id="mcp" className="border-b marketing-rule bg-muted/30">
       <div className="container py-20 sm:py-28">
-        <div className="grid gap-8 border-b border-border pb-9 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:items-end lg:gap-16">
+        {/*
+          items-START, unlike the sibling section headers. Those pair a heading
+          with one paragraph, so both columns are about the same height and
+          bottom alignment reads level. This right column also carries the scope
+          note, the three-item guarantee row, and a link, so it is far taller —
+          bottom alignment pushed the heading to the foot of the column and left
+          a large gap above it.
+        */}
+        <div className="grid gap-8 border-b border-border pb-9 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:items-start lg:gap-16">
           <div className="max-w-xl">
             <p className="section-kicker">MCP, deliberately constrained</p>
             <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
