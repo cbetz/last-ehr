@@ -12,6 +12,7 @@ import {
 import AISection from "@/components/AI";
 import { ProtocolSection } from "@/components/Protocol";
 import Hero from "@/components/Hero";
+import { CoverageSection } from "@/components/Coverage";
 import { HowItWorks } from "@/components/HowItWorks";
 import Navbar from "@/components/Navbar";
 import { SignupForm } from "@/components/SignupForm";
@@ -96,6 +97,7 @@ export default function Home() {
       <main>
         <Hero />
         <HowItWorks />
+        <CoverageSection />
         <ProtocolSection />
         <AISection />
 

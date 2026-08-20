@@ -22,6 +22,7 @@ type NavigationItem = {
 };
 
 const navigation: NavigationItem[] = [
+  { href: "/#coverage", label: "Coverage" },
   { href: "/#safety", label: "Safety" },
   { href: "/#protocol", label: "Protocol" },
   { href: "/#mcp", label: "MCP" },
