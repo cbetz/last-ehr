@@ -39,7 +39,7 @@ export function ProtocolSection() {
               One protocol, two running bindings
             </p>
             <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
-              Not designed on paper. Extracted from running code.
+              The layer between a write request and a changed chart.
             </h2>
           </div>
           <p className="max-w-2xl text-lg leading-8 text-muted-foreground lg:justify-self-end">
@@ -78,7 +78,7 @@ export function ProtocolSection() {
         <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
           <div className="max-w-xl">
             <h3 className="text-2xl font-semibold tracking-[-0.04em] sm:text-3xl">
-              A safety claim you can test from outside.
+              How to test an implementation from outside.
             </h3>
             <p className="mt-4 text-lg leading-8 text-muted-foreground">
               The conformance suite is an independent MCP client with a

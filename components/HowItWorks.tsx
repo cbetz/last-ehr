@@ -39,12 +39,12 @@ export function HowItWorks() {
         <div className="max-w-lg">
           <p className="section-kicker">The safety contract</p>
           <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
-            A clinical write is a workflow, not an API side effect.
+            Every write passes four steps before it saves.
           </h2>
           <p className="mt-6 text-lg leading-8 text-muted-foreground">
-            Last EHR does not claim to replace backend policy or clinical
-            judgment. It gives the agent a small, inspectable surface and
-            makes the point of human review impossible to miss.
+            Last EHR does not replace backend policy or clinical judgment.
+            It gives the agent a small set of tools, and it shows the reviewer
+            the exact change before anything saves.
           </p>
           <Link
             href="/docs/approval-gates"
