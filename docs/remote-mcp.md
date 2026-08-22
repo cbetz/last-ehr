@@ -65,6 +65,9 @@ authorization server, and it never issues tokens.
 - **Audience.** `AuthInfo.resource` carries the RFC 8707 resource identifier.
   The verifier rejects any token whose resource is not this server's own
   identifier. This is what makes it a resource server rather than a relay.
+  **The probe below shows Medplum never sets this**, so the token must come
+  from an authorization server that does. See "Two designs that survive the
+  probe".
 - **Per-caller FHIR access.** `AuthInfo` reaches request handlers, so the
   session's FHIR client is built from the validated caller identity rather
   than from process env. A Medplum `AccessPolicy` therefore still decides what
@@ -102,6 +105,77 @@ that proves a client without elicitation support receives no write tools. A
 transport change to a human-approval path is exactly the kind of claim this
 project tests rather than asserts.
 
+## Probe results (hosted Medplum, 2026-08-22)
+
+The open questions below were probed against `api.medplum.com` with a
+ClientApplication's client credentials. The results change the design, so they
+are recorded before the plan.
+
+| Question | Result |
+| --- | --- |
+| Token format | **JWT**, RS256, with `kid`. `jwks.json` serves 1 RS256 key |
+| Claims | `aud`, `client_id`, `exp`, `iat`, `iss`, `jti`, `login_id`, `nbf`, `profile`, `scope`, `sub`, `username` |
+| Audience | **Always `https://api.medplum.com/`** |
+| `resource` parameter (RFC 8707) | **Accepted with HTTP 200 and silently ignored.** `aud` does not change |
+| Token exchange (RFC 8693) | Advertised in metadata, but a plain ClientApplication gets `invalid_client`. It needs an identity provider configured on the project |
+| Also advertised | `registration_endpoint` (RFC 7591), `introspection_endpoint` (RFC 7662) |
+
+Two consequences.
+
+**Medplum cannot be the authorization server for this resource server.** Every
+token it issues has `aud = https://api.medplum.com/`. A resource server must
+reject a token that is not addressed to it, so it must reject every Medplum
+token. The design above assumed Medplum could mint a token addressed to a third
+party. It cannot.
+
+**The failure is silent, which makes it worse.** Medplum answers HTTP 200 to a
+token request carrying `resource`, and returns a token whose audience is
+unchanged. An implementation that trusts the absence of an error would conclude
+that audience restriction works when it does not. That is the confused-deputy
+case, reached by believing a success response.
+
+Good news in the same results: tokens are JWTs against a published JWKS, so a
+verifier validates them offline with `jose` and needs no network hop per
+session.
+
+## Two designs that survive the probe
+
+### D1 — this server becomes its own authorization server
+
+The MCP server issues its own tokens, so the audience is correct by
+construction. It obtains a per-user Medplum token through the same
+authorization-code flow with PKCE that the web app already runs
+([`lib/smart.ts`](../lib/smart.ts)), and binds it to the session.
+
+- Works with no extra operator infrastructure.
+- Costs the most code here: token store, refresh, client registration, and the
+  authorization and token endpoints. The SDK ships handlers for these.
+- Contradicts a standing position. Last EHR delegates authentication and
+  authorization rather than reimplementing them. An authorization server inside
+  this package is the opposite of that.
+
+### D2 — operator identity provider, plus Medplum token exchange
+
+The operator runs an identity provider that does support RFC 8707, and registers
+it on the Medplum project as an external identity provider.
+
+1. The caller gets a token from that provider, addressed to this MCP server.
+2. This server validates it offline against the provider's JWKS.
+3. This server exchanges it at Medplum's token endpoint (RFC 8693) for a
+   per-user Medplum token.
+
+- Far less code here: a verifier and one exchange call. No authorization server.
+- Keeps the delegation position intact.
+- Preserves per-caller `AccessPolicy`, because step 3 returns that user's own
+  Medplum token.
+- Costs the operator an identity provider and one Medplum project setting. The
+  probe shows the exchange grant refuses a client with no identity provider
+  configured, so this setup is required, not optional.
+
+**Recommended: D2**, because it keeps authorization decisions outside this
+project. D1 stays possible later for operators with no identity provider, and
+it would be an additive change rather than a replacement.
+
 ## What this design does not do
 
 Stated plainly, because a remote server invites each of these assumptions:
@@ -119,26 +193,23 @@ Stated plainly, because a remote server invites each of these assumptions:
 
 ## Open questions
 
-1. **Which authorization server issues tokens for a Medplum deployment?**
-   Medplum exposes OAuth2 endpoints and the web app already runs an
-   authorization-code flow with PKCE against them. Whether Medplum can mint a
-   token whose audience is a *third-party* resource server, per RFC 8707, needs
-   a probe against a live project before the verifier design is fixed. If it
-   cannot, operators need a separate authorization server, and that belongs in
-   the docs before the feature ships.
-2. **How does the verifier learn scopes and identity?** If Medplum tokens are
-   JWTs, `jose` (already present) validates them offline against the server's
-   JWKS. If they are opaque, the verifier needs an introspection or userinfo
-   call per session, which is a network hop to budget for.
-3. **Refresh.** A long-lived agent session outliving its access token needs a
+Questions 1 and 2 are answered by the probe above. What remains:
+
+1. **Which identity provider do we document for D2?** The operator needs one
+   that supports RFC 8707 and that Medplum accepts as an external identity
+   provider. This needs one worked example in the docs, not a list.
+2. **Refresh.** A long-lived agent session outliving its Medplum token needs a
    defined behavior. Failing closed and making the client re-authorize is the
    safer default.
+3. **Does the exchanged token carry the caller's `AccessPolicy`?** The whole
+   design rests on this. It needs a probe against a project with an identity
+   provider configured, which the credentials used above do not have.
 
 ## Sequence
 
 1. This design note.
-2. Probe Medplum for RFC 8707 audience support and token format. Record the
-   result here, because it decides question 1.
+2. Probe Medplum for RFC 8707 audience support and token format. **Done, see
+   above.** The result rules out Medplum as the authorization server.
 3. Transport plus resource-server validation, off by default, with the
    per-session FHIR client.
 4. The two write-path proving tests.
