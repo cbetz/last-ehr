@@ -107,7 +107,7 @@ export default function Home() {
               <div>
                 <p className="section-kicker">Three useful first moves</p>
                 <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
-                  Start with evidence, not a sales call.
+                  Three ways to test the claims yourself.
                 </h2>
               </div>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
@@ -145,20 +145,19 @@ export default function Home() {
         <section id="integrations" className="border-b marketing-rule bg-muted/20">
           <div className="container grid gap-12 py-20 sm:py-28 lg:grid-cols-[0.87fr_1.13fr] lg:gap-16">
             <div className="max-w-xl">
-              <p className="section-kicker">An integration should be able to explain itself</p>
+              <p className="section-kicker">Backend support</p>
               <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
-                Make compatibility a testable claim.
+                What each FHIR backend is verified for.
               </h2>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
                 Last EHR keeps the extension point small: a FHIR backend
                 contract, an executable adapter starter, and real HAPI
                 integration coverage. The Safety Eval runs on those same
-                disposable synthetic workflows and writes a scrubbed report, not
-                a broad marketing badge.
+                disposable synthetic workflows and writes a scrubbed report.
               </p>
               <p className="mt-5 text-lg leading-8 text-muted-foreground">
-                Five backends run through it today, and what each one is
-                verified for is published rather than averaged into a logo wall:
+                Five backends run through it today. What each one is
+                verified for is listed below:
               </p>
               <ul className="mt-5 divide-y divide-border border-y border-border">
                 {backends.map(([name, status, note]) => (
@@ -221,15 +220,14 @@ export default function Home() {
           <div className="container py-20 sm:py-28">
             <div className="grid gap-8 border-b border-border pb-9 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
               <div>
-                <p className="section-kicker">Documentation as an operating manual</p>
+                <p className="section-kicker">The guides</p>
                 <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
-                  Make a responsible technical decision faster.
+                  What each guide covers.
                 </h2>
               </div>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                Each guide names the path, the support boundary, and what still
-                needs proof. The docs are a product surface, not a dump of API
-                notes after the fact.
+                Each guide names the path, the support boundary, and what
+                still needs proof.
               </p>
             </div>
 

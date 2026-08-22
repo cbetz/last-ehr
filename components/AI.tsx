@@ -17,9 +17,9 @@ export default function AISection() {
         */}
         <div className="grid gap-8 border-b border-border pb-9 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)] lg:items-start lg:gap-16">
           <div className="max-w-xl">
-            <p className="section-kicker">MCP, deliberately constrained</p>
+            <p className="section-kicker">The MCP surface</p>
             <h2 className="mt-4 text-3xl font-semibold tracking-[-0.052em] sm:text-5xl sm:leading-[1.02]">
-              MCP should inspect, not quietly write.
+              Read-only by default. Every write needs an approval.
             </h2>
           </div>
           <div className="max-w-2xl lg:justify-self-end">
