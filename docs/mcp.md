@@ -256,6 +256,10 @@ variables — including `LASTEHR_MCP_WRITES` if you have opted in.
 
 ## Roadmap
 
+- **Remote transport.** This server speaks stdio only, so no hosted agent can
+  reach it. The design for an HTTP transport with per-caller OAuth is written
+  up in [remote-mcp.md](./remote-mcp.md), including why a single shared FHIR
+  credential is rejected. Nothing there ships yet.
 - Better read-tool coverage where it can stay bounded and auditable.
 - Proposal-shaped writes shipped in `0.2.0` behind `LASTEHR_MCP_WRITES=proposal`
   (see above), riding MCP's reviewable confirmation protocol (elicitation).
