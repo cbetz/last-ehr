@@ -167,7 +167,9 @@ it on the Medplum project as an external identity provider.
 - Far less code here: a verifier and one exchange call. No authorization server.
 - Keeps the delegation position intact.
 - Preserves per-caller `AccessPolicy`, because step 3 returns that user's own
-  Medplum token.
+  Medplum token. Confirmed against the handler source below.
+- **Holds no Medplum credential.** The exchange path checks no client secret,
+  so this server stores nothing it could leak.
 - Costs the operator an identity provider and one Medplum project setting. The
   probe shows the exchange grant refuses a client with no identity provider
   configured, so this setup is required, not optional.
@@ -175,6 +177,62 @@ it on the Medplum project as an external identity provider.
 **Recommended: D2**, because it keeps authorization decisions outside this
 project. D1 stays possible later for operators with no identity provider, and
 it would be an additive change rather than a replacement.
+
+## Source evidence for D2 (medplum/medplum `main`, read 2026-08-23)
+
+The live probe above cannot reach the exchange grant, because the project used
+has no identity provider configured. Medplum is open source, so the handler
+answers the remaining questions directly. Read from
+`packages/server/src/oauth/token.ts` on `main`.
+
+**The exchange issues an ordinary user token.** `exchangeExternalAuthToken`
+ends with a normal login and the normal token response:
+
+```
+const login = await tryLogin({
+  authMethod: 'exchange',
+  email,
+  externalId,
+  projectId,
+  clientId: client?.id,
+  scope: req.body.scope || 'openid offline_access',
+  ...
+  forceUseFirstMembership: true,
+  membershipId,
+});
+
+await sendTokenResponse(req, res, login, client);
+```
+
+So the exchanged token is bound to a `ProjectMembership` by the same code path
+as any other login. Its `AccessPolicy` applies. That was the question the whole
+design rested on, and the answer is yes.
+
+**This server needs no Medplum credential at all.** The handler validates the
+caller by calling the identity provider's user-info URL with the subject token.
+It never checks a client secret on this path. The trust chain is caller →
+identity provider → Medplum, and Last EHR holds nothing. That is a stronger
+result than the design asked for: there is no shared credential to leak,
+because there is no shared credential.
+
+**One caveat, and it is a real one.** The call passes
+`forceUseFirstMembership: true`. A user who belongs to more than one Medplum
+project therefore gets whichever membership comes first, unless the request
+pins one. The handler accepts a `membershipId`, so the fix is to always send it
+rather than to rely on ordering. An implementation that omits it would work in
+testing with single-project users and then select an arbitrary project for a
+multi-project user. This must be sent explicitly, and it must be tested.
+
+**Our `invalid_client` result is explained.** The observed
+`{"error":"invalid_request","error_description":"Invalid client"}` is the path
+taken when no identity provider resolves for the client. It confirms the
+configuration requirement rather than a defect.
+
+**Evidence limit.** This is the implementation on `main`. The hosted
+`api.medplum.com` may run a different version, and a self-hosted operator
+certainly may. So this narrows the live probe rather than replacing it: the
+probe must still confirm the membership binding and the `AccessPolicy` effect
+against the deployment in use.
 
 ## What this design does not do
 
@@ -201,9 +259,12 @@ Questions 1 and 2 are answered by the probe above. What remains:
 2. **Refresh.** A long-lived agent session outliving its Medplum token needs a
    defined behavior. Failing closed and making the client re-authorize is the
    safer default.
-3. **Does the exchanged token carry the caller's `AccessPolicy`?** The whole
-   design rests on this. It needs a probe against a project with an identity
-   provider configured, which the credentials used above do not have.
+3. **Does the exchanged token carry the caller's `AccessPolicy`?** Answered yes
+   at source level below. Still needs a live probe against the deployment in
+   use, because the hosted version may differ from `main`.
+4. **Membership pinning.** `forceUseFirstMembership: true` means a
+   multi-project user gets an arbitrary project unless the request pins
+   `membershipId`. Where does the MCP server learn which membership to pin?
 
 ## Sequence
 
