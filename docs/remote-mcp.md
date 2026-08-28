@@ -178,6 +178,78 @@ it on the Medplum project as an external identity provider.
 project. D1 stays possible later for operators with no identity provider, and
 it would be an additive change rather than a replacement.
 
+## Live probe: D2 verified end to end (self-hosted Medplum 5.1.35, 2026-08-27)
+
+The source reading below narrowed the question. This settles it. The rig was a
+local, disposable stack: Medplum 5.1.35 with Postgres and Redis in Docker, a
+throwaway project, and a mock identity provider serving one `/userinfo`
+response. Nothing touched a hosted project. The version line matches the
+`@medplum/core` 5.1.x this repository already depends on.
+
+Setup: a project with one synthetic Patient and one synthetic Observation, an
+`AccessPolicy` named `PatientOnly` granting `Patient` as `readonly` and **not**
+listing `Observation`, a user invited with that policy, and a
+`ClientApplication` whose `identityProvider.userInfoUrl` pointed at the mock.
+
+**The exchange works, and it needs no client secret.** A request with only
+`client_id`, `subject_token`, and `subject_token_type` returned HTTP 200. The
+response named the user the mock identified:
+`Practitioner/… "Limited User"`. No Medplum credential was sent, which confirms
+the source reading: this server can hold nothing.
+
+**The exchanged token is bounded by that user's `AccessPolicy`.** This is the
+claim the whole design rests on, and it holds:
+
+| Request with the exchanged token | Result | Admin control |
+| --- | --- | --- |
+| `GET Patient/{id}` | **200** | 200 |
+| `GET Observation/{id}` | **403 Forbidden** | 200 |
+| `GET Observation?_count=5` | **403 Forbidden** | — |
+| `PUT Patient/{id}` (policy says readonly) | **403 Forbidden** | — |
+
+The same server returns 200 for both resources to an admin token with no access
+policy, so the 403s are the policy at work rather than a broken rig. A remote
+MCP server built this way therefore reaches exactly what the caller's own
+Medplum identity reaches, and nothing more.
+
+**`aud` is the Medplum server**, matching the hosted probe. That is why an
+authorization server other than Medplum is still required for the inbound leg.
+
+### Correction: the multi-project caveat was overstated
+
+An earlier revision of this note warned that `forceUseFirstMembership: true`
+would let a multi-project user land in an arbitrary project unless the request
+pinned `membershipId`. **Tested, and that is wrong for the path D2 uses.**
+
+The user was invited into a second project, so they held two memberships. The
+exchange through the project-scoped `ClientApplication` still returned the
+client's own project. The reason is in the handler: `projectId = await
+getProjectIdByClientId(clientId, undefined)` runs before the login, so
+`forceUseFirstMembership` chooses among memberships *within that project*, not
+across projects.
+
+The warning applies only to the server-level external auth path
+(`useServerExternalAuth`), where `projectId` is set only if the request supplies
+`membershipId`. D2 uses a `ClientApplication`, so it is not exposed. Pinning
+`membershipId` stays available and is still worth sending, but it is not the
+correctness requirement the earlier revision claimed.
+
+### One operator requirement the probe surfaced
+
+Medplum refuses the userinfo call outright until the URL is HTTPS on a public
+address. The first attempt failed with `Outbound request blocked: HTTPS is
+required`, from the SSRF guard in `packages/server/src/util/url.ts`:
+`createSafeConnect` rejects any non-HTTPS protocol, unsafe hostnames, and
+private IP addresses. The probe only proceeded because the local config set
+`allowUnsafeOutbound`, which `safeFetch` honors and which no real deployment
+should set.
+
+So D2's documentation must state it plainly: **the identity provider's
+`/userinfo` endpoint must be reachable over public HTTPS.** An operator testing
+against a provider on a private network will see a misleading
+`Failed to verify code — check your identity provider configuration` and no
+indication that the protocol was the cause.
+
 ## Source evidence for D2 (medplum/medplum `main`, read 2026-08-23)
 
 The live probe above cannot reach the exchange grant, because the project used
@@ -215,13 +287,11 @@ identity provider → Medplum, and Last EHR holds nothing. That is a stronger
 result than the design asked for: there is no shared credential to leak,
 because there is no shared credential.
 
-**One caveat, and it is a real one.** The call passes
-`forceUseFirstMembership: true`. A user who belongs to more than one Medplum
-project therefore gets whichever membership comes first, unless the request
-pins one. The handler accepts a `membershipId`, so the fix is to always send it
-rather than to rely on ordering. An implementation that omits it would work in
-testing with single-project users and then select an arbitrary project for a
-multi-project user. This must be sent explicitly, and it must be tested.
+**One caveat, since corrected by the live probe.** The call passes
+`forceUseFirstMembership: true`, which reads like a multi-project hazard. It is
+not, for the `ClientApplication` path D2 uses: the client's project scopes the
+login first. See "Correction: the multi-project caveat was overstated" above,
+which records the test.
 
 **Our `invalid_client` result is explained.** The observed
 `{"error":"invalid_request","error_description":"Invalid client"}` is the path
@@ -259,12 +329,12 @@ Questions 1 and 2 are answered by the probe above. What remains:
 2. **Refresh.** A long-lived agent session outliving its Medplum token needs a
    defined behavior. Failing closed and making the client re-authorize is the
    safer default.
-3. **Does the exchanged token carry the caller's `AccessPolicy`?** Answered yes
-   at source level below. Still needs a live probe against the deployment in
-   use, because the hosted version may differ from `main`.
-4. **Membership pinning.** `forceUseFirstMembership: true` means a
-   multi-project user gets an arbitrary project unless the request pins
-   `membershipId`. Where does the MCP server learn which membership to pin?
+3. ~~Does the exchanged token carry the caller's `AccessPolicy`?~~
+   **Answered: yes.** Verified live on Medplum 5.1.35 — see the probe above.
+   Worth re-checking against a hosted deployment before release, since the
+   hosted version may differ.
+4. ~~Membership pinning.~~ **Answered: not a hazard for this path.** The
+   client's project scopes the login. See the correction above.
 
 ## Sequence
 
