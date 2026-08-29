@@ -2,6 +2,46 @@ export type McpWritePolicy = "read-only" | "proposal";
 
 export type McpBackend = "medplum" | "hapi";
 
+/**
+ * "stdio" (default) is one operator on one machine, using their own credential
+ * from env. "http" is the remote transport designed in docs/remote-mcp.md,
+ * where each caller presents their own token and the FHIR credential is
+ * obtained per caller. Remote is opt-in, and never the default.
+ */
+export type McpTransport = "stdio" | "http";
+
+export type McpHttpConfig = {
+  port: number;
+  /**
+   * Loopback by default. A remote transport is only reachable off-host when an
+   * operator says so, and the OAuth checks below are what make that safe.
+   */
+  host: string;
+  /**
+   * This server's RFC 8707 resource identifier. One value feeds both the token
+   * verifier's required audience and the protected resource metadata document,
+   * so the two cannot drift: if they did, a client would obtain a token this
+   * server then refuses, and the symptom would look like a broken
+   * authorization server.
+   */
+  resource: string;
+  /** Issuer of the authorization server that mints tokens for this resource. */
+  issuer: string;
+  /** That authorization server's JWKS, used to verify signatures offline. */
+  jwksUri: string;
+  /** Scopes every caller must present. */
+  requiredScopes: string[];
+  /**
+   * The FHIR-side client registered with an identity provider, used for the
+   * RFC 8693 exchange that yields each caller's own FHIR token.
+   */
+  exchangeClientId: string;
+  /** The FHIR server's token endpoint, where that exchange is performed. */
+  tokenEndpoint: string;
+  /** Optional ProjectMembership to pin during the exchange. */
+  membershipId?: string;
+};
+
 export type McpRuntimeConfig = {
   /**
    * "medplum" (default; token or client-credentials auth) or "hapi" (the
@@ -18,6 +58,9 @@ export type McpRuntimeConfig = {
   writeProvenance: boolean;
   /** Write tools unregistered by LASTEHR_WRITE_TOOLS_DISABLED. */
   disabledWriteTools: string[];
+  transport: McpTransport;
+  /** Present only when transport is "http". */
+  http?: McpHttpConfig;
 };
 
 export class McpConfigurationError extends Error {
@@ -38,6 +81,64 @@ function value(env: EnvValues, key: string): string | undefined {
   return candidate ? candidate : undefined;
 }
 
+/**
+ * The remote transport's configuration, read only when it is switched on.
+ *
+ * Every field here is required, and a missing one stops startup rather than
+ * degrading. A remote server that starts without an audience to check, or
+ * without a JWKS to verify against, would accept tokens it should refuse; and
+ * the probe recorded in docs/remote-mcp.md shows a FHIR token looks perfectly
+ * valid while being addressed elsewhere. So there is no partial HTTP mode.
+ */
+function loadHttpConfig(env: EnvValues): McpHttpConfig {
+  const required = (key: string): string => {
+    const found = value(env, key);
+    if (!found) {
+      throw new McpConfigurationError(
+        `LASTEHR_MCP_TRANSPORT=http requires ${key}. The remote transport verifies every caller's token, and it cannot do that with an incomplete OAuth configuration.`,
+      );
+    }
+    return found;
+  };
+  const url = (key: string): string => {
+    const found = required(key);
+    try {
+      new URL(found);
+    } catch {
+      throw new McpConfigurationError(
+        `${key} must be a complete URL, for example https://auth.example.com/.`,
+      );
+    }
+    return found;
+  };
+
+  const portRaw = value(env, "LASTEHR_MCP_HTTP_PORT") ?? "3400";
+  const port = Number(portRaw);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new McpConfigurationError(
+      `LASTEHR_MCP_HTTP_PORT must be an integer between 1 and 65535; received "${portRaw}".`,
+    );
+  }
+
+  return {
+    port,
+    // Loopback unless an operator names something else. Binding everywhere by
+    // default would expose a chart API the moment the flag is set, before the
+    // OAuth configuration has been checked against a real client.
+    host: value(env, "LASTEHR_MCP_HTTP_HOST") ?? "127.0.0.1",
+    resource: url("LASTEHR_MCP_RESOURCE"),
+    issuer: url("LASTEHR_MCP_OAUTH_ISSUER"),
+    jwksUri: url("LASTEHR_MCP_OAUTH_JWKS_URI"),
+    requiredScopes: (value(env, "LASTEHR_MCP_REQUIRED_SCOPES") ?? "")
+      .split(",")
+      .map((scope) => scope.trim())
+      .filter(Boolean),
+    exchangeClientId: required("LASTEHR_MCP_EXCHANGE_CLIENT_ID"),
+    tokenEndpoint: url("LASTEHR_MCP_TOKEN_ENDPOINT"),
+    membershipId: value(env, "LASTEHR_MCP_MEMBERSHIP_ID"),
+  };
+}
+
 export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
   // Read-only is the permanent default. The single accepted opt-in value is
   // "proposal": elicitation-gated, human-approved writes (see docs/mcp.md).
@@ -54,6 +155,15 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     writePolicy = "proposal";
   }
   const writeProvenance = value(env, "LASTEHR_WRITE_PROVENANCE") === "true";
+
+  const transportFlag = value(env, "LASTEHR_MCP_TRANSPORT") ?? "stdio";
+  if (transportFlag !== "stdio" && transportFlag !== "http") {
+    throw new McpConfigurationError(
+      `Unknown LASTEHR_MCP_TRANSPORT "${transportFlag}". Supported values: stdio (default), http.`,
+    );
+  }
+  const transport: McpTransport = transportFlag;
+  const http = transport === "http" ? loadHttpConfig(env) : undefined;
 
   // Static write-tool disables. Unknown names are rejected loudly: a typo
   // in a tightening control would otherwise silently disable nothing.
@@ -85,6 +195,15 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
   }
 
   if (backend === "hapi") {
+    if (transport === "http") {
+      // The local HAPI stack has no auth and no per-user identity, so there is
+      // no caller token to verify and nothing for the exchange to return. A
+      // remote transport in front of it would publish an unauthenticated chart
+      // API, which docs/remote-mcp.md lists as a thing this must not do.
+      throw new McpConfigurationError(
+        "LASTEHR_MCP_TRANSPORT=http cannot be combined with FHIR_BACKEND=hapi. The local HAPI stack has no authentication, so a remote transport in front of it would expose an unauthenticated chart API.",
+      );
+    }
     // The same env pair the web app and seed honor. No credentials: the
     // local evaluation stack is no-auth by design, so any configured
     // MEDPLUM_* values are simply unused in this mode (a checkout's .env
@@ -109,6 +228,7 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
       writePolicy,
       writeProvenance,
       disabledWriteTools,
+      transport,
     };
   }
 
@@ -139,7 +259,12 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
         "MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET must be set together.",
       );
     }
-  } else if (!accessToken) {
+  } else if (!accessToken && transport === "stdio") {
+    // Required for stdio, where the process acts as one operator. Under the
+    // remote transport each caller presents their own token and the FHIR
+    // credential is obtained per caller, so a server-held credential is not
+    // just unnecessary — holding one would make this layer, rather than the
+    // FHIR backend, decide what a caller can reach.
     throw new McpConfigurationError(
       "Set MEDPLUM_ACCESS_TOKEN or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET before starting Last EHR MCP.",
     );
@@ -154,5 +279,7 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     writePolicy,
     writeProvenance,
     disabledWriteTools,
+    transport,
+    http,
   };
 }
