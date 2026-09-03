@@ -1,5 +1,7 @@
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
 
+import { currentRequestId } from "./request-context.js";
+
 // The reviewable-confirmation protocol for proposal-shaped writes, kept
 // behind ONE swappable transport function on purpose: today it rides MCP
 // elicitation (spec 2025-06-18, kept in 2025-11-25 — accept/decline/cancel
@@ -55,6 +57,10 @@ export function createElicitationApproval(server: Server): RequestApproval {
   return async ({ title, summary }) => {
     let result;
     try {
+      // Tie the prompt to the tools/call it belongs to, so over streamable
+      // HTTP it is delivered on that call's own stream and does not depend on
+      // the host having opened the optional standalone GET stream.
+      const relatedRequestId = currentRequestId();
       result = await server.elicitInput({
         message: `${title}\n\n${summary}\n\nNothing is saved unless you approve.`,
         requestedSchema: {
@@ -69,7 +75,7 @@ export function createElicitationApproval(server: Server): RequestApproval {
           },
           required: ["approve"],
         },
-      });
+      }, relatedRequestId !== undefined ? { relatedRequestId } : undefined);
     } catch {
       // The prompt never reached a human; report that honestly rather than
       // attributing a denial to a reviewer who saw nothing.
