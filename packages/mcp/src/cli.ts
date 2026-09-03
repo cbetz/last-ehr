@@ -41,6 +41,8 @@ function help() {
     "  npx -y @lastehr/mcp --version       Print the package version",
     "",
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
+    "Remote: LASTEHR_MCP_TRANSPORT=http with LASTEHR_MCP_RESOURCE, _OAUTH_ISSUER,",
+    "_OAUTH_JWKS_URI, _EXCHANGE_CLIENT_ID, _TOKEN_ENDPOINT (see docs/remote-mcp.md).",
     "Local stack: FHIR_BACKEND=hapi with HAPI_BASE_URL or FHIR_BASE_URL",
     "(no credentials; the local no-auth evaluation stack, synthetic data only).",
   ].join("\n");
@@ -88,9 +90,11 @@ export async function runCli(
     const authSummary =
       config.backend === "hapi"
         ? "local no-auth HAPI"
-        : config.accessToken
-          ? "access token"
-          : "client credentials";
+        : config.transport === "http"
+          ? `per-caller OAuth (token exchange); resource ${config.http?.resource}`
+          : config.accessToken
+            ? "access token"
+            : "client credentials";
     console.error(
       `Last EHR MCP configuration is valid (${config.backend}; ${authSummary}; ${config.writePolicy === "proposal" ? "proposal-gated writes" : "read-only"}).`,
     );
@@ -98,6 +102,16 @@ export async function runCli(
   }
 
   if (command === "serve") {
+    const config = loadMcpConfig(env);
+    if (config.transport === "http") {
+      // Loaded only here, so a stdio process never pulls in node:http or the
+      // SDK's Node transport. loadMcpConfig is pure, so the second load inside
+      // startMcpServer on the stdio branch is harmless and that call is
+      // byte-identical to what it was.
+      const { startRemoteMcpServer } = await import("./remote-server.js");
+      await startRemoteMcpServer({ config });
+      return;
+    }
     await startMcpServer({ env });
     return;
   }
