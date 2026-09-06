@@ -177,3 +177,132 @@ describe("MCP write policy", () => {
     ).toThrow(McpConfigurationError);
   });
 });
+
+describe("MCP transport selection", () => {
+  // Every field the remote transport needs, so individual tests can remove one
+  // and assert that startup stops.
+  const HTTP_ENV = {
+    LASTEHR_MCP_TRANSPORT: "http",
+    LASTEHR_MCP_RESOURCE: "https://mcp.example.test/mcp",
+    LASTEHR_MCP_OAUTH_ISSUER: "https://auth.example.test/",
+    LASTEHR_MCP_OAUTH_JWKS_URI: "https://auth.example.test/.well-known/jwks.json",
+    LASTEHR_MCP_EXCHANGE_CLIENT_ID: "client-with-idp",
+    LASTEHR_MCP_TOKEN_ENDPOINT: "https://fhir.example.test/oauth2/token",
+  };
+
+  it("defaults to stdio", () => {
+    expect(loadMcpConfig({ MEDPLUM_ACCESS_TOKEN: "t" })).toMatchObject({
+      transport: "stdio",
+      http: undefined,
+    });
+  });
+
+  it("rejects an unknown transport rather than falling back", () => {
+    expect(() =>
+      loadMcpConfig({ MEDPLUM_ACCESS_TOKEN: "t", LASTEHR_MCP_TRANSPORT: "sse" }),
+    ).toThrow(McpConfigurationError);
+  });
+
+  it("reads a complete http configuration", () => {
+    expect(loadMcpConfig(HTTP_ENV)).toMatchObject({
+      transport: "http",
+      http: {
+        port: 3400,
+        host: "127.0.0.1",
+        resource: "https://mcp.example.test/mcp",
+        issuer: "https://auth.example.test/",
+        exchangeClientId: "client-with-idp",
+        requiredScopes: [],
+      },
+    });
+  });
+
+  // A remote server that starts without an audience to require, or without a
+  // JWKS to verify against, would accept tokens it should refuse. The probe in
+  // docs/remote-mcp.md shows a FHIR token looks valid while addressed
+  // elsewhere, so there is no partial HTTP mode.
+  it.each([
+    "LASTEHR_MCP_RESOURCE",
+    "LASTEHR_MCP_OAUTH_ISSUER",
+    "LASTEHR_MCP_OAUTH_JWKS_URI",
+    "LASTEHR_MCP_EXCHANGE_CLIENT_ID",
+    "LASTEHR_MCP_TOKEN_ENDPOINT",
+  ])("refuses to start when %s is missing", (key) => {
+    const env: Record<string, string | undefined> = { ...HTTP_ENV };
+    delete env[key];
+    expect(() => loadMcpConfig(env)).toThrow(new RegExp(key));
+  });
+
+  it.each([
+    "LASTEHR_MCP_RESOURCE",
+    "LASTEHR_MCP_OAUTH_ISSUER",
+    "LASTEHR_MCP_OAUTH_JWKS_URI",
+    "LASTEHR_MCP_TOKEN_ENDPOINT",
+  ])("refuses a %s that is not a complete URL", (key) => {
+    expect(() => loadMcpConfig({ ...HTTP_ENV, [key]: "not-a-url" })).toThrow(
+      /complete URL/,
+    );
+  });
+
+  // The local HAPI stack has no auth and no per-user identity, so there is no
+  // caller token to verify and nothing for the exchange to return.
+  it("refuses http combined with the no-auth HAPI backend", () => {
+    expect(() =>
+      loadMcpConfig({
+        ...HTTP_ENV,
+        FHIR_BACKEND: "hapi",
+        HAPI_BASE_URL: "http://localhost:8080/fhir",
+      }),
+    ).toThrow(/unauthenticated chart API/);
+  });
+
+  // The point of the remote transport: the credential is per caller, so the
+  // process holds none. Requiring one here would have forced operators to
+  // configure exactly the shared credential the design rejects.
+  it("does not require a server-side Medplum credential", () => {
+    const config = loadMcpConfig(HTTP_ENV);
+    expect(config.accessToken).toBeUndefined();
+    expect(config.clientId).toBeUndefined();
+  });
+
+  it("still requires a credential for stdio", () => {
+    expect(() => loadMcpConfig({})).toThrow(/MEDPLUM_ACCESS_TOKEN/);
+  });
+
+  it("binds loopback unless an operator names another host", () => {
+    expect(loadMcpConfig(HTTP_ENV).http?.host).toBe("127.0.0.1");
+    expect(
+      loadMcpConfig({ ...HTTP_ENV, LASTEHR_MCP_HTTP_HOST: "0.0.0.0" }).http?.host,
+    ).toBe("0.0.0.0");
+  });
+
+  it.each(["0", "65536", "abc", "8080.5"])("rejects the invalid port %s", (port) => {
+    expect(() =>
+      loadMcpConfig({ ...HTTP_ENV, LASTEHR_MCP_HTTP_PORT: port }),
+    ).toThrow(/between 1 and 65535/);
+  });
+
+  it("parses required scopes as a trimmed, non-empty list", () => {
+    expect(
+      loadMcpConfig({
+        ...HTTP_ENV,
+        LASTEHR_MCP_REQUIRED_SCOPES: " chart.read , , chart.write ",
+      }).http?.requiredScopes,
+    ).toEqual(["chart.read", "chart.write"]);
+  });
+
+  it("passes an optional membership pin through", () => {
+    expect(loadMcpConfig(HTTP_ENV).http?.membershipId).toBeUndefined();
+    expect(
+      loadMcpConfig({ ...HTTP_ENV, LASTEHR_MCP_MEMBERSHIP_ID: "m-1" }).http
+        ?.membershipId,
+    ).toBe("m-1");
+  });
+
+  it("keeps the write default read-only under http, like stdio", () => {
+    expect(loadMcpConfig(HTTP_ENV).writePolicy).toBe("read-only");
+    expect(
+      loadMcpConfig({ ...HTTP_ENV, LASTEHR_MCP_WRITES: "proposal" }).writePolicy,
+    ).toBe("proposal");
+  });
+});
