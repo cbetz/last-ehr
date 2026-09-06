@@ -231,6 +231,64 @@ project whose access policy you have scoped, and never against real data you
 are not authorized to modify. The elicitation exchange requests a decision,
 never data.
 
+## Remote transport (HTTP, opt-in)
+
+Stdio is the default and stays so. Since `0.4.0`, `LASTEHR_MCP_TRANSPORT=http`
+serves streamable HTTP instead, so a hosted agent can reach the server. The
+design and its evidence are in [remote-mcp.md](./remote-mcp.md); this is the
+operator view.
+
+**What it is.** An OAuth 2.1 resource server in front of one MCP server per
+session. Every request must carry a bearer addressed to this server, verified
+offline against your authorization server's JWKS. Each caller's own FHIR
+credential is obtained once per session by RFC 8693 token exchange, so this
+process holds no FHIR credential and Medplum's `AccessPolicy` still decides what
+each caller can reach. Read-only stays the default; `LASTEHR_MCP_WRITES=proposal`
+is the same opt-in, and the approval gate is evaluated per session.
+
+**What you need.**
+
+- An authorization server that can issue tokens addressed to this server
+  (RFC 8707 resource indicators). Medplum cannot be that server: it issues
+  tokens addressed to itself and ignores the `resource` parameter, which the
+  probe in remote-mcp.md records.
+- A Medplum `ClientApplication` with your identity provider configured
+  (its user-info URL). The exchange goes through it, and it checks no client
+  secret, so this server stores none.
+- The identity provider's `/userinfo` reachable over **public HTTPS**.
+  Medplum refuses plain HTTP and private addresses, and the resulting error
+  names the identity provider configuration without mentioning the protocol.
+- `MEDPLUM_BASE_URL`, when set, on the same origin as
+  `LASTEHR_MCP_TOKEN_ENDPOINT`. An exchanged token is only ever sent to the
+  server that issued it, and the server refuses to start otherwise.
+- TLS in front of this process. It speaks plain HTTP, binds loopback by
+  default, and refuses a non-loopback bind unless the resource identifier is
+  `https`.
+
+```bash
+LASTEHR_MCP_TRANSPORT=http
+LASTEHR_MCP_RESOURCE=https://mcp.example.org/mcp
+LASTEHR_MCP_OAUTH_ISSUER=https://auth.example.org/
+LASTEHR_MCP_OAUTH_JWKS_URI=https://auth.example.org/.well-known/jwks.json
+LASTEHR_MCP_REQUIRED_SCOPES=chart.read
+LASTEHR_MCP_EXCHANGE_CLIENT_ID=<ClientApplication id with the identity provider>
+LASTEHR_MCP_TOKEN_ENDPOINT=https://api.medplum.com/oauth2/token
+npx -y @lastehr/mcp
+```
+
+The metadata document is served unauthenticated at
+`/.well-known/oauth-protected-resource<path>` so a client can discover the
+authorization server; every 401 points there.
+
+**What it does not do.** It is not multi-tenant aggregation: each caller
+reaches what their own Medplum identity allows, and nothing here pools
+tenants. It is not an authorization server and issues no tokens. It refuses
+`FHIR_BACKEND=hapi`, because a remote transport in front of a no-auth server
+would publish an unauthenticated chart API. Sessions live in one process, so
+several instances need sticky routing. The end-to-end run against a Medplum
+with a real identity provider has not been performed yet; see the residual
+risks in remote-mcp.md.
+
 ## Data and support boundary
 
 Read-only does not mean low-risk: `show_patient_info` can return PHI-rich
@@ -256,10 +314,10 @@ variables — including `LASTEHR_MCP_WRITES` if you have opted in.
 
 ## Roadmap
 
-- **Remote transport.** This server speaks stdio only, so no hosted agent can
-  reach it. The design for an HTTP transport with per-caller OAuth is written
-  up in [remote-mcp.md](./remote-mcp.md), including why a single shared FHIR
-  credential is rejected. Nothing there ships yet.
+- **Remote transport** shipped in `0.4.0` behind `LASTEHR_MCP_TRANSPORT=http`
+  (see above). The design, the probe evidence, and what the implementation
+  corrected are in [remote-mcp.md](./remote-mcp.md). Still ahead: the live
+  end-to-end run against a Medplum with a real identity provider.
 - Better read-tool coverage where it can stay bounded and auditable.
 - Proposal-shaped writes shipped in `0.2.0` behind `LASTEHR_MCP_WRITES=proposal`
   (see above), riding MCP's reviewable confirmation protocol (elicitation).

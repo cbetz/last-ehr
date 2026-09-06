@@ -126,7 +126,11 @@ was no Last EHR approval card in an MCP host. MCP's elicitation feature is
 that reviewable confirmation protocol, and `0.2.0` ships proposal-shaped
 writes behind it: opt-in (`LASTEHR_MCP_WRITES=proposal`), capability-gated
 fail-closed, human-approved per action, tagged for audit. Read-only remains
-the default forever. Next:
+the default forever. `0.4.0` adds an opt-in remote (HTTP) transport as an
+OAuth resource server with a per-caller FHIR credential, so a hosted agent can
+reach the server without this layer ever holding a shared credential
+([docs/remote-mcp.md](./docs/remote-mcp.md)); the live run against a real
+identity provider is still ahead. Next:
 
 - Better bounded read coverage for Medplum projects.
 - Provenance/AuditEvent emission aligned with HL7's AI Transparency IG.

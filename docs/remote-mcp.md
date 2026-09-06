@@ -1,12 +1,15 @@
-# Remote MCP (design, not yet implemented)
+# Remote MCP (HTTP transport)
 
-`@lastehr/mcp` speaks stdio only. A stdio server is one process on one
-machine, started by one client, so no hosted agent can reach it. This page is
-the design for a remote transport, written before the code so the parts that
-are security decisions get reviewed as security decisions.
+`@lastehr/mcp` speaks stdio by default. A stdio server is one process on one
+machine, started by one client, so no hosted agent can reach it. Since 0.4.0
+the package can also serve streamable HTTP behind `LASTEHR_MCP_TRANSPORT=http`.
+This page is the design, written before the code so the parts that are
+security decisions were reviewed as security decisions, followed by the probe
+evidence and by what the implementation corrected in the design.
 
-**Status: design. Nothing on this page ships yet.** The published package is
-stdio-only today.
+**Status: shipped in 0.4.0, opt-in.** Stdio remains the default. Configuration
+and operator requirements are in [What shipped](#what-shipped-040); the guide
+is [docs/mcp.md](./mcp.md#remote-transport-http-opt-in).
 
 ## The transport is the easy half
 
@@ -97,6 +100,18 @@ change the write protocol. That was wrong, and the correction matters:
   decides per request whether write tools are offered at all, so a client that
   cannot render an approval prompt is offered no write tool — over any
   transport.
+
+**One detail the implementation got wrong first, and adversarial review
+caught.** Streamable HTTP carries a server-to-client request on the
+originating call's SSE stream only when the request names that call
+(`relatedRequestId`); otherwise it goes to the optional standalone GET
+stream. The approval was first sent with no related id, so a host that never
+opened a GET stream never saw a prompt, and every write hung until the request
+timeout, then failed closed. The fix carries the tools/call id from the request
+handler to the approval (`packages/mcp/src/request-context.ts`), so the prompt
+rides the call's own stream, which is what the MCP spec says SHOULD happen. A
+proving test drives an approval through a client whose fetch answers every GET
+with 405.
 
 So [Approval-Gated Agent Writes on FHIR](./agent-write-protocol.md) is
 unchanged by a remote transport. What is required is **evidence**: an
@@ -304,6 +319,79 @@ certainly may. So this narrows the live probe rather than replacing it: the
 probe must still confirm the membership binding and the `AccessPolicy` effect
 against the deployment in use.
 
+## What shipped (0.4.0)
+
+`LASTEHR_MCP_TRANSPORT=http` starts an HTTP server (`packages/mcp/src/remote-server.ts`)
+that fronts one MCP `Server` per session. Stdio is untouched: the CLI loads the
+module only on the http branch, by dynamic import. No new dependency: the SDK's
+own Node transport is driven through `req.auth`.
+
+| Variable | Meaning |
+| --- | --- |
+| `LASTEHR_MCP_TRANSPORT` | `stdio` (default) or `http` |
+| `LASTEHR_MCP_RESOURCE` | This server's RFC 8707 resource identifier. Feeds both the required token audience and the metadata document, so the two cannot drift |
+| `LASTEHR_MCP_OAUTH_ISSUER` | The authorization server that issues tokens for this resource |
+| `LASTEHR_MCP_OAUTH_JWKS_URI` | Its JWKS, for offline signature verification |
+| `LASTEHR_MCP_REQUIRED_SCOPES` | Comma-separated scopes every caller must present (optional) |
+| `LASTEHR_MCP_EXCHANGE_CLIENT_ID` | The Medplum `ClientApplication` with the identity provider configured, used for the RFC 8693 exchange |
+| `LASTEHR_MCP_TOKEN_ENDPOINT` | The FHIR server's token endpoint |
+| `LASTEHR_MCP_MEMBERSHIP_ID` | Optional `ProjectMembership` to pin during the exchange |
+| `LASTEHR_MCP_HTTP_HOST` / `_PORT` | Bind address; loopback and 3400 by default |
+
+All five OAuth values are required; a missing one stops startup, because a
+server with no audience to require would accept tokens it must refuse. `http`
+refuses `FHIR_BACKEND=hapi` (no auth, no per-user identity). `http` does not
+require a server-side Medplum credential, and holding one would contradict the
+design. A non-loopback bind is refused unless the resource identifier is
+`https`, because bearer tokens must not cross a network in plaintext; TLS
+terminates in front of this process.
+
+**Session binding.** A session is bound at initialize to `(issuer, client_id,
+sub)` of the caller who opened it. Every later request — POST requests,
+POST-carried JSON-RPC responses such as elicitation answers, GET stream attach,
+DELETE — is bearer-verified again and must resolve to the same principal, or it
+is answered with a 404 byte-identical to an unknown id. `sub` is required to
+open a session.
+
+**Fail closed.** Exchange failure or timeout: 502, no session. Expired, revoked,
+or idle credential: 404 and teardown. Capacity is a hard bound that counts
+pending reservations and never evicts (503). Bodies are capped on every POST
+(413). The verifier's own errors are 401/403/500 with nothing constructed. No
+token appears in any log line, body, or header; the transport receives an
+`AuthInfo` with an empty token and the `Authorization` header is stripped from
+the raw headers the SDK exposes to handlers.
+
+**Adversarial review before landing.** Six attack lenses (session hijack, token
+leakage, fail-open paths, resource exhaustion, SDK contract misuse, test
+adequacy) with three refuters per finding confirmed sixteen real issues; all
+are fixed and each has a test. Besides the elicitation-stream correction
+above: an id-less initialize is refused before any exchange (it would have
+committed a session nobody could address); the body is read before the
+registry lookup so a session torn down mid-upload is not handed a dead
+transport; 413 is actually delivered (the default async iterator destroys the
+socket on early return); the exchange is bounded by a timeout so a stalled
+token endpoint cannot pin capacity; `close()` refuses in-flight initializes.
+
+**Tests.** 33 socket-free unit tests, 22 loopback tests with the real SDK
+client, and the two proving tests this note demanded: an elicitation-capable
+client is offered the write tools and its approval over HTTP commits a tagged
+write; a client without elicitation is offered no write tool, and a call to
+one creates nothing, while a capable client in the same process does see them.
+
+**Residual risks the implementation adds to the list below.**
+
+- The MCP SDK retains a request's response in its internal maps when the
+  client aborts mid-call. Bounded by session lifetime; an upstream matter,
+  recorded rather than patched because the fix would reach into SDK privates.
+- The exchange timeout releases the capacity reservation, but the underlying
+  fetch may linger until Node's own timeouts.
+- Sessions live in one process's memory. Several instances behind a load
+  balancer need sticky routing, or a re-routed request answers 404 and the
+  client re-initializes (correct, noisy, one Medplum login each).
+- Not yet exercised: the end-to-end run against a Medplum with a real identity
+  provider. That is the only place the real exchange and the public-HTTPS
+  userinfo requirement can be observed; it needs a project an operator sets up.
+
 ## What this design does not do
 
 Stated plainly, because a remote server invites each of these assumptions:
@@ -326,9 +414,11 @@ Questions 1 and 2 are answered by the probe above. What remains:
 1. **Which identity provider do we document for D2?** The operator needs one
    that supports RFC 8707 and that Medplum accepts as an external identity
    provider. This needs one worked example in the docs, not a list.
-2. **Refresh.** A long-lived agent session outliving its Medplum token needs a
-   defined behavior. Failing closed and making the client re-authorize is the
-   safer default.
+2. ~~Refresh.~~ **Decided: fail closed.** When the exchanged credential
+   reaches its deadline the session is torn down and the next request answers
+   404, so the client re-initializes under its current token and a fresh
+   exchange runs. There is no refresh path and no code that could obtain a
+   second FHIR credential for a live session.
 3. ~~Does the exchanged token carry the caller's `AccessPolicy`?~~
    **Answered: yes.** Verified live on Medplum 5.1.35 — see the probe above.
    Worth re-checking against a hosted deployment before release, since the
@@ -342,6 +432,9 @@ Questions 1 and 2 are answered by the probe above. What remains:
 2. Probe Medplum for RFC 8707 audience support and token format. **Done, see
    above.** The result rules out Medplum as the authorization server.
 3. Transport plus resource-server validation, off by default, with the
-   per-session FHIR client.
-4. The two write-path proving tests.
-5. Threat-model boundary, support-matrix row, and MCP guide updates.
+   per-session FHIR client. **Done (0.4.0).**
+4. The two write-path proving tests. **Done**, plus 53 more.
+5. Threat-model boundary, support-matrix row, and MCP guide updates. **Done**
+   in the same release.
+6. Still ahead: the live end-to-end run against a Medplum with a real identity
+   provider.

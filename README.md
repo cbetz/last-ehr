@@ -237,7 +237,10 @@ MCP clients four bounded chart read tools — `search_patients`,
 `show_patient_info`, `read_chart_section`, and `read_document`, the same read
 surface the web agent has; writes exist only as an explicit opt-in where a
 human approves each proposed write through the client's approval prompt
-([details](./docs/mcp.md)).
+([details](./docs/mcp.md)). It speaks stdio by default; since `0.4.0` an opt-in
+HTTP transport lets a hosted agent reach it as an OAuth resource server, with
+each caller's own FHIR credential obtained per session, so the process holds
+none ([design and evidence](./docs/remote-mcp.md)).
 
 ```bash
 npx -y @lastehr/mcp init --client claude-code
