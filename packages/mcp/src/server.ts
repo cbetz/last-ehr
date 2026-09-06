@@ -7,6 +7,7 @@ import {
 import { z } from "zod";
 
 import { ChartReadRefusal } from "./chart-read.js";
+import { runWithRequestContext } from "./request-context.js";
 
 import {
   clientSupportsApproval,
@@ -180,8 +181,13 @@ export function createMcpServer(
     tools: listMcpTools(availableTools()),
   }));
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) =>
-    callMcpTool(availableTools(), request.params.name, request.params.arguments),
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) =>
+    // The request id is what lets an approval elicitation ride THIS call's
+    // response stream over HTTP rather than the optional GET stream (see
+    // request-context.ts). Over stdio it changes nothing.
+    runWithRequestContext(extra.requestId, () =>
+      callMcpTool(availableTools(), request.params.name, request.params.arguments),
+    ),
   );
 
   return server;

@@ -24,3 +24,13 @@ export {
   listMcpTools,
   startMcpServer,
 } from "./server.js";
+export {
+  createRemoteMcpHandler,
+  startRemoteMcpServer,
+  DEFAULT_REMOTE_SESSION_LIMITS,
+  type FhirSessionClient,
+  type RemoteMcpDependencies,
+  type RemoteMcpHandler,
+  type RemoteSessionLimits,
+  type StartedRemoteMcpServer,
+} from "./remote-server.js";
