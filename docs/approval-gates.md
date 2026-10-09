@@ -15,6 +15,8 @@ Write tools in `lib/ai/tools.ts` set `needsApproval: true`:
 
 - `add_note`
 - `record_observation`
+- `record_superseding_observation` — creates a corrected value linked to
+  the earlier observation; the earlier entry stays unchanged on the chart.
 - `create_task`
 
 When the model calls one of those tools:
@@ -88,7 +90,6 @@ human as verifier, following the HL7 AI Transparency on FHIR IG. The
 
 The approval experience should become more inspectable without becoming noisy:
 
-- FHIR preview in the card.
 - Editable draft proposals with explicit re-review before save.
 - Approval policies by resource type, environment, user role, or SMART scope.
 - Batch review for low-risk resources, if it can avoid approval fatigue.

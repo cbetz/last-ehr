@@ -5,7 +5,7 @@
  * after it grew to four — always in the direction of understating what the
  * agent can reach.
  *
- * Rendered by components/AI.tsx and pinned to the real registrations by
+ * Rendered by the chart-read and write-approval pages, and pinned to the real registrations by
  * lib/tool-catalog.test.ts, so adding a tool without describing it here fails
  * CI rather than quietly shipping an out-of-date manifest.
  */

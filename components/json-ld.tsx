@@ -15,7 +15,7 @@ export function JsonLd() {
         url: BASE_URL,
         logo: `${BASE_URL}/icon`,
         description:
-          "Last EHR is the agent layer for a headless FHIR EHR. It reads the chart broadly (25 of US Core 9.0.0's 27 readable resource types across 23 sections, following references), is built so the agent cannot report an absence it never checked for, and turns every write into a reviewable proposal a person approves (Proposal, Decision, Commit, Audit). Five FHIR backends behind one interface, with web and MCP bindings and an independent conformance suite.",
+          "Last EHR develops open-source AI tools for reading FHIR patient charts and reviewing proposed chart changes.",
         sameAs: ["https://github.com/cbetz/last-ehr", "https://x.com/lastehr"],
       },
       {
@@ -37,7 +37,7 @@ export function JsonLd() {
         license: "https://www.apache.org/licenses/LICENSE-2.0",
         isAccessibleForFree: true,
         description:
-          "The agent layer between an AI agent and a headless FHIR EHR: broad patient-scoped chart reads (25 of US Core's 27 readable resource types, reference following, measurement names resolved to LOINC), read results engineered so an agent cannot state an absence it never checked for, and a human approval gate on every write per the Approval-Gated Agent Writes on FHIR protocol (v0.1 draft). Five verified backends including Medplum, plus an MCP package (read-only by default, opt-in elicitation-gated writes), a standalone conformance suite, and a synthetic workflow evaluator against local HAPI. Stores no patient data of its own.",
+          "An alpha web app and MCP server for searching patients, reading FHIR charts, and proposing notes, observations, and follow-up tasks. Writes require human approval. The FHIR backend remains the system of record. In external model modes, chart reads are sent to the configured provider. Apache-2.0, with a synthetic-data demo.",
       },
     ],
   };

@@ -8,21 +8,23 @@ import { create } from "@/app/form-actions";
 
 const initialState = { message: "" };
 
-export function SignupForm() {
+export function SignupForm({ submitLabel = "Notify me" }: { submitLabel?: string }) {
   const [state, formAction, isPending] = useActionState(create, initialState);
 
   return (
     <form className="grid gap-2" action={formAction}>
-      <Input id="name" name="name" placeholder="Name" required />
+      <label htmlFor="name" className="text-sm font-medium">Name</label>
+      <Input id="name" name="name" autoComplete="name" required />
+      <label htmlFor="email" className="mt-2 text-sm font-medium">Email</label>
       <Input
         id="email"
         name="email"
         type="email"
-        placeholder="Email"
+        autoComplete="email"
         required
       />
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Submitting…" : "Notify me"}
+        {isPending ? "Submitting…" : submitLabel}
       </Button>
       <p
         aria-live="polite"

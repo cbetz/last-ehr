@@ -22,13 +22,10 @@ type NavigationItem = {
 };
 
 const navigation: NavigationItem[] = [
-  { href: "/#coverage", label: "Coverage" },
-  { href: "/#safety", label: "Safety" },
-  { href: "/#protocol", label: "Protocol" },
+  { href: "/#coverage", label: "What it does" },
   { href: "/#mcp", label: "MCP" },
-  { href: "/#start", label: "Start" },
   { href: "/docs", label: "Docs" },
-  { href: "/docs/adapters", label: "Integrations" },
+  { href: "/roadmap", label: "Roadmap" },
 ];
 
 function NavigationLink({ href, label, onClick }: NavigationItem & { onClick?: () => void }) {
@@ -78,14 +75,14 @@ export default function Navbar() {
           </Link>
           <ModeToggle />
           <Link
-            href="/docs/agent-write-protocol"
+            href="/demo"
             className={buttonVariants({
               size: "sm",
               className:
                 "ml-2 rounded-sm px-4",
             })}
           >
-            Read the protocol
+            Try the demo
           </Link>
         </div>
 
@@ -135,11 +132,11 @@ export default function Navbar() {
                   View source on GitHub
                 </Link>
                 <Link
-                  href="/docs/agent-write-protocol"
+                  href="/demo"
                   onClick={() => setIsOpen(false)}
                   className={buttonVariants({ className: "mt-4 rounded-sm" })}
                 >
-                  Read the protocol
+                  Try the demo
                 </Link>
               </div>
             </SheetContent>

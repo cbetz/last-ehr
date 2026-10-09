@@ -19,14 +19,16 @@ flowchart LR
 ## Main modules
 
 - `app/api/chat/route.ts`: the streaming chat endpoint.
-- `lib/ai/tools.ts`: the FHIR tools, the chart-section allowlist, and the system prompt.
+- `lib/ai/tools.ts`: the web FHIR tools and the system prompt.
+- `packages/mcp/src/chart-read.ts`: chart-read implementations and the
+  chart-section allowlist shared by the web agent and MCP package.
 - `lib/fhir/backend.ts`: the `FhirBackend` interface and backend factory.
 - `lib/fhir/medplum.ts`: Medplum adapter.
 - `lib/fhir/hapi.ts`: plain FHIR R4 REST adapter for local HAPI mode.
 - `components/demo/demo-chat.tsx`: browser chat and approval-card rendering.
 - `packages/mcp/src`: standalone MCP package (Medplum, or the local HAPI
   stack via `FHIR_BACKEND=hapi`): read-only by default with an opt-in
-  human-approved write profile, and two
+  human-approved write profile, and four
   chart-reading tools.
 - `scripts/mcp-demo.ts`: checkout-only synthetic HAPI MCP Local Lab. It shares
   the two read schemas, but its separate read facade resolves only the seeded
@@ -46,16 +48,21 @@ Reads:
   builds every query; the model picks a section and filters and never supplies
   raw search parameters. See [FHIR coverage](./fhir-coverage.md) for the
   current sections and the reasons some resource types are deliberately absent.
+- `read_document` — reads inline plain-text or Markdown attachments from a
+  document already listed in the patient's chart. Pointer-only attachments,
+  PDFs, and scans are reported as unread, never as empty.
 
 Writes:
 
 - `add_note`
 - `record_observation`
+- `record_superseding_observation` — creates a corrected observation linked
+  to the earlier entry. The earlier entry remains unchanged on the chart.
 - `create_task`
 
 The web app marks write tools with `needsApproval: true`, so the SDK pauses and
-the UI renders an approval card before `execute` runs. Written observations are
-coded from a pinned local LOINC/UCUM table
+the UI renders an approval card before `execute` runs. Recognized vital signs
+are coded from a pinned local LOINC/UCUM table
 ([`lib/fhir/vitals.ts`](../lib/fhir/vitals.ts)), and the approval card renders
 those derived codes from the same function, so the reviewer sees the codes that
 will save.
