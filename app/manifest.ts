@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Last EHR: the open-source agent layer for your FHIR EHR",
+    name: "Last EHR: AI tools for FHIR patient charts",
     short_name: "Last EHR",
     description:
-      "The open-source agent layer for a headless FHIR EHR. It reads the chart broadly, will not report an absence it never checked for, and turns every write into a proposal a human approves.",
+      "Open-source AI tools for reading FHIR patient charts and reviewing proposed notes, observations, and tasks before they save.",
     start_url: "/",
     display: "standalone",
     background_color: "#101219",

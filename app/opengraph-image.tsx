@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Last EHR: Human-approved AI writeback for FHIR";
+export const alt = "Last EHR: AI tools for FHIR patient charts";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -50,16 +50,16 @@ export default function Image() {
             </div>
           </div>
           <div style={{ display: "flex", fontSize: 16, color: "#aab3c8", letterSpacing: 1.5 }}>
-            OPEN-SOURCE FHIR AGENT INFRASTRUCTURE
+            OPEN SOURCE · ALPHA
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", maxWidth: 960 }}>
           <div style={{ display: "flex", fontSize: 72, fontWeight: 700, lineHeight: 1, letterSpacing: -3 }}>
-            Human-approved AI writeback
+            AI tools for
           </div>
           <div style={{ display: "flex", marginTop: 8, fontSize: 72, fontWeight: 700, lineHeight: 1, letterSpacing: -3, color: "#8ea0ff" }}>
-            for FHIR
+            FHIR patient charts
           </div>
         </div>
 
@@ -74,7 +74,7 @@ export default function Image() {
             fontSize: 22,
           }}
         >
-          <span>Structured proposals · explicit approval · backend policy</span>
+          <span>Read the chart. Review the change.</span>
           <span style={{ color: "#8ea0ff" }}>lastehr.com</span>
         </div>
       </div>

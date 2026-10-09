@@ -6,11 +6,11 @@ import { JsonLd } from "@/components/json-ld";
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.lastehr.com"),
   title: {
-    default: "Last EHR: the agent layer for your FHIR EHR",
+    default: "Last EHR: AI tools for FHIR patient charts",
     template: "%s | Last EHR",
   },
   description:
-    "The agent layer for a headless FHIR EHR. Reads the chart broadly (25 of US Core's 27 readable resource types), is built so it cannot report an absence it never checked for, and turns every write into a proposal a human approves. Five backends, one interface, protocol and conformance suite included.",
+    "Open-source AI tools to read FHIR patient charts and propose notes, observations, and tasks. Review each write before it saves. Web app and MCP server.",
   applicationName: "Last EHR",
   keywords: [
     "EHR",
@@ -36,17 +36,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Last EHR",
-    title: "Last EHR: the agent layer for your FHIR EHR",
+    title: "Last EHR: AI tools for FHIR patient charts",
     description:
-      "Reads the chart broadly, will not report an absence it never checked for, and turns every write into a proposal a human approves. Five FHIR backends, one interface. Open source and synthetic-data-first.",
+      "Search patients, read charts, and review proposed notes, observations, and tasks before they save. Open source. Try it with synthetic data.",
     url: "https://www.lastehr.com",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Last EHR: the agent layer for your FHIR EHR",
+    title: "Last EHR: AI tools for FHIR patient charts",
     description:
-      "Read the chart broadly. Write only what a human approved. 25 of US Core's 27 readable resource types, five FHIR backends, and an open protocol with a conformance suite.",
+      "Read FHIR patient charts and review proposed changes before they save. Use the web app or connect your agent through MCP. Open-source alpha.",
     site: "@lastehr",
     creator: "@lastehr",
   },

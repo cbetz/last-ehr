@@ -6,23 +6,21 @@ import { IconGitHub } from "./ui/icons";
 
 const footerGroups = [
   {
-    title: "Evaluate",
+    title: "Learn",
     links: [
-      { href: "/demo", label: "Synthetic demo" },
-      { href: "/docs/mcp#zero-credential-local-lab-checkout-only", label: "MCP Local Lab" },
-      { href: "/docs/approval-gates", label: "Safety model" },
+      { href: "/headless-ehr", label: "Headless EHRs" },
+      { href: "/chat-with-fhir-data", label: "Chat with FHIR data" },
+      { href: "/approval-gated-writes", label: "Write approvals" },
+      { href: "/medplum-ai-agent", label: "Medplum setup" },
     ],
   },
   {
-    title: "Integrate",
+    title: "Use",
     links: [
       { href: "/docs/quickstart", label: "Quickstart" },
       { href: "/docs", label: "Documentation" },
-      { href: "/docs/evals", label: "FHIR Agent Safety Eval" },
-      {
-        href: "/docs/adapters",
-        label: "Backend adapters",
-      },
+      { href: "/docs/mcp", label: "MCP server" },
+      { href: "/docs/support", label: "Supported backends" },
     ],
   },
   {
@@ -60,8 +58,8 @@ export function SiteFooter() {
             <BrandMark />
           </Link>
           <p className="mt-5 text-sm leading-6 text-muted-foreground">
-            Open-source clinical agent infrastructure for bounded context,
-            inspectable proposals, and explicit approval gates.
+            Open-source AI tools for FHIR patient charts.
+            Read the chart and review proposed changes before they save.
           </p>
           <Link
             href="https://github.com/cbetz/last-ehr"
@@ -70,7 +68,7 @@ export function SiteFooter() {
             className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
           >
             <IconGitHub className="h-4 w-4" aria-hidden="true" />
-            Star the project
+            View the source
             <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </div>

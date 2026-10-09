@@ -8,7 +8,7 @@ const SITE_URL = "https://www.lastehr.com";
 const CARD_IMAGE = {
   width: 1200,
   height: 630,
-  alt: "Last EHR: Human-approved AI writeback for FHIR",
+  alt: "Last EHR: AI tools for FHIR patient charts",
 } as const;
 
 // Builds a subpage's canonical/openGraph/twitter metadata in one place so the

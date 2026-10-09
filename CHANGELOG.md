@@ -3,6 +3,36 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.4.0 — 2026-09-06
+
+`@lastehr/mcp` gains an opt-in remote transport. Stdio stays the default.
+
+- `LASTEHR_MCP_TRANSPORT=http` serves streamable HTTP as an OAuth 2.1 resource
+  server: every request carries a bearer addressed to this server, verified
+  offline against the authorization server's JWKS, and each caller's own FHIR
+  credential is obtained once per session by RFC 8693 exchange. The process
+  holds no Medplum credential, so the FHIR backend's AccessPolicy still decides
+  what each caller can reach. Sessions are bound to the caller who opened
+  them; any other verified identity gets a 404 byte-identical to an unknown
+  session. Off by default; refused with `FHIR_BACKEND=hapi`; loopback unless
+  told otherwise, TLS in front. Design, probe evidence, and what the
+  implementation corrected: `docs/remote-mcp.md`. Operator guide:
+  `docs/mcp.md`. (#187, #188, #189, #190, #191, #193)
+- Medplum cannot be the authorization server for this: it issues tokens
+  addressed to itself and silently ignores the RFC 8707 `resource` parameter
+  (probed on hosted Medplum and verified in source). The verifier refuses such
+  tokens; operators bring an identity provider that supports resource
+  indicators and register it on the Medplum project.
+- The approval elicitation now names the tools/call it belongs to
+  (`relatedRequestId`), so over HTTP it rides that call's own stream rather
+  than the optional standalone GET stream. Found by adversarial review before
+  release: without it, a host that never opened a GET stream never saw a
+  prompt and every write failed closed. Over stdio this changes nothing.
+- Not yet performed: the end-to-end run against a Medplum with a real identity
+  provider configured.
+- `.env.example` no longer says the package exposes two read tools; it has
+  exposed four since `read_chart_section` and `read_document` landed.
+
 ## 0.3.1 — 2026-07-27
 
 A contributed CLI convenience, and the two bugs found verifying it.

@@ -1,15 +1,12 @@
 # Last EHR Roadmap
 
-Last EHR's north star is to be the open-source agent layer for a headless FHIR
-EHR: a chart an agent can read broadly, cannot lie about, and can only write to
-through a human decision. Approval-gated writes are the sharpest of those three,
-not the whole of them — the read surface and the honesty properties are
-first-class goals with their own coverage numbers, not scaffolding for the gate.
-The project should stay small enough to inspect, but useful enough that teams
-can clone it, run it on synthetic data, and adapt it to their own FHIR backend.
+Last EHR is an open-source agent layer over a FHIR backend. It gives an agent
+chart-reading tools that report incomplete results and write tools that require
+human approval. The goal is a small application that teams can inspect, run on
+synthetic data, and adapt to their own backend.
 
-This roadmap is intentionally public. It tells users what is safe to depend on,
-and it gives contributors concrete places to help.
+This roadmap records what has shipped, the remaining gaps, and where
+contributors can help. The project is alpha; interfaces can change.
 
 ## Current focus
 
@@ -92,13 +89,14 @@ Approval-gated writes are the wedge. Shipped so far: the approval card shows
 the exact proposed fields with a FHIR-shaped preview, and deployments can opt
 into a [rejected-proposal audit trail](./docs/approval-gates.md)
 (`LASTEHR_AUDIT_REJECTED_PROPOSALS`) that records a FHIR AuditEvent per
-denial. Near-term work:
+denial. Deny-only policy hooks can also block proposals before review or
+commit; they never bypass approval. Near-term work:
 
 - Support cancel/retry flows that are easy to understand.
 - Explore editable proposals without weakening the "what you see is what saves"
   rule.
-- Add policy hooks so operators can require approval by resource type,
-  project, environment, or SMART scope.
+- Extend policy configuration by resource type, project, environment,
+  or SMART scope while retaining explicit approval for every write.
 
 ### 5. More useful clinical tools
 
@@ -106,7 +104,7 @@ The agent is narrow by default, not by ceiling: a deployment should have to opt
 into reach, and the catalog should grow in well-reviewed steps rather than as
 demo features:
 
-- Task creation and assignment
+- Task creation is shipped; task assignment remains ahead
 - Encounter-scoped notes
 - Better Observation coding and unit normalization — done for vitals (LOINC + UCUM from a pinned table, `lib/fhir/vitals.ts`); laboratory results and medication/condition coding remain
 - Condition/MedicationRequest write experiments behind stricter gates
@@ -126,10 +124,15 @@ was no Last EHR approval card in an MCP host. MCP's elicitation feature is
 that reviewable confirmation protocol, and `0.2.0` ships proposal-shaped
 writes behind it: opt-in (`LASTEHR_MCP_WRITES=proposal`), capability-gated
 fail-closed, human-approved per action, tagged for audit. Read-only remains
-the default forever. Next:
+the default forever. `0.4.0` adds an opt-in remote (HTTP) transport as an
+OAuth resource server with a per-caller FHIR credential, so a hosted agent can
+reach the server without this layer ever holding a shared credential
+([docs/remote-mcp.md](./docs/remote-mcp.md)); the live run against a real
+identity provider is still ahead. Next:
 
 - Better bounded read coverage for Medplum projects.
-- Provenance/AuditEvent emission aligned with HL7's AI Transparency IG.
+- Optional author/verifier Provenance is shipped. Improve reviewer identity
+  attribution and audit evidence aligned with HL7's AI Transparency IG.
 - The framework-neutral spec now exists as a v0.1 draft:
   [Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md).
   Next: socialize it and recruit an independent implementation.

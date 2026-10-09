@@ -27,6 +27,23 @@ do not mistake the approval card for a full security system.
   trail is always written to the deployment default, never the picked
   backend.
 
+- Remote MCP caller to the resource server (`LASTEHR_MCP_TRANSPORT=http`).
+  Every request carries a bearer that the server verifies offline against the
+  authorization server's JWKS: signature, issuer, audience equal to this
+  server's own resource identifier, expiry, required scopes. A token addressed
+  to the FHIR server is refused; the probe in docs/remote-mcp.md shows Medplum
+  issues exactly such tokens and silently ignores the `resource` parameter, so
+  accepting one would make this server a confused deputy.
+- Resource server to the FHIR server's token endpoint. The caller's verified
+  token is exchanged once per session for that caller's own FHIR token. The
+  process holds no FHIR credential; the exchange checks no client secret; the
+  FHIR backend's AccessPolicy governs every call as it does on the web path.
+- Session to the caller who opened it. Bound to (issuer, client_id, sub); any
+  other verified identity presenting the session id gets a 404 byte-identical
+  to an unknown id, for requests, JSON-RPC responses such as approval answers,
+  stream attach, and DELETE. Tool handlers receive an AuthInfo with an empty
+  token, and the Authorization header is stripped from the raw headers the SDK
+  exposes to them.
 - Chart free text into the model's instructions. Every free-text value the
   agent reads is wrapped in a `<chart_text>` boundary that the system prompt
   declares to be data, never instructions. The value is sanitized before

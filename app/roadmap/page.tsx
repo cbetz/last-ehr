@@ -2,67 +2,75 @@ import type { Metadata } from "next";
 
 import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
-import {
-  ClipboardCheck,
-  FileCheck2,
-  GitBranch,
-  LineChart,
-  LockKeyhole,
-  ServerCog,
-} from "lucide-react";
 
 import Navbar from "@/components/Navbar";
 import { SiteFooter } from "@/components/site-footer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Roadmap: Approval-Gated FHIR Agents",
+  title: "Roadmap",
   description:
-    "Where Last EHR is headed: local adoption, backend adapters, approval workflows, MCP, and safer FHIR agent tools.",
+    "What Last EHR supports today and what comes next: chart reads, approved writes, MCP, and FHIR backend verification.",
   path: "/roadmap",
   type: "website",
   cardTitle: "Last EHR Roadmap",
   cardDescription:
-    "The public roadmap for the open-source approval-gated FHIR agent layer.",
+    "Available now, current limits, and the next work for Last EHR.",
 });
 
-const tracks = [
+const available = [
   {
-    title: "Demo to Local",
+    title: "Chart reads and approved writes",
     description:
-      "Keep the no-signup demo sharp, make HAPI local mode repeatable, and measure where evaluators drop off.",
-    icon: <LineChart className="h-5 w-5" aria-hidden="true" />,
+      "The web agent and MCP package share four read tools: patient search, chart overview, filtered sections, and document text. Write tools propose notes, observations, linked corrections, and follow-up tasks. Each write needs human approval; a correction adds a new observation and leaves the original in place.",
   },
   {
-    title: "Backend Portability",
+    title: "MCP over stdio or HTTP",
     description:
-      "Firely Server, Aidbox, and Oystehr now ship as verified synthetic-evaluation adapters; next are other FHIR R4 backends through the FhirBackend contract.",
-    icon: <GitBranch className="h-5 w-5" aria-hidden="true" />,
+      "MCP is read-only by default, with approved writes available by opt-in. Version 0.4.0 adds an optional HTTP transport with OAuth and a separate FHIR credential for each caller. Stdio remains the default. The HTTP path still needs a live run with a real identity provider and Medplum.",
   },
   {
-    title: "Approval Workflows",
+    title: "Five FHIR backend adapters",
     description:
-      "Improve proposed-write previews, rejected-proposal handling, and policy hooks without weakening explicit human review.",
-    icon: <ClipboardCheck className="h-5 w-5" aria-hidden="true" />,
+      "Medplum is the supported authenticated path. The included HAPI stack runs locally without credentials. Firely Server, Aidbox, and Oystehr have passed the synthetic backend checks. These evaluation paths are for synthetic data; authentication and permissions remain the backend’s responsibility.",
   },
   {
-    title: "Clinical Tool Catalog",
+    title: "Write controls and audit records",
     description:
-      "Expand beyond notes and observations carefully: Task, DocumentReference, encounter context, and better unit/coding support.",
-    icon: <ServerCog className="h-5 w-5" aria-hidden="true" />,
+      "Approved writes carry an AI assistance label. Operators can enable Provenance records, an audit trail for rejected proposals, and policy hooks that can block a write before review or commit. A policy never replaces the human decision.",
   },
   {
-    title: "MCP Safety",
+    title: "A local walkthrough and conformance suite",
     description:
-      "Keep the standalone package auditable: read-only by default, with the opt-in write profile human-approved per action; the shipped Local Lab evaluates the bounded surface on fixture data.",
-    icon: <LockKeyhole className="h-5 w-5" aria-hidden="true" />,
+      "The local HAPI walkthrough needs no account or model key. CI checks the browser approval flow, synthetic workflow evaluator, and write-protocol conformance suite against that stack. These checks verify the mechanics of reads and writes; they do not establish clinical accuracy.",
+  },
+];
+
+const next = [
+  {
+    title: "Verify remote MCP with a real identity provider",
+    description:
+      "Run the complete HTTP path from an MCP client through OAuth and token exchange to Medplum. Record the provider setup, caller permissions, and end-to-end result.",
   },
   {
-    title: "Safety Evidence",
+    title: "Extend terminology beyond vitals",
     description:
-      "Grow the shipped synthetic workflow eval into reviewed, retestable evidence for verified backend integrations.",
-    icon: <FileCheck2 className="h-5 w-5" aria-hidden="true" />,
+      "Measurement names currently resolve through a curated LOINC table. Add reviewed code mappings for problems, medications, and vaccines, plus explicit laboratory coding.",
+  },
+  {
+    title: "Complete the remaining reference coverage",
+    description:
+      "Add reference-based fixtures and verification for Medication and PractitionerRole, the two remaining US Core resource types. The existing reference reader is the starting point.",
+  },
+  {
+    title: "Make backend evidence easier to repeat",
+    description:
+      "Record the backend version, Last EHR revision, report, and retest date for each verified adapter so the checks can be repeated against the same setup.",
+  },
+  {
+    title: "Test the write protocol independently",
+    description:
+      "The Approval-Gated Agent Writes on FHIR protocol is a v0.1 draft. Recruit another implementation and use the conformance suite to find gaps in the specification.",
   },
 ];
 
@@ -76,13 +84,12 @@ export default function RoadmapPage() {
             Roadmap
           </p>
           <h1 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">
-            The open-source path for approval-gated FHIR agents
+            What works today, and what comes next
           </h1>
           <p className="mt-6 max-w-2xl text-xl text-muted-foreground">
-            Last EHR is intentionally narrow: chart reads, explicit write
-            proposals, backend-enforced permissions, and no chart database in
-            the layer. The roadmap expands that pattern without turning the
-            project into an EHR.
+            Last EHR is an alpha agent layer over a FHIR backend. Use synthetic
+            data while evaluating it. The current work improves chart reads,
+            human approval, and the evidence that each integration works.
           </p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
@@ -99,29 +106,34 @@ export default function RoadmapPage() {
           </div>
         </section>
 
-        <section className="container pb-24">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {tracks.map(({ title, description, icon }) => (
-              <Card key={title} className="bg-transparent">
-                <CardHeader className="space-y-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-md border text-muted-foreground">
-                    {icon}
-                  </div>
-                  <CardTitle className="text-base">{title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm leading-relaxed text-muted-foreground">
-                  {description}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
+        {[
+          { heading: "Available now", items: available },
+          { heading: "Next", items: next },
+        ].map(({ heading, items }) => (
+          <section key={heading} className="container max-w-4xl pb-24">
+            <h2 className="text-2xl font-bold">{heading}</h2>
+            <dl className="mt-8 divide-y border-y">
+              {items.map(({ title, description }) => (
+                <div
+                  key={title}
+                  className="grid gap-3 py-6 sm:grid-cols-[14rem_1fr] sm:gap-8"
+                >
+                  <dt className="font-medium">{title}</dt>
+                  <dd className="leading-relaxed text-muted-foreground">
+                    {description}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ))}
 
         <section className="container max-w-4xl pb-24">
           <h2 className="text-2xl font-bold">How to help</h2>
           <p className="mt-4 max-w-2xl text-muted-foreground">
-            Small PRs are preferred. Adapters, docs, and demo polish are all in
-            reach for a first contribution.
+            Small PRs are welcome. Start with a reproducible bug, a documentation
+            correction, or an adapter test. Discuss changes to clinical tools
+            before adding them.
           </p>
           <div className="mt-6 flex flex-wrap gap-4">
             <Link

@@ -94,12 +94,16 @@ describe("public copy agrees with the coverage page", () => {
         total,
       );
     }
-    // Every one of these files must actually make the claim; a silent drop
-    // would pass the loops above by matching nothing.
-    expect(
-      counts.length + totals.length,
-      `${file} no longer states the read-coverage count`,
-    ).toBeGreaterThan(0);
+    // The README publishes the count. Marketing copy can omit it; when a
+    // surface quotes a number, the checks above still prevent stale claims.
+    // The homepage coverage section derives its figures from lib/coverage.ts,
+    // whose counts are checked against the tool registrations separately.
+    if (file === "README.md") {
+      expect(
+        counts.length + totals.length,
+        `${file} no longer states the read-coverage count`,
+      ).toBeGreaterThan(0);
+    }
   });
 
   it("keeps the section count consistent wherever it is stated", () => {
