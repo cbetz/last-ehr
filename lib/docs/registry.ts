@@ -36,7 +36,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 10,
     audience: "Evaluators and first-time builders",
-    lastModified: "2026-07-24",
+    lastModified: "2026-07-25",
     keywords: ["local", "HAPI", "Medplum", "setup", "Docker"],
   },
   {
@@ -48,7 +48,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 20,
     audience: "Technical evaluators and architecture owners",
-    lastModified: "2026-07-21",
+    lastModified: "2026-10-09",
     keywords: ["support", "Medplum", "HAPI", "compatibility", "status"],
   },
   {
@@ -60,7 +60,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 10,
     audience: "Developers reviewing the implementation",
-    lastModified: "2026-07-24",
+    lastModified: "2026-10-09",
     keywords: ["architecture", "FHIR", "tools", "backend", "data boundary"],
   },
   {
@@ -72,7 +72,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 20,
     audience: "Clinical, product, and security reviewers",
-    lastModified: "2026-07-19",
+    lastModified: "2026-10-09",
     keywords: ["approval", "writes", "human review", "safety", "Observation"],
   },
   {
@@ -96,7 +96,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Understand",
     order: 30,
     audience: "Security and privacy reviewers",
-    lastModified: "2026-07-18",
+    lastModified: "2026-10-09",
     keywords: ["threat model", "security", "privacy", "PHI", "boundaries"],
   },
   {
@@ -108,20 +108,32 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 10,
     audience: "Backend contributors and integration teams",
-    lastModified: "2026-07-24",
+    lastModified: "2026-07-25",
     keywords: ["adapter", "Aidbox", "Firely", "Oystehr", "contract"],
   },
   {
     slug: "mcp",
     file: "docs/mcp.md",
-    title: "MCP Server",
+    title: "FHIR MCP Server",
     description:
-      "Install bounded FHIR chart tools for MCP clients: read-only by default, with an opt-in human-approved write profile.",
+      "Connect Claude Code or Cursor to bounded FHIR chart tools for Medplum or local HAPI. Read-only by default, with opt-in human-approved writes.",
     group: "Build & integrate",
     order: 20,
     audience: "Agent and MCP builders",
-    lastModified: "2026-07-19",
-    keywords: ["MCP", "Claude", "Medplum", "read only", "approval", "tools"],
+    lastModified: "2026-10-09",
+    keywords: ["FHIR MCP server", "Claude Code", "Cursor", "Medplum", "read only", "approval"],
+  },
+  {
+    slug: "remote-mcp",
+    file: "docs/remote-mcp.md",
+    title: "Remote FHIR MCP: HTTP and OAuth",
+    description:
+      "Configure the optional HTTP transport and per-caller OAuth boundary in MCP 0.4.0. Includes test evidence and the remaining real-provider verification gap.",
+    group: "Build & integrate",
+    order: 25,
+    audience: "MCP operators and security reviewers",
+    lastModified: "2026-10-09",
+    keywords: ["FHIR MCP", "remote MCP", "HTTP", "OAuth", "Medplum", "token exchange"],
   },
   {
     slug: "evals",
@@ -132,7 +144,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 30,
     audience: "Adapter contributors and technical evaluators",
-    lastModified: "2026-07-19",
+    lastModified: "2026-10-09",
     keywords: ["eval", "safety", "approval", "synthetic", "HAPI", "adapter"],
   },
   {
@@ -144,7 +156,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 30,
     audience: "Technical evaluators and FHIR implementers",
-    lastModified: "2026-07-24",
+    lastModified: "2026-07-25",
     keywords: ["coverage", "US Core", "FHIR", "operations", "search", "scope"],
   },
   {
@@ -168,7 +180,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Operate & maintain",
     order: 10,
     audience: "Operators and platform teams",
-    lastModified: "2026-07-14",
+    lastModified: "2026-07-17",
     keywords: ["deployment", "Docker", "environment", "rate limit", "PHI"],
   },
   {

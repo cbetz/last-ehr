@@ -1,9 +1,46 @@
-# MCP Server
+# FHIR MCP Server
 
-`@lastehr/mcp` is the smallest installable Last EHR surface: an MCP server
-that is read-only by default (search patients, open a chart), with one
-opt-in write profile that carries the web app's proposal/approval semantics
-onto MCP (below). It is deliberately separate from the web app.
+A FHIR MCP server exposes patient-chart operations as tools through the
+Model Context Protocol. `@lastehr/mcp` is Last EHR's open-source implementation:
+your MCP client supplies the agent and model, while this package reads from
+your FHIR backend and returns the results to that client. It runs separately
+from the Last EHR web app and is read-only by default.
+
+## What can the agent read or write?
+
+The package provides four read tools: patient search, chart overview, a
+filtered chart section, and inline document text. The section reader covers
+23 patient-scoped sections and reports incomplete or unsupported reads. See
+the [tool surface](#tool-surface) and [FHIR coverage](./fhir-coverage.md) for
+resource types and limits.
+
+With `LASTEHR_MCP_WRITES=proposal`, four additional tools can create notes
+(`Communication`), measurements and linked corrections (`Observation`), and
+follow-up tasks (`Task`). Each write requires a human approval prompt in a
+client that declares MCP elicitation support. The tools do not update or
+delete existing records, and a client without that capability receives no
+write tools.
+
+## Which FHIR backends are supported?
+
+Use hosted or self-hosted Medplum for the authenticated path. The package also
+supports this repository's no-auth HAPI stack over stdio for local synthetic
+evaluation. The separate checkout-only Local Lab below exposes just two read
+tools against four synthetic patients. Other web-app adapters are not MCP
+backends; see the [support matrix](./support.md).
+
+## Where does patient data go?
+
+The MCP server fetches chart data from the configured FHIR backend and returns
+it to your MCP client. The client may send those results to its model provider
+and retain them according to its own settings. This package does not call a
+model provider itself. Reads run without a human approval step; approving a
+write controls saving a resource, not sharing read context with a model.
+
+Start with synthetic records and review your client's and provider's data
+handling before connecting a project. [Install and connect](#install-and-connect)
+describes the local stdio setup; [remote HTTP and OAuth](./remote-mcp.md)
+requires additional operator infrastructure.
 
 ## Zero-credential Local Lab (checkout only)
 
@@ -63,17 +100,51 @@ to stdout. Keep the local stack running while the client is connected; use
 
 ## Install and connect
 
+The commands below generate a local stdio configuration. They do not install
+the server into your client or configure remote OAuth automatically.
+
+### Claude Code
+
+Configure a least-privilege Medplum credential using [Auth](#auth), then print
+the registration command:
+
+```bash
+npx -y @lastehr/mcp init --client claude-code
+```
+
+Run the generated `claude mcp add` command, then launch Claude Code from an
+environment where those credentials are available. The server process
+inherits `MEDPLUM_*` variables from your shell or MCP client configuration.
+Use `/mcp` in Claude Code to inspect the connection. Its
+[MCP documentation](https://code.claude.com/docs/en/mcp#option-3-add-a-local-stdio-server)
+covers registration, credential configuration, and installation scope.
+
+### Cursor or a JSON configuration
+
+Print the Cursor configuration:
+
+```bash
+npx -y @lastehr/mcp init --client cursor
+```
+
+The default command prints the same JSON:
+
 ```bash
 npx -y @lastehr/mcp init
 ```
 
-The command prints a portable MCP configuration. Add a least-privilege token,
-then place the result in your MCP client's configuration:
+Replace the placeholder with a least-privilege Medplum token, then add the
+`lastehr` entry to your client's MCP configuration. For Cursor, add
+`"type": "stdio"` as shown below and save the configuration in
+`~/.cursor/mcp.json` for personal use or `.cursor/mcp.json` for this project.
+See [Cursor's MCP documentation](https://cursor.com/docs/mcp#configuration-locations)
+for its configuration fields and locations.
 
 ```json
 {
   "mcpServers": {
     "lastehr": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@lastehr/mcp"],
       "env": {
@@ -84,15 +155,10 @@ then place the result in your MCP client's configuration:
 }
 ```
 
-For Claude Code, print the registration command instead:
-
-```bash
-npx -y @lastehr/mcp init --client claude-code
-```
-
-The process inherits `MEDPLUM_*` variables from your shell or MCP client
-configuration. Start it directly with `npx -y @lastehr/mcp` when you want to
-test a stdio connection yourself.
+Start the server directly with `npx -y @lastehr/mcp` when you want to inspect a
+stdio connection yourself. These setup commands do not establish write
+compatibility: the optional write profile checks the connected client's
+elicitation capability at runtime.
 
 ## Auth
 
@@ -242,9 +308,10 @@ operator view.
 session. Every request must carry a bearer addressed to this server, verified
 offline against your authorization server's JWKS. Each caller's own FHIR
 credential is obtained once per session by RFC 8693 token exchange, so this
-process holds no FHIR credential and Medplum's `AccessPolicy` still decides what
-each caller can reach. Read-only stays the default; `LASTEHR_MCP_WRITES=proposal`
-is the same opt-in, and the approval gate is evaluated per session.
+process needs no shared FHIR credential. Each session's client holds its
+exchanged token, and Medplum's `AccessPolicy` still decides what each caller
+can reach. Read-only stays the default; `LASTEHR_MCP_WRITES=proposal` is the
+same opt-in, and the approval gate is evaluated per session.
 
 **What you need.**
 

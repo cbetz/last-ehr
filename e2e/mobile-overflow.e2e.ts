@@ -23,6 +23,7 @@ const pages = [
   { path: "/demo", name: "demo" },
   { path: "/docs/fhir-coverage", name: "coverage doc (wide tables)" },
   { path: "/docs/mcp", name: "MCP doc (shell commands)" },
+  { path: "/docs/remote-mcp", name: "remote MCP doc (inline JSON and tables)" },
 ];
 
 test.describe("no horizontal overflow on a phone", () => {

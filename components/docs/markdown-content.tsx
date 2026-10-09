@@ -168,7 +168,7 @@ export function MarkdownContent({ markdown, doc }: MarkdownContentProps) {
 
       return (
         <code
-          className="border border-primary/20 bg-primary/10 px-1.5 py-0.5 font-mono text-[0.84em] font-medium text-foreground"
+          className="[overflow-wrap:anywhere] border border-primary/20 bg-primary/10 px-1.5 py-0.5 font-mono text-[0.84em] font-medium text-foreground"
           {...elementProps}
         >
           {children}
