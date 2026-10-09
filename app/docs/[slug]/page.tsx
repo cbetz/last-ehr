@@ -64,6 +64,39 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
   ]);
   const headings = extractHeadings(markdown);
   const body = getMarkdownBody(markdown);
+  const articleUrl = `https://www.lastehr.com/docs/${doc.slug}`;
+  const updatedLabel = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(doc.lastModified));
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "@id": `${articleUrl}#article`,
+        headline: doc.title,
+        description: doc.description,
+        url: articleUrl,
+        mainEntityOfPage: articleUrl,
+        dateModified: doc.lastModified,
+        publisher: { "@id": "https://www.lastehr.com/#organization" },
+        isPartOf: { "@id": "https://www.lastehr.com/#website" },
+        inLanguage: "en-US",
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${articleUrl}#breadcrumbs`,
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: "https://www.lastehr.com" },
+          { "@type": "ListItem", position: 2, name: "Docs", item: "https://www.lastehr.com/docs" },
+          { "@type": "ListItem", position: 3, name: doc.title, item: articleUrl },
+        ],
+      },
+    ],
+  };
   const localAction =
     doc.slug === "evals"
       ? {
@@ -85,25 +118,40 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
 
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <section className="border-b marketing-rule">
         <div className="container py-10 sm:py-14">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <Link href="/docs" className="transition-colors hover:text-foreground">
-              Docs
-            </Link>
-            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>{doc.group}</span>
-          </div>
+          <nav aria-label="Breadcrumb">
+            <ol className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <li><Link href="/" className="transition-colors hover:text-foreground">Home</Link></li>
+              <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+              <li><Link href="/docs" className="transition-colors hover:text-foreground">Docs</Link></li>
+              <li aria-hidden="true"><ChevronRight className="h-3.5 w-3.5" /></li>
+              <li aria-current="page">{doc.title}</li>
+            </ol>
+          </nav>
           <div className="mt-7 grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-end">
             <div className="max-w-3xl">
               <p className="section-kicker">
-                {doc.audience}
+                {doc.group} · {doc.audience}
               </p>
               <h1 className="mt-4 text-4xl font-semibold tracking-[-0.055em] text-balance sm:text-5xl sm:leading-[0.98]">
                 {doc.title}
               </h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
                 {doc.description}
+              </p>
+              <p className="mt-4 text-xs leading-6 text-muted-foreground">
+                Maintained by{" "}
+                <a href="https://github.com/cbetz" className="underline underline-offset-4" target="_blank" rel="noopener noreferrer">
+                  Chris Betz
+                </a>
+                {" · Updated "}<time dateTime={doc.lastModified}>{updatedLabel}</time>
               </p>
             </div>
             <div className="flex flex-wrap gap-3 lg:justify-end">
@@ -168,8 +216,8 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
 
         <article className="min-w-0">
           <div className="border-y marketing-rule bg-muted/25 px-4 py-3 text-sm leading-6 text-muted-foreground">
-            This guide describes the reference implementation as it exists today. Keep the
-            stated support boundary in view as you evaluate or extend it.
+            This guide describes the reference implementation at its stated update date.
+            Keep the documented support boundary in view as you evaluate or extend it.
           </div>
           <MarkdownContent markdown={body} doc={doc} />
           <div className="mt-10 border-y border-primary/20 bg-primary/[0.06] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">

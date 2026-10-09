@@ -40,6 +40,12 @@ describe("documentation registry", () => {
     expect(adapters).toBeDefined();
 
     expect(resolveDocHref("./adapters.md", quickstart!)).toBe("/docs/adapters");
+    expect(resolveDocHref("#axis-c--resolution-mechanisms", quickstart!)).toBe(
+      "#axis-c-resolution-mechanisms",
+    );
+    expect(resolveDocHref("./fhir-coverage.md#axis-c--resolution-mechanisms", quickstart!)).toBe(
+      "/docs/fhir-coverage#axis-c-resolution-mechanisms",
+    );
     expect(resolveDocHref("./quickstart.md#model-providers", adapters!)).toBe(
       "/docs/quickstart#model-providers",
     );

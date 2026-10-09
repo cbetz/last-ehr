@@ -1,15 +1,41 @@
-# Remote MCP (HTTP transport)
+# Remote FHIR MCP: HTTP and OAuth
 
-`@lastehr/mcp` speaks stdio by default. A stdio server is one process on one
-machine, started by one client, so no hosted agent can reach it. Since 0.4.0
-the package can also serve streamable HTTP behind `LASTEHR_MCP_TRANSPORT=http`.
-This page is the design, written before the code so the parts that are
-security decisions were reviewed as security decisions, followed by the probe
-evidence and by what the implementation corrected in the design.
+Remote FHIR MCP lets a client reach Last EHR's chart tools over streamable
+HTTP instead of starting a local stdio process. `@lastehr/mcp` added this
+opt-in transport in 0.4.0 with `LASTEHR_MCP_TRANSPORT=http`. It supports Medplum
+with per-caller OAuth; the local no-auth HAPI stack is refused. Stdio remains
+the default.
 
-**Status: shipped in 0.4.0, opt-in.** Stdio remains the default. Configuration
-and operator requirements are in [What shipped](#what-shipped-040); the guide
-is [docs/mcp.md](./mcp.md#remote-transport-http-opt-in).
+## How does remote OAuth work?
+
+The caller obtains a token from an operator-provided identity provider,
+addressed to this MCP server. Last EHR validates that token and exchanges it
+at Medplum for the caller's own FHIR credential. Medplum's `AccessPolicy`
+continues to control that caller's reads and writes. The server requires no
+shared Medplum access token or client secret, but holds each exchanged
+credential for its session.
+
+Read-only remains the default. Opt-in writes use the same human approval
+protocol as stdio and require a client that declares MCP elicitation support.
+Chart results return to the MCP client, which may send them to its model
+provider. The write approval prompt does not control that data flow. See the
+[MCP guide](./mcp.md) for tool coverage and client setup.
+
+## What has been verified?
+
+**The transport shipped; a run with a real identity provider is still
+outstanding.** Loopback tests exercise the real MCP SDK client, including
+approval over HTTP and refusal of writes to clients without elicitation.
+A separate disposable Medplum 5.1.35 probe verified token exchange and
+`AccessPolicy` enforcement with a mock identity provider. That probe used an
+unsafe-outbound override to reach the local mock; it does not verify the
+public-HTTPS identity-provider setup required for deployment.
+
+Configuration and operator requirements are in
+[What shipped](#what-shipped-040) and the
+[operator guide](./mcp.md#remote-transport-http-opt-in). The sections below
+retain the design decisions, dated probe evidence, implementation corrections,
+and remaining verification work.
 
 ## The transport is the easy half
 
@@ -29,7 +55,7 @@ already, so a remote transport adds no new direct dependency to this package.
 
 ## The credential is the hard half
 
-Today `loadMcpConfig` requires one FHIR credential before the process starts —
+The stdio configuration requires one FHIR credential before the process starts —
 `MEDPLUM_ACCESS_TOKEN`, or `MEDPLUM_CLIENT_ID` plus `MEDPLUM_CLIENT_SECRET`
 ([`config.ts`](../packages/mcp/src/config.ts)). Over stdio that is right: one
 operator, on their own machine, using their own credential.
@@ -183,8 +209,8 @@ it on the Medplum project as an external identity provider.
 - Keeps the delegation position intact.
 - Preserves per-caller `AccessPolicy`, because step 3 returns that user's own
   Medplum token. Confirmed against the handler source below.
-- **Holds no Medplum credential.** The exchange path checks no client secret,
-  so this server stores nothing it could leak.
+- **Needs no shared Medplum credential.** The exchange path checks no client
+  secret. Each session's FHIR client holds only its exchanged token.
 - Costs the operator an identity provider and one Medplum project setting. The
   probe shows the exchange grant refuses a client with no identity provider
   configured, so this setup is required, not optional.
@@ -193,13 +219,16 @@ it on the Medplum project as an external identity provider.
 project. D1 stays possible later for operators with no identity provider, and
 it would be an additive change rather than a replacement.
 
-## Live probe: D2 verified end to end (self-hosted Medplum 5.1.35, 2026-08-27)
+## Token-exchange probe with a mock identity provider (Medplum 5.1.35, 2026-08-27)
 
-The source reading below narrowed the question. This settles it. The rig was a
-local, disposable stack: Medplum 5.1.35 with Postgres and Redis in Docker, a
-throwaway project, and a mock identity provider serving one `/userinfo`
-response. Nothing touched a hosted project. The version line matches the
-`@medplum/core` 5.1.x this repository already depends on.
+This probe covers token exchange with a mock identity provider and direct
+FHIR calls. The complete remote MCP run with a real identity provider remains
+outstanding. It tested whether token exchange resolves the caller's Medplum
+identity and enforces that identity's `AccessPolicy`. The rig was a local,
+disposable stack: Medplum 5.1.35 with Postgres and Redis in Docker, a throwaway
+project, and a mock identity provider serving one `/userinfo` response.
+Nothing touched a hosted project. The version line matches the `@medplum/core`
+5.1.x this repository already depends on.
 
 Setup: a project with one synthetic Patient and one synthetic Observation, an
 `AccessPolicy` named `PatientOnly` granting `Patient` as `readonly` and **not**
@@ -209,8 +238,8 @@ listing `Observation`, a user invited with that policy, and a
 **The exchange works, and it needs no client secret.** A request with only
 `client_id`, `subject_token`, and `subject_token_type` returned HTTP 200. The
 response named the user the mock identified:
-`Practitioner/… "Limited User"`. No Medplum credential was sent, which confirms
-the source reading: this server can hold nothing.
+`Practitioner/… "Limited User"`. No pre-existing Medplum credential was sent,
+which confirms the source reading: the exchange needs no shared Medplum secret.
 
 **The exchanged token is bounded by that user's `AccessPolicy`.** This is the
 claim the whole design rests on, and it holds:
@@ -267,10 +296,10 @@ indication that the protocol was the cause.
 
 ## Source evidence for D2 (medplum/medplum `main`, read 2026-08-23)
 
-The live probe above cannot reach the exchange grant, because the project used
-has no identity provider configured. Medplum is open source, so the handler
-answers the remaining questions directly. Read from
-`packages/server/src/oauth/token.ts` on `main`.
+The hosted probe of 2026-08-22 could not reach the exchange grant because its
+project had no identity provider configured. The following source reading
+preceded the mock-provider probe above. It examined
+`packages/server/src/oauth/token.ts` on Medplum's `main` branch.
 
 **The exchange issues an ordinary user token.** `exchangeExternalAuthToken`
 ends with a normal login and the normal token response:
@@ -295,12 +324,11 @@ So the exchanged token is bound to a `ProjectMembership` by the same code path
 as any other login. Its `AccessPolicy` applies. That was the question the whole
 design rested on, and the answer is yes.
 
-**This server needs no Medplum credential at all.** The handler validates the
+**This server needs no shared Medplum credential.** The handler validates the
 caller by calling the identity provider's user-info URL with the subject token.
 It never checks a client secret on this path. The trust chain is caller →
-identity provider → Medplum, and Last EHR holds nothing. That is a stronger
-result than the design asked for: there is no shared credential to leak,
-because there is no shared credential.
+identity provider → Medplum. Last EHR receives a per-caller token for the
+session rather than using a shared token or client secret.
 
 **One caveat, since corrected by the live probe.** The call passes
 `forceUseFirstMembership: true`, which reads like a multi-project hazard. It is
@@ -341,8 +369,8 @@ own Node transport is driven through `req.auth`.
 All five OAuth values are required; a missing one stops startup, because a
 server with no audience to require would accept tokens it must refuse. `http`
 refuses `FHIR_BACKEND=hapi` (no auth, no per-user identity). `http` does not
-require a server-side Medplum credential, and holding one would contradict the
-design. A non-loopback bind is refused unless the resource identifier is
+require a shared Medplum credential; the exchanged tokens belong to individual
+sessions. A non-loopback bind is refused unless the resource identifier is
 `https`, because bearer tokens must not cross a network in plaintext; TLS
 terminates in front of this process.
 

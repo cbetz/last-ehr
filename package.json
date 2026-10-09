@@ -73,7 +73,9 @@
     "react-markdown": "^10.1.0",
     "react-textarea-autosize": "^8.5.9",
     "remark-gfm": "^4.0.1",
+    "remark-parse": "11.0.0",
     "tailwind-merge": "^3.6.0",
+    "unified": "11.0.5",
     "zod": "^4.4.3"
   },
   "overrides": {

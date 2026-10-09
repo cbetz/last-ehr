@@ -118,10 +118,16 @@ const docCollections = [
         icon: ShieldAlert,
       },
       {
-        title: "MCP server",
+        title: "FHIR MCP server",
         description: "Read-only by default (Medplum or local HAPI) with an opt-in human-approved write profile, plus a fixture-restricted checkout Local Lab.",
         href: "/docs/mcp",
         icon: Braces,
+      },
+      {
+        title: "Remote FHIR MCP",
+        description: "Optional HTTP and OAuth transport, per-caller identity, and the remaining real-provider verification gap.",
+        href: "/docs/remote-mcp",
+        icon: ServerCog,
       },
       {
         title: "FHIR Agent Safety Eval",
