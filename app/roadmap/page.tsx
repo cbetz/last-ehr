@@ -27,7 +27,7 @@ const available = [
   {
     title: "MCP over stdio or HTTP",
     description:
-      "MCP is read-only by default, with approved writes available by opt-in. Version 0.4.0 adds an optional HTTP transport with OAuth and a separate FHIR credential for each caller. Stdio remains the default. The HTTP path still needs a live run with a real identity provider and Medplum.",
+      "MCP is read-only by default, with approved writes available by opt-in. Version 0.4.0 adds an optional HTTP transport with OAuth and a separate FHIR credential for each caller. Stdio remains the default. A disposable Keycloak and Medplum run verified real login, caller permissions, and scripted approval decisions on October 22, 2026.",
   },
   {
     title: "Five FHIR backend adapters",
@@ -48,9 +48,9 @@ const available = [
 
 const next = [
   {
-    title: "Verify remote MCP with a real identity provider",
+    title: "Verify a deployed MCP service",
     description:
-      "Run the complete HTTP path from an MCP client through OAuth and token exchange to Medplum. Record the provider setup, caller permissions, and end-to-end result.",
+      "Repeat the checks with hosted Medplum and a public HTTPS MCP endpoint, then verify human approval in a chosen MCP host. Record the reviewer identity and deployment configuration.",
   },
   {
     title: "Extend terminology beyond vitals",

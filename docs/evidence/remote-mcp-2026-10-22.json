@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "startedAt": "2026-10-22T22:37:18.301Z",
+  "finishedAt": "2026-10-22T22:39:10.406Z",
+  "source": {
+    "commit": "e970461a0de6786ac8954966ce0bcc8a40731b69",
+    "dirty": false
+  },
+  "versions": {
+    "keycloak": "26.8.1",
+    "medplum": "5.1.35",
+    "mcp": "0.4.0"
+  },
+  "images": {
+    "keycloak": "quay.io/keycloak/keycloak:26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244",
+    "medplum": "medplum/medplum-server:5.1.35@sha256:588ea41bb49b76c6fd6e381dce2391b5f61653b4e35ea36053721260816c4007"
+  },
+  "dockerProject": "lastehr-remote-570fa9d293d5",
+  "boundaries": {
+    "data": "disposable synthetic fixtures",
+    "login": "real Keycloak authorization code with S256 PKCE",
+    "decisions": "scripted SDK elicitation; interactive MCP-host approval UX is not verified",
+    "transport": "loopback HTTP; deployed public MCP TLS is not verified",
+    "userInfo": "public HTTPS tunnel to real Keycloak UserInfo only",
+    "allowUnsafeOutbound": false,
+    "hostedMedplum": false,
+    "keycloakResourceIndicators": "experimental"
+  },
+  "checks": [
+    {
+      "name": "public HTTPS UserInfo requires a bearer; other IdP endpoints remain local",
+      "status": "pass"
+    },
+    {
+      "name": "real pinned Keycloak and Medplum ready with unsafe outbound disabled",
+      "status": "pass"
+    },
+    {
+      "name": "two real Keycloak user logins use authorization code, S256 PKCE and MCP resource audience",
+      "status": "pass"
+    },
+    {
+      "name": "provider rejects an unregistered RFC 8707 resource",
+      "status": "pass"
+    },
+    {
+      "name": "protected resource discovery and bearer requirement",
+      "status": "pass"
+    },
+    {
+      "name": "real provider exchange resolves each expected Medplum identity",
+      "status": "pass"
+    },
+    {
+      "name": "Medplum enforces distinct real-user read policies",
+      "status": "pass"
+    },
+    {
+      "name": "real HTTP tools preserve per-caller reads and approval capability",
+      "status": "pass"
+    },
+    {
+      "name": "approval remains pending without a persisted write",
+      "status": "pass"
+    },
+    {
+      "name": "another real caller cannot use or approve the writer session",
+      "status": "pass"
+    },
+    {
+      "name": "approved note persists exact fields and AI labels in real Medplum",
+      "status": "pass"
+    },
+    {
+      "name": "decline cancel and unchecked approval persist no additional notes",
+      "status": "pass"
+    },
+    {
+      "name": "client without elicitation cannot force a write",
+      "status": "pass"
+    },
+    {
+      "name": "backend returns forbidden and refuses an approved restricted-user write",
+      "status": "pass"
+    },
+    {
+      "name": "real provider ID token with another audience is refused",
+      "status": "pass"
+    },
+    {
+      "name": "actual short-lived provider token is rejected after expiry",
+      "status": "pass"
+    },
+    {
+      "name": "remote server logs contain no credentials or raw session identifiers",
+      "status": "pass"
+    },
+    {
+      "name": "real Medplum exchanges reached the public HTTPS Keycloak UserInfo bridge",
+      "status": "pass"
+    }
+  ]
+}

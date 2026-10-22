@@ -388,9 +388,13 @@ reaches what their own Medplum identity allows, and nothing here pools
 tenants. It is not an authorization server and issues no tokens. It refuses
 `FHIR_BACKEND=hapi`, because a remote transport in front of a no-auth server
 would publish an unauthenticated chart API. Sessions live in one process, so
-several instances need sticky routing. The end-to-end run against a Medplum
-with a real identity provider has not been performed yet; see the residual
-risks in remote-mcp.md.
+several instances need sticky routing.
+
+The [October 22, 2026 checkout report](./evidence/remote-mcp-2026-10-22.json)
+records 18 passing checks on clean source `e970461`, using real Keycloak
+login, local self-hosted Medplum, and public HTTPS UserInfo. Hosted Medplum,
+deployed public MCP TLS, a real host's human approval UI, and actual reviewer
+identity remain unverified. See the [verification boundary](./remote-mcp.md#what-has-been-verified).
 
 ## Data and support boundary
 
@@ -419,8 +423,9 @@ variables — including `LASTEHR_MCP_WRITES` if you have opted in.
 
 - **Remote transport** shipped in `0.4.0` behind `LASTEHR_MCP_TRANSPORT=http`
   (see above). The design, the probe evidence, and what the implementation
-  corrected are in [remote-mcp.md](./remote-mcp.md). Still ahead: the live
-  end-to-end run against a Medplum with a real identity provider.
+  corrected are in [remote-mcp.md](./remote-mcp.md). The local real-IdP
+  checkout harness passed on October 22, 2026. Hosted Medplum, deployed MCP
+  TLS, real-host human approval UI, and reviewer identity still need evidence.
 - Better read-tool coverage where it can stay bounded and auditable.
 - Proposal-shaped writes shipped in `0.2.0` behind `LASTEHR_MCP_WRITES=proposal`
   (see above), riding MCP's reviewable confirmation protocol (elicitation).

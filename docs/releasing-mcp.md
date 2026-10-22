@@ -106,6 +106,10 @@ After the exact npm artifact passes verification:
 4. Fill the tested revision and published version in the
    [outreach kit](./outreach/2026-10-launch-kit.md) before inviting evaluators.
 
-The HTTP transport's real identity-provider end-to-end verification remains
-outstanding. Package integrity, synthetic tests, and a valid configuration do
-not establish that deployment result; retain that boundary in release notes.
+The [October 22, 2026 checkout harness report](./evidence/remote-mcp-2026-10-22.json)
+records 18 passing checks on clean source `e970461`: real Keycloak login,
+local self-hosted Medplum, public HTTPS UserInfo, and scripted SDK decisions.
+Keep this checkout evidence separate from the published artifact's source and
+integrity checks in release notes. Hosted Medplum, deployed public MCP TLS,
+a real host's human approval UI, and actual reviewer identity still need
+separate verification.

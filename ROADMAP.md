@@ -129,15 +129,18 @@ OAuth resource server with a per-caller FHIR credential, so a hosted agent can
 reach the server without this layer ever holding a shared credential
 ([docs/remote-mcp.md](./docs/remote-mcp.md)). A reproducible evaluation harness
 now combines real Keycloak authorization-code/PKCE login, Medplum token
-exchange, a public-HTTPS UserInfo bridge and the real MCP SDK. Its first
-complete live run is pending. The fixture keeps Medplum's unsafe-outbound
-override disabled and uses scripted SDK approval decisions over loopback
-MCP; it does not verify a production deployment or a real host's approval
-interface. Run it with `npm run mcp:remote:verify -- --confirm-synthetic`.
+exchange, a public-HTTPS UserInfo bridge and the real MCP SDK. All 18 checks
+[passed on 2026-10-22](./docs/evidence/remote-mcp-2026-10-22.json) on clean source
+`e970461a0de6786ac8954966ce0bcc8a40731b69`. The fixture keeps Medplum's
+unsafe-outbound override disabled and uses loopback HTTP for login and MCP,
+with scripted SDK approval decisions. Keycloak `26.8.1` resource indicators remain experimental;
+hosted Medplum, deployed public MCP TLS, a real host's approval interface and
+reviewer identity remain unverified. Run it with
+`npm run mcp:remote:verify -- --confirm-synthetic`.
 Next:
 
-- Complete the real-IdP fixture run, then verify hosted Medplum, deployed
-  public MCP TLS and the approval interface of a chosen MCP host separately.
+- Verify hosted Medplum, deployed public MCP TLS, the approval interface of
+  a chosen MCP host and reviewer identity separately.
 - Better bounded read coverage for Medplum projects.
 - Optional author/verifier Provenance is shipped. Improve reviewer identity
   attribution and audit evidence aligned with HL7's AI Transparency IG.
