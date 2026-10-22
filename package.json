@@ -25,6 +25,7 @@
     "mcp": "npm run mcp:build && node packages/mcp/dist/cli.js",
     "mcp:build": "npm run build --workspace=@lastehr/mcp",
     "mcp:pack:check": "npm run mcp:build && node scripts/check-mcp-package.mjs",
+    "mcp:remote:verify": "tsx scripts/remote-mcp-eval.ts",
     "mcp:demo": "tsx scripts/mcp-demo.ts",
     "eval": "tsx scripts/eval.ts",
     "eval:hapi": "tsx scripts/eval.ts --no-prepare",

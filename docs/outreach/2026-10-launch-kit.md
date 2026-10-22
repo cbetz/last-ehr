@@ -16,6 +16,7 @@ The first objective is five developer evaluations of one working release. Lead w
 | Test date and operating system | October 22, 2026; GitHub Actions Ubuntu 24.04, Node 22.18.0. [CI run 39856748538](https://github.com/cbetz/last-ehr/actions/runs/39856748538) passed 574 unit tests (4 skipped), 12 browser tests, local HAPI checks, and strict conformance. |
 | Synthetic demo recording | PENDING |
 | Scrubbed workflow/conformance report | `fhir-agent-safety-eval` and `awp-conformance` artifacts in [CI run 39856748538](https://github.com/cbetz/last-ehr/actions/runs/39856748538), from the tested ref above, against disposable local synthetic HAPI; conformance used `--strict` with AI labeling and Provenance enabled. |
+| Later remote MCP checkout proof | [18-check report](../evidence/remote-mcp-2026-10-22.json), October 22, 2026, clean source `e970461`; real Keycloak, local self-hosted Medplum, public HTTPS UserInfo, and scripted SDK decisions. This is separate from the published package artifact checks. |
 | Official MCP Registry record | Exact [`0.4.0`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/0.4.0) and [`latest`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/latest) verified active, pointing to npm `@lastehr/mcp@0.4.0` over stdio; [publication run](https://github.com/cbetz/last-ehr/actions/runs/39860012837) succeeded. |
 
 ### Pinned installation
@@ -41,11 +42,11 @@ claude mcp add lastehr -- npx -y @lastehr/mcp@0.4.0
 
 Configure least-privilege Medplum credentials before connecting that stdio client. For Cursor or portable JSON, `npx -y @lastehr/mcp@0.4.0 init --client cursor` prints a template; change its package argument to `@lastehr/mcp@0.4.0` before saving, because generated templates use an unversioned package name.
 
-Published-package checks covered CLI execution, setup output, HTTP exports, count-only diagnostics, a synthetic MCP read, and the approval capability gate. They do not establish real client approval behavior or a working HTTP identity-provider deployment. The complete real identity-provider-to-Medplum HTTP run remains unverified.
+Published-package checks covered CLI execution, setup output, HTTP exports, count-only diagnostics, a synthetic MCP read, and the approval capability gate. The later [October 22 checkout harness](../evidence/remote-mcp-2026-10-22.json) passed 18 checks using real Keycloak and local self-hosted Medplum with public HTTPS UserInfo. Hosted Medplum, deployed public MCP TLS, a real host's human approval UI, and actual reviewer identity remain unverified.
 
 Before using the drafts:
 
-- Keep the package version, tested source ref, documentation, and registry record pinned to this verified release. Describe HTTP transport as opt-in and retain the real identity-provider verification limit.
+- Keep the package version, tested source ref, documentation, and registry record pinned to this verified release. Describe HTTP transport as opt-in; distinguish the later checkout harness proof and retain its hosted Medplum, public MCP TLS, real-host approval UI, and reviewer-identity limits.
 - Follow the pinned quickstart on a clean machine or directory. Verify both approval and denial against the FHIR store.
 - Capture the pending synthetic recording and add its URL before sending a draft. Use the pinned installation commands above for evaluators.
 - Use the [support matrix](../support.md) when describing backends. Medplum is the supported authenticated path. The other web adapters are synthetic evaluation paths; the published MCP package supports Medplum and the repository's local HAPI stack.

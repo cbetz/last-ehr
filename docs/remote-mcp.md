@@ -27,19 +27,118 @@ provider. The write approval prompt does not control that data flow. See the
 
 ## What has been verified?
 
-**The transport shipped; a run with a real identity provider is still
-outstanding.** Loopback tests exercise the real MCP SDK client, including
-approval over HTTP and refusal of writes to clients without elicitation.
-A separate disposable Medplum 5.1.35 probe verified token exchange and
+**The real identity-provider evaluation passed all 18 checks on 2026-10-22.**
+The [scrubbed report](./evidence/remote-mcp-2026-10-22.json) records completion
+at `2026-10-22T22:39:10.406Z` on a clean checkout of
+`e970461a0de6786ac8954966ce0bcc8a40731b69`. It verifies real Keycloak login,
+Medplum token exchange and per-caller permissions, and HTTP MCP reads and
+scripted approval decisions in the disposable local fixture.
+
+An earlier disposable Medplum 5.1.35 probe verified token exchange and
 `AccessPolicy` enforcement with a mock identity provider. That probe used an
 unsafe-outbound override to reach the local mock; it does not verify the
 public-HTTPS identity-provider setup required for deployment.
+
+The [reproducible evaluation below](#run-the-real-identity-provider-evaluation)
+passed with an actual Keycloak login and a public-HTTPS UserInfo bridge without
+the unsafe-outbound override. Login and MCP transport remain on loopback;
+hosted Medplum, deployed public MCP TLS, real-host approval UI and reviewer
+identity need separate verification.
 
 Configuration and operator requirements are in
 [What shipped](#what-shipped-040) and the
 [operator guide](./mcp.md#remote-transport-http-opt-in). The sections below
 retain the design decisions, dated probe evidence, implementation corrections,
 and remaining verification work.
+
+## Run the real identity-provider evaluation
+
+**Status: all 18 checks passed on 2026-10-22; [report](./evidence/remote-mcp-2026-10-22.json).**
+This is a repository evaluation command, separate from the published MCP
+package. It creates its own disposable Docker Compose project, synthetic users and chart,
+and temporary public HTTPS endpoint. No hosted Medplum account, external IdP
+account, Cloudflare account, model key, or existing `.env` credentials are needed.
+
+Prerequisites:
+
+- A supported Node version and dependencies installed with `npm ci`.
+- A running Docker engine with Docker Compose.
+- `cloudflared` installed and on `PATH`.
+- Playwright Chromium installed with `npx playwright install chromium` and
+  its browser system dependencies available.
+- Internet access for image pulls and the temporary Cloudflare tunnel.
+
+From the checkout:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run mcp:remote:verify -- --confirm-synthetic
+```
+
+The confirmation authorizes creation of this disposable synthetic fixture
+and its public UserInfo endpoint. The harness does not reuse the regular
+HAPI demo stack or a hosted project. It generates its own credentials in a
+private temporary directory and passes an explicit configuration to MCP;
+the bootstrap administrator's token is used only for fixture setup and
+independent FHIR verification.
+
+The application images are pinned by digest: Keycloak `26.8.1` and Medplum
+`5.1.35`. Keycloak's native RFC 8707 `resource-indicators` feature is enabled;
+Keycloak documents that feature as [experimental](https://www.keycloak.org/securing-apps/mcp-authz-server).
+Medplum runs with
+`allowUnsafeOutbound: false`. Its outbound HTTPS and public-address checks
+remain active.
+
+Cloudflared starts an anonymous Quick Tunnel with a generated
+`https://<random>.trycloudflare.com` address. It receives an explicit empty
+configuration and an empty `HOME` in its own private temporary directory,
+excluding existing user and system tunnel settings. No Cloudflare login,
+named-tunnel credentials, custom domain or DNS setup is needed, and the
+harness does not change existing domains or DNS records.
+
+Only an allowlisted GET route to Keycloak's real, bearer-protected UserInfo
+endpoint crosses the public HTTPS tunnel. Keycloak's login, token, JWKS and
+administration endpoints, Medplum, and MCP remain on loopback; Postgres and
+Redis have no published host ports. The bridge forwards the presented bearer
+to Keycloak and returns its actual UserInfo response. It does not invent an
+identity or accept a bearer without provider validation.
+
+The evaluation checks these boundaries:
+
+| Boundary | Exercise |
+| --- | --- |
+| Real IdP login | Two synthetic users sign in through Keycloak in Chromium using authorization code and S256 PKCE. Tokens are checked against JWKS and the MCP resource audience; an unregistered resource must be refused. |
+| Medplum exchange and permissions | The real RFC 8693 endpoint resolves both subjects into distinct project memberships. A writer can read the seeded Observation; the Patient-only reader cannot. |
+| HTTP MCP and proposed writes | The production server and real MCP SDK client perform chart reads, wait for an elicitation decision, and verify the approved note's stored fields and AI labels independently in Medplum. |
+| Refusal paths | Decline, cancellation, unchecked approval, missing elicitation capability, restricted backend permissions, another caller's session, a differently audienced ID token, and an expired provider token must fail without an additional stored note. |
+
+The MCP client's decisions are scripted SDK responses. Chromium automates the
+IdP's login form; it does not inspect a real MCP host's human approval UI.
+MCP, IdP login and token requests use loopback HTTP in this fixture. The dated
+pass establishes the described local pipeline with a real IdP and public
+HTTPS UserInfo, while leaving hosted Medplum, deployed public MCP TLS, actual
+reviewer identity and the approval interface of a particular host unverified.
+Live write coverage is `add_note` (`Communication`), with resource-type
+permissions in one project.
+
+The command writes a scrubbed report to
+`artifacts/remote-mcp/verification.json`. It includes source revision and dirty
+state, component versions, completed checks, explicit boundaries and final
+status. It contains no access tokens, passwords, private configuration,
+patient records or raw upstream diagnostics. To choose another output path:
+
+```bash
+npm run mcp:remote:verify -- --confirm-synthetic --report artifacts/remote-mcp/my-run.json
+```
+
+On normal completion or a handled failure, cleanup stops the SDK connections,
+MCP server, proxy and tunnel, removes this run's Compose containers and
+volumes, and deletes the private temporary files. A cleanup failure makes the
+run fail. The scrubbed report remains. If the process is terminated abruptly,
+inspect `docker compose ls` for the specific `lastehr-remote-<run-id>` project
+and remove only that run's resources; stop its tunnel process as well. Do not
+remove the ordinary demo stack or unrelated Docker projects.
 
 ## The transport is the easy half
 
@@ -225,9 +324,11 @@ it would be an additive change rather than a replacement.
 
 ## Token-exchange probe with a mock identity provider (Medplum 5.1.35, 2026-08-27)
 
-This probe covers token exchange with a mock identity provider and direct
-FHIR calls. The complete remote MCP run with a real identity provider remains
-outstanding. It tested whether token exchange resolves the caller's Medplum
+This historical probe covers token exchange with a mock identity provider
+and direct FHIR calls. As of 2026-08-27, a complete remote MCP run with a real
+identity provider had not been verified. The [successful real identity-provider
+evaluation](#run-the-real-identity-provider-evaluation) followed on 2026-10-22.
+The earlier probe tested whether token exchange resolves the caller's Medplum
 identity and enforces that identity's `AccessPolicy`. The rig was a local,
 disposable stack: Medplum 5.1.35 with Postgres and Redis in Docker, a throwaway
 project, and a mock identity provider serving one `/userinfo` response.
@@ -420,9 +521,9 @@ one creates nothing, while a capable client in the same process does see them.
 - Sessions live in one process's memory. Several instances behind a load
   balancer need sticky routing, or a re-routed request answers 404 and the
   client re-initializes (correct, noisy, one Medplum login each).
-- Not yet exercised: the end-to-end run against a Medplum with a real identity
-  provider. That is the only place the real exchange and the public-HTTPS
-  userinfo requirement can be observed; it needs a project an operator sets up.
+- The real identity-provider [evaluation harness](#run-the-real-identity-provider-evaluation)
+  passed locally on 2026-10-22. Hosted Medplum, deployed public MCP TLS,
+  real-host approval UI and reviewer identity still need separate evidence.
 
 ## What this design does not do
 
@@ -441,11 +542,15 @@ Stated plainly, because a remote server invites each of these assumptions:
 
 ## Open questions
 
-Questions 1 and 2 are answered by the probe above. What remains:
+The local identity-provider example and backend permission checks are
+answered by the evaluations above. Deployment verification remains:
 
-1. **Which identity provider do we document for D2?** The operator needs one
-   that supports RFC 8707 and that Medplum accepts as an external identity
-   provider. This needs one worked example in the docs, not a list.
+1. ~~Worked identity-provider example.~~ **Answered for the local fixture.**
+   The disposable harness uses Keycloak
+   `26.8.1` with experimental native RFC 8707 support and Medplum `5.1.35`.
+   All 18 checks [passed on 2026-10-22](./evidence/remote-mcp-2026-10-22.json).
+   Hosted Medplum, deployed public MCP TLS, a real MCP host's human approval
+   interface and reviewer identity still need separate verification.
 2. ~~Refresh.~~ **Decided: fail closed.** When the exchanged credential
    reaches its deadline the session is torn down and the next request answers
    404, so the client re-initializes under its current token and a fresh
@@ -468,5 +573,7 @@ Questions 1 and 2 are answered by the probe above. What remains:
 4. The two write-path proving tests. **Done**, plus 53 more.
 5. Threat-model boundary, support-matrix row, and MCP guide updates. **Done**
    in the same release.
-6. Still ahead: the live end-to-end run against a Medplum with a real identity
-   provider.
+6. A reproducible Keycloak/Medplum evaluation harness. **Done: all 18 checks
+   passed on 2026-10-22**, with [recorded evidence](./evidence/remote-mcp-2026-10-22.json).
+   Hosted Medplum, public MCP TLS, real-host human approval and reviewer
+   identity remain separate follow-up checks.

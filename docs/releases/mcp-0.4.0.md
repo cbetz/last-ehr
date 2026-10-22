@@ -16,9 +16,13 @@ still controls access, and sessions cannot be reused by another principal.
 HTTP mode requires operator-provided OAuth infrastructure and TLS for
 network-facing use. The local no-auth HAPI mode is refused over HTTP.
 
-The complete run with a real identity provider and Medplum remains
-unverified. Existing evidence covers SDK loopback behavior and token exchange
-against a disposable Medplum server with a mock identity provider. See the
+At publication, evidence covered SDK loopback behavior and token exchange
+against a disposable Medplum server with a mock identity provider. Later on
+October 22, the [checkout harness report](../evidence/remote-mcp-2026-10-22.json)
+recorded 18 passing checks on clean source `e970461`, using real Keycloak and
+local self-hosted Medplum with public HTTPS UserInfo. Hosted Medplum, deployed
+public MCP TLS, a real host's human approval UI, and actual reviewer identity
+remain unverified. See the
 [operator guide](https://www.lastehr.com/docs/mcp#remote-transport-http-opt-in)
 and [verification boundary](https://www.lastehr.com/docs/remote-mcp#what-has-been-verified).
 
@@ -65,8 +69,12 @@ After publication, the downloaded npm `0.4.0` artifact matched the tested
 tarball's SHA-512 integrity and passed the isolated-install checks again:
 CLI version, client configuration, HTTP exports, read-only diagnostics,
 synthetic MCP read, and approval capability gate. These checks do not prove
-real client approval behavior or the unverified real identity-provider HTTP
-deployment described above.
+real client approval behavior or a deployed HTTP service. The later checkout
+harness used source
+[`e970461a0de6786ac8954966ce0bcc8a40731b69`](https://github.com/cbetz/last-ehr/tree/e970461a0de6786ac8954966ce0bcc8a40731b69)
+and scripted SDK decisions; it is separate evidence from verification of the
+published `f36d05d` artifact and does not change this release's source or
+package version.
 
 The Official MCP Registry's [exact 0.4.0 record](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/0.4.0)
 and [latest record](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/latest)
