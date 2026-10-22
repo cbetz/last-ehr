@@ -52,7 +52,7 @@ and remaining verification work.
 repository evaluation command, separate from the published MCP package. It
 creates its own disposable Docker Compose project, synthetic users and chart,
 and temporary public HTTPS endpoint. No hosted Medplum account, external IdP
-account, model key, or existing `.env` credentials are needed.
+account, Cloudflare account, model key, or existing `.env` credentials are needed.
 
 Prerequisites:
 
@@ -84,6 +84,13 @@ Keycloak documents that feature as [experimental](https://www.keycloak.org/secur
 Medplum runs with
 `allowUnsafeOutbound: false`. Its outbound HTTPS and public-address checks
 remain active.
+
+Cloudflared starts an anonymous Quick Tunnel with a generated
+`https://<random>.trycloudflare.com` address. It receives an explicit empty
+configuration and an empty `HOME` in its own private temporary directory,
+excluding existing user and system tunnel settings. No Cloudflare login,
+named-tunnel credentials, custom domain or DNS setup is needed, and the
+harness does not change existing domains or DNS records.
 
 Only an allowlisted GET route to Keycloak's real, bearer-protected UserInfo
 endpoint crosses the public HTTPS tunnel. Keycloak's login, token, JWKS and

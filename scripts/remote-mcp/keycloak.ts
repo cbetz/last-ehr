@@ -104,7 +104,7 @@ export function buildRealm(options: RealmOptions) {
     fullScopeAllowed: false,
     redirectUris: [redirectUri],
     webOrigins: [new URL(redirectUri).origin],
-    defaultClientScopes: ["profile", "email"],
+    defaultClientScopes: ["basic", "profile", "email"],
     optionalClientScopes: ["chart.read"],
     attributes: {
       "pkce.code.challenge.method": "S256",
@@ -135,6 +135,18 @@ export function buildRealm(options: RealmOptions) {
     ssoSessionIdleTimeout: 300,
     ssoSessionMaxLifespan: 600,
     clientScopes: [
+      {
+        name: "basic",
+        protocol: "openid-connect",
+        attributes: { "include.in.token.scope": "false" },
+        // Keycloak 26 adds access-token subject through this native mapper.
+        protocolMappers: [{
+          name: "sub",
+          protocol: "openid-connect",
+          protocolMapper: "oidc-sub-mapper",
+          config: { "access.token.claim": "true", "introspection.token.claim": "true" },
+        }],
+      },
       {
         name: "chart.read",
         protocol: "openid-connect",
@@ -427,12 +439,17 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
     phase = "keycloak_token_claims";
     const audience = access.payload.aud;
     const scopes = typeof access.payload.scope === "string" ? access.payload.scope.split(" ") : [];
-    if (
-      access.payload.sub !== options.identity.subject || id.payload.sub !== options.identity.subject ||
-      id.payload.nonce !== nonce || access.payload.azp !== clientId ||
-      typeof access.payload.exp !== "number" || !scopes.includes("openid") || !scopes.includes("chart.read") ||
-      !(audience === resource || (Array.isArray(audience) && audience.length === 1 && audience[0] === resource))
-    ) throw new KeycloakLoginError("Keycloak token identity, nonce, or resource validation failed.");
+    const requireClaim = (matches: boolean, code: string) => {
+      if (!matches) throw new KeycloakLoginError("Keycloak token claim validation failed; claim values were withheld.", code);
+    };
+    requireClaim(access.payload.sub === options.identity.subject, "keycloak_access_subject");
+    requireClaim(id.payload.sub === options.identity.subject, "keycloak_id_subject");
+    requireClaim(id.payload.nonce === nonce, "keycloak_nonce");
+    requireClaim(access.payload.azp === clientId, "keycloak_authorized_party");
+    requireClaim(typeof access.payload.exp === "number", "keycloak_expiry_claim");
+    requireClaim(scopes.includes("openid"), "keycloak_openid_scope");
+    requireClaim(scopes.includes("chart.read"), "keycloak_chart_read_scope");
+    requireClaim(audience === resource || (Array.isArray(audience) && audience.length === 1 && audience[0] === resource), "keycloak_singular_resource_audience");
     abortCheck(options.signal);
     return { accessToken: tokens.access_token, idToken: tokens.id_token };
   } catch (error) {

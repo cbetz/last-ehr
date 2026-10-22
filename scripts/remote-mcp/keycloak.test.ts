@@ -32,6 +32,7 @@ describe("the disposable Keycloak realm contract", () => {
         implicitFlowEnabled: false,
         directAccessGrantsEnabled: false,
         serviceAccountsEnabled: false,
+        defaultClientScopes: ["basic", "profile", "email"],
         redirectUris: [options.redirectUri],
         attributes: { "pkce.code.challenge.method": "S256" },
       });
@@ -47,6 +48,18 @@ describe("the disposable Keycloak realm contract", () => {
     expect(main?.attributes).not.toHaveProperty("access.token.lifespan");
     expect(expiry?.attributes).toHaveProperty("access.token.lifespan", "10");
     expect(JSON.stringify(realm)).not.toContain("included.custom.audience");
+  });
+
+  it("includes Keycloak's native Subject mapper in the default basic scope", () => {
+    const basic = buildRealm(options).clientScopes.find(scope => scope.name === "basic");
+    expect(basic).toMatchObject({
+      protocol: "openid-connect",
+      attributes: { "include.in.token.scope": "false" },
+      protocolMappers: [{
+        protocolMapper: "oidc-sub-mapper",
+        config: { "access.token.claim": "true", "introspection.token.claim": "true" },
+      }],
+    });
   });
 
   it.each([
