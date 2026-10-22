@@ -127,9 +127,17 @@ fail-closed, human-approved per action, tagged for audit. Read-only remains
 the default forever. `0.4.0` adds an opt-in remote (HTTP) transport as an
 OAuth resource server with a per-caller FHIR credential, so a hosted agent can
 reach the server without this layer ever holding a shared credential
-([docs/remote-mcp.md](./docs/remote-mcp.md)); the live run against a real
-identity provider is still ahead. Next:
+([docs/remote-mcp.md](./docs/remote-mcp.md)). A reproducible evaluation harness
+now combines real Keycloak authorization-code/PKCE login, Medplum token
+exchange, a public-HTTPS UserInfo bridge and the real MCP SDK. Its first
+complete live run is pending. The fixture keeps Medplum's unsafe-outbound
+override disabled and uses scripted SDK approval decisions over loopback
+MCP; it does not verify a production deployment or a real host's approval
+interface. Run it with `npm run mcp:remote:verify -- --confirm-synthetic`.
+Next:
 
+- Complete the real-IdP fixture run, then verify hosted Medplum, deployed
+  public MCP TLS and the approval interface of a chosen MCP host separately.
 - Better bounded read coverage for Medplum projects.
 - Optional author/verifier Provenance is shipped. Improve reviewer identity
   attribution and audit evidence aligned with HL7's AI Transparency IG.

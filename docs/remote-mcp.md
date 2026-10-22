@@ -27,19 +27,104 @@ provider. The write approval prompt does not control that data flow. See the
 
 ## What has been verified?
 
-**The transport shipped; a run with a real identity provider is still
-outstanding.** Loopback tests exercise the real MCP SDK client, including
+**The transport shipped; the first complete run of the real identity-provider
+harness is pending.** Loopback tests exercise the real MCP SDK client, including
 approval over HTTP and refusal of writes to clients without elicitation.
 A separate disposable Medplum 5.1.35 probe verified token exchange and
 `AccessPolicy` enforcement with a mock identity provider. That probe used an
 unsafe-outbound override to reach the local mock; it does not verify the
 public-HTTPS identity-provider setup required for deployment.
 
+The [reproducible evaluation below](#run-the-real-identity-provider-evaluation)
+adds an actual Keycloak login and a public-HTTPS UserInfo bridge without the
+unsafe-outbound override. Its existence is not a passing result. Treat the
+first complete run as outstanding until a scrubbed report records success.
+
 Configuration and operator requirements are in
 [What shipped](#what-shipped-040) and the
 [operator guide](./mcp.md#remote-transport-http-opt-in). The sections below
 retain the design decisions, dated probe evidence, implementation corrections,
 and remaining verification work.
+
+## Run the real identity-provider evaluation
+
+**Status: harness implemented; live verification pending.** This is a
+repository evaluation command, separate from the published MCP package. It
+creates its own disposable Docker Compose project, synthetic users and chart,
+and temporary public HTTPS endpoint. No hosted Medplum account, external IdP
+account, model key, or existing `.env` credentials are needed.
+
+Prerequisites:
+
+- A supported Node version and dependencies installed with `npm ci`.
+- A running Docker engine with Docker Compose.
+- `cloudflared` installed and on `PATH`.
+- Playwright Chromium installed with `npx playwright install chromium` and
+  its browser system dependencies available.
+- Internet access for image pulls and the temporary Cloudflare tunnel.
+
+From the checkout:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run mcp:remote:verify -- --confirm-synthetic
+```
+
+The confirmation authorizes creation of this disposable synthetic fixture
+and its public UserInfo endpoint. The harness does not reuse the regular
+HAPI demo stack or a hosted project. It generates its own credentials in a
+private temporary directory and passes an explicit configuration to MCP;
+the bootstrap administrator's token is used only for fixture setup and
+independent FHIR verification.
+
+The application images are pinned by digest: Keycloak `26.8.1` and Medplum
+`5.1.35`. Keycloak's native RFC 8707 `resource-indicators` feature is enabled;
+Keycloak documents that feature as [experimental](https://www.keycloak.org/securing-apps/mcp-authz-server).
+Medplum runs with
+`allowUnsafeOutbound: false`. Its outbound HTTPS and public-address checks
+remain active.
+
+Only an allowlisted GET route to Keycloak's real, bearer-protected UserInfo
+endpoint crosses the public HTTPS tunnel. Keycloak's login, token, JWKS and
+administration endpoints, Medplum, and MCP remain on loopback; Postgres and
+Redis have no published host ports. The bridge forwards the presented bearer
+to Keycloak and returns its actual UserInfo response. It does not invent an
+identity or accept a bearer without provider validation.
+
+The evaluation attempts these checks:
+
+| Boundary | Exercise |
+| --- | --- |
+| Real IdP login | Two synthetic users sign in through Keycloak in Chromium using authorization code and S256 PKCE. Tokens are checked against JWKS and the MCP resource audience; an unregistered resource must be refused. |
+| Medplum exchange and permissions | The real RFC 8693 endpoint resolves both subjects into distinct project memberships. A writer can read the seeded Observation; the Patient-only reader cannot. |
+| HTTP MCP and proposed writes | The production server and real MCP SDK client perform chart reads, wait for an elicitation decision, and verify the approved note's stored fields and AI labels independently in Medplum. |
+| Refusal paths | Decline, cancellation, unchecked approval, missing elicitation capability, restricted backend permissions, another caller's session, a differently audienced ID token, and an expired provider token must fail without an additional stored note. |
+
+The MCP client's decisions are scripted SDK responses. Chromium automates the
+IdP's login form; it does not inspect a real MCP host's human approval UI.
+MCP, IdP login and token requests use loopback HTTP in this fixture. A pass
+would establish the described local pipeline with a real IdP and public
+HTTPS UserInfo, while leaving hosted Medplum, deployed public MCP TLS, actual
+reviewer identity and the approval interface of a particular host unverified.
+
+The command writes a scrubbed report to
+`artifacts/remote-mcp/verification.json`. It includes source revision and dirty
+state, component versions, completed checks, explicit boundaries and final
+status. It contains no access tokens, passwords, private configuration,
+patient records or raw upstream diagnostics. To choose another output path:
+
+```bash
+npm run mcp:remote:verify -- --confirm-synthetic --report artifacts/remote-mcp/my-run.json
+```
+
+On normal completion or a handled failure, cleanup stops the SDK connections,
+MCP server, proxy and tunnel, removes this run's Compose containers and
+volumes, and deletes the private temporary files. A cleanup failure makes the
+run fail. The scrubbed report remains. If the process is terminated abruptly,
+inspect `docker compose ls` for the specific `lastehr-remote-<run-id>` project
+and remove only that run's resources; stop its tunnel process as well. Do not
+remove the ordinary demo stack or unrelated Docker projects.
 
 ## The transport is the easy half
 
@@ -420,9 +505,9 @@ one creates nothing, while a capable client in the same process does see them.
 - Sessions live in one process's memory. Several instances behind a load
   balancer need sticky routing, or a re-routed request answers 404 and the
   client re-initializes (correct, noisy, one Medplum login each).
-- Not yet exercised: the end-to-end run against a Medplum with a real identity
-  provider. That is the only place the real exchange and the public-HTTPS
-  userinfo requirement can be observed; it needs a project an operator sets up.
+- The real identity-provider [evaluation harness](#run-the-real-identity-provider-evaluation)
+  is implemented, but its first complete run is pending. Hosted Medplum,
+  deployed MCP TLS and real-host approval UI also need separate evidence.
 
 ## What this design does not do
 
@@ -443,9 +528,10 @@ Stated plainly, because a remote server invites each of these assumptions:
 
 Questions 1 and 2 are answered by the probe above. What remains:
 
-1. **Which identity provider do we document for D2?** The operator needs one
-   that supports RFC 8707 and that Medplum accepts as an external identity
-   provider. This needs one worked example in the docs, not a list.
+1. **Worked identity-provider example.** The disposable harness uses Keycloak
+   `26.8.1` with experimental native RFC 8707 support and Medplum `5.1.35`.
+   Its first complete live run remains pending; production deployment and a
+   real MCP host's human approval interface still need separate verification.
 2. ~~Refresh.~~ **Decided: fail closed.** When the exchanged credential
    reaches its deadline the session is torn down and the next request answers
    404, so the client re-initializes under its current token and a fresh
@@ -468,5 +554,6 @@ Questions 1 and 2 are answered by the probe above. What remains:
 4. The two write-path proving tests. **Done**, plus 53 more.
 5. Threat-model boundary, support-matrix row, and MCP guide updates. **Done**
    in the same release.
-6. Still ahead: the live end-to-end run against a Medplum with a real identity
-   provider.
+6. A reproducible Keycloak/Medplum evaluation harness is implemented; its
+   first complete live run is pending. Hosted Medplum, public MCP TLS and
+   real-host human approval remain separate follow-up checks.
