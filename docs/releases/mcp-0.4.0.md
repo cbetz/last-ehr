@@ -1,6 +1,6 @@
 # Last EHR MCP 0.4.0: remote transport and installation checks
 
-**Draft release notes. Publish after npm and MCP Registry verification.**
+**Published October 22, 2026.** npm `latest` and the Official MCP Registry were verified at `0.4.0`. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.4.0) targets tested source [`f36d05dde21c6e1c6847f2660a966afd2615c646`](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646).
 
 `@lastehr/mcp` adds an optional HTTP transport and better installation
 diagnostics. Stdio and read-only behavior remain the defaults.
@@ -37,21 +37,41 @@ and [verification boundary](https://www.lastehr.com/docs/remote-mcp#what-has-bee
 
 ## Install the verified release
 
-After publication:
-
 ```bash
 npx -y @lastehr/mcp@0.4.0 --version
-npx -y @lastehr/mcp@0.4.0 init --client claude-code
+claude mcp add lastehr -- npx -y @lastehr/mcp@0.4.0
 ```
 
 Configure least-privilege Medplum credentials before starting the stdio
-server. The repository's HAPI option is for local synthetic evaluation.
+server. The repository's HAPI option is for local synthetic evaluation. The
+`init` command prints a template with an unversioned package argument; change
+that argument to `@lastehr/mcp@0.4.0` to keep a generated client configuration
+pinned to this release.
 
 The package offers four shared chart-read tools. Optional proposal tools
 create notes, Observations and linked corrections, and Tasks after explicit
 human approval in a compatible client. Approval controls writes; it does not
 control chart context sent by the MCP client to its model provider.
 
+## Release verification
+
+[CI run 39856748538](https://github.com/cbetz/last-ehr/actions/runs/39856748538)
+passed on the exact source above using Ubuntu 24.04 and Node 22.18.0: 574 unit
+tests passed (4 skipped), 12 browser tests passed, and the local HAPI checks,
+synthetic workflow evaluation, and strict write-protocol conformance passed.
+The run retains `fhir-agent-safety-eval` and `awp-conformance` artifacts.
+
+After publication, the downloaded npm `0.4.0` artifact matched the tested
+tarball's SHA-512 integrity and passed the isolated-install checks again:
+CLI version, client configuration, HTTP exports, read-only diagnostics,
+synthetic MCP read, and approval capability gate. These checks do not prove
+real client approval behavior or the unverified real identity-provider HTTP
+deployment described above.
+
+The Official MCP Registry's [exact 0.4.0 record](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/0.4.0)
+and [latest record](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/latest)
+were verified active and pointing to npm `@lastehr/mcp@0.4.0` over stdio after
+[registry publication](https://github.com/cbetz/last-ehr/actions/runs/39860012837).
 See the [setup guide](https://www.lastehr.com/docs/mcp),
-[source](https://github.com/cbetz/last-ehr/tree/main/packages/mcp), and
+[source](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646/packages/mcp), and
 [release process](https://github.com/cbetz/last-ehr/blob/main/docs/releasing-mcp.md).
