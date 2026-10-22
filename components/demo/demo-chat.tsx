@@ -45,6 +45,7 @@ import type { FhirDevEvent } from "@/lib/fhir/observed";
 import { EmptyScreen } from "@/components/empty-screen";
 import { track } from "@/lib/analytics";
 import { parseDemoModels } from "@/lib/ai/demo-models";
+import { createDemoMilestoneTracker, type DemoWriteTool } from "@/lib/demo-milestones";
 
 // Build-time inlined picker options; empty means no picker rendered. The
 // server re-checks every request against the same list, so this is display
@@ -256,13 +257,43 @@ export function DemoChat() {
     setSmartSession(document.cookie.includes("smart_session=1"));
   }, []);
 
-  // The conversion card appears once, right after the visitor's first
-  // approve or reject decision, and stays until dismissed. SMART sessions
-  // are clinician context, so no marketing card there.
+  // Observe the SDK's final tool states, rather than treating an approval
+  // click as persistence. The tracker dedupes streaming rerenders and keeps
+  // every patient field and id out of analytics. SMART sessions remain out
+  // of the evaluation funnel and never get the conversion card.
+  const milestoneTracker = useRef<ReturnType<typeof createDemoMilestoneTracker> | null>(null);
+  const conversionRef = useRef<HTMLDivElement>(null);
+  const conversionRevealed = useRef(false);
   const [showConversion, setShowConversion] = useState(false);
-  const maybeShowConversion = () => {
-    if (!smartSession && !conversionCardDismissed()) setShowConversion(true);
-  };
+  useEffect(() => {
+    if (document.cookie.includes("smart_session=1")) return;
+    if (!milestoneTracker.current) {
+      milestoneTracker.current = createDemoMilestoneTracker();
+      track("demo_ready");
+    }
+    for (const milestone of milestoneTracker.current(messages)) {
+      track(milestone.event, milestone.properties);
+      if (milestone.event === "demo_write_outcome" &&
+          milestone.properties.outcome !== "failed" && !conversionCardDismissed()) {
+        setShowConversion(true);
+      }
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (!showConversion) {
+      conversionRevealed.current = false;
+      return;
+    }
+    // The card can mount before the model's final text. Reveal it once that
+    // stream settles, leaving room for the fixed composer below the card.
+    // Keep focus where the reviewer left it and respect normal scroll motion.
+    if (conversionRevealed.current || status === "streaming" || status === "submitted") return;
+    if (conversionRef.current) {
+      conversionRef.current.scrollIntoView({ block: "nearest" });
+      conversionRevealed.current = true;
+    }
+  }, [showConversion, status]);
 
   // Switching backends starts a new conversation: the transcript holds
   // patient ids valid only on the old backend, and clearing messages also
@@ -296,18 +327,17 @@ export function DemoChat() {
   // answering a no-longer-present approval must be a no-op, not an
   // unhandled rejection.
   const respondToApproval = async (
-    tool: string,
+    tool: DemoWriteTool,
     approvalId: string,
     approved: boolean,
   ) => {
-    track("demo_write_approval", { tool, approved });
+    track("demo_write_approval_attempt", { tool, approved });
     if (!(await ensureSession())) return;
     try {
       await addToolApprovalResponse({ id: approvalId, approved });
     } catch {
       // The conversation was cleared out from under the card; nothing to do.
     }
-    maybeShowConversion();
   };
 
   // Re-arm the server session cookie before every send and approval response.
@@ -351,7 +381,7 @@ export function DemoChat() {
   };
 
   const ask = async (text: string) => {
-    track("demo_message_sent");
+    track("demo_message_attempt");
     if (!(await ensureSession())) return;
     sendMessage({ text });
   };
@@ -971,7 +1001,7 @@ export function DemoChat() {
             })}
 
             {showConversion && !smartSession && (
-              <div className="pb-4">
+              <div ref={conversionRef} className="scroll-mb-[200px] pb-4">
                 <ConversionCard onDismiss={() => setShowConversion(false)} />
               </div>
             )}

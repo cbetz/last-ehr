@@ -5,6 +5,7 @@ import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { McpConfigurationError, loadMcpConfig } from "./config.js";
+import { runDoctor } from "./doctor.js";
 import { isMcpClient, renderInit, type McpClient } from "./init.js";
 import { MCP_SERVER_VERSION, startMcpServer } from "./server.js";
 
@@ -38,6 +39,7 @@ function help() {
     "  npx -y @lastehr/mcp                 Start the stdio MCP server",
     "  npx -y @lastehr/mcp init [--client json|claude-code|cursor]",
     "  npx -y @lastehr/mcp doctor          Validate local configuration",
+    "  npx -y @lastehr/mcp doctor --connect  Probe stdio FHIR metadata and count-only Patient search",
     "  npx -y @lastehr/mcp --version       Print the package version",
     "",
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
@@ -86,18 +88,23 @@ export async function runCli(
   loadEnvironmentFiles(env);
 
   if (command === "doctor") {
-    const config = loadMcpConfig(env);
-    const authSummary =
-      config.backend === "hapi"
-        ? "local no-auth HAPI"
-        : config.transport === "http"
-          ? `per-caller OAuth (token exchange); resource ${config.http?.resource}`
-          : config.accessToken
-            ? "access token"
-            : "client credentials";
-    console.error(
-      `Last EHR MCP configuration is valid (${config.backend}; ${authSummary}; ${config.writePolicy === "proposal" ? "proposal-gated writes" : "read-only"}).`,
-    );
+    const doctorArgs = args.slice(1);
+    if (doctorArgs.length > 1 || (doctorArgs.length === 1 && doctorArgs[0] !== "--connect")) {
+      throw new McpConfigurationError("doctor accepts only --connect (optional, read-only stdio FHIR checks).");
+    }
+    let config;
+    try {
+      config = loadMcpConfig(env);
+    } catch {
+      // Configuration errors may interpolate an invalid env value. Doctor
+      // output must stay safe even when that value contains a credential.
+      throw new McpConfigurationError(
+        "Last EHR MCP configuration is invalid. Check backend, credentials, transport, and write-policy settings; configuration values were withheld.",
+      );
+    }
+    const report = await runDoctor(config, { connect: doctorArgs[0] === "--connect" });
+    for (const line of report.lines) console.error(line);
+    if (!report.ok) process.exitCode = 1;
     return;
   }
 

@@ -23,7 +23,10 @@ export function renderInit(client: McpClient = "json"): string {
     ].join("\n");
   }
 
-  return `${JSON.stringify(mcpConfig, null, 2)}\n`;
+  const config = client === "cursor"
+    ? { mcpServers: { lastehr: { type: "stdio", ...mcpConfig.mcpServers.lastehr } } }
+    : mcpConfig;
+  return `${JSON.stringify(config, null, 2)}\n`;
 }
 
 export function isMcpClient(value: string): value is McpClient {

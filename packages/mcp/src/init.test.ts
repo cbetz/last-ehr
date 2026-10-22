@@ -25,4 +25,14 @@ describe("MCP setup output", () => {
       "read-only unless LASTEHR_MCP_WRITES=proposal is set",
     );
   });
+
+  it("declares Cursor's stdio transport without changing the portable JSON format", () => {
+    const cursor = JSON.parse(renderInit("cursor")).mcpServers.lastehr;
+    const portable = JSON.parse(renderInit("json")).mcpServers.lastehr;
+    expect(cursor.type).toBe("stdio");
+    expect(cursor.command).toBe(portable.command);
+    expect(cursor.args).toEqual(portable.args);
+    expect(portable).not.toHaveProperty("type");
+    expect(cursor.env).not.toHaveProperty("LASTEHR_MCP_WRITES");
+  });
 });

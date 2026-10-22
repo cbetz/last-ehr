@@ -24,7 +24,7 @@
     "seed": "tsx scripts/seed.ts",
     "mcp": "npm run mcp:build && node packages/mcp/dist/cli.js",
     "mcp:build": "npm run build --workspace=@lastehr/mcp",
-    "mcp:pack:check": "npm pack --workspace=@lastehr/mcp --dry-run",
+    "mcp:pack:check": "npm run mcp:build && node scripts/check-mcp-package.mjs",
     "mcp:demo": "tsx scripts/mcp-demo.ts",
     "eval": "tsx scripts/eval.ts",
     "eval:hapi": "tsx scripts/eval.ts --no-prepare",

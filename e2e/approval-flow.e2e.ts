@@ -80,6 +80,7 @@ test("proposal card shows the pending write, field by field", async ({
   await expect(
     page.getByRole("button", { name: "Approve & save" }),
   ).toBeVisible();
+  await expect(page.getByText("Run the approval flow on your machine", { exact: true })).not.toBeVisible();
 });
 
 test("rejecting the proposal writes nothing to HAPI", async ({ page }) => {
@@ -91,6 +92,8 @@ test("rejecting the proposal writes nothing to HAPI", async ({ page }) => {
   ).toBeVisible();
 
   expect(await fetchSessionObservations(page)).toHaveLength(0);
+  await expect(page.getByText("Run the approval flow on your machine", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Run locally", exact: true })).toHaveAttribute("href", "/docs/quickstart");
 
   // The denial itself is recorded: exactly one AuditEvent, marked as a
   // create blocked before execution, with no proposed chart content.
@@ -104,26 +107,52 @@ test("rejecting the proposal writes nothing to HAPI", async ({ page }) => {
   expect(JSON.stringify(audits[0].resource)).toContain("record_observation");
 });
 
-test("approving the proposal persists the Observation in HAPI", async ({
-  page,
-}) => {
-  await startScriptedRun(page);
+for (const viewport of [
+  { name: "desktop", width: 1280, height: 720 },
+  { name: "mobile", width: 390, height: 844 },
+] as const) {
+  test(`approving the proposal persists the Observation in HAPI (${viewport.name})`, async ({
+    page,
+  }, testInfo) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await startScriptedRun(page);
 
-  await page.getByRole("button", { name: "Approve & save" }).click();
-  await expect(page.getByText("✓ Observation recorded.")).toBeVisible();
-  await expect(
-    page.getByText("The scripted observation was saved after approval."),
-  ).toBeVisible();
+    await page.getByRole("button", { name: "Approve & save" }).click();
+    await expect(page.getByText("✓ Observation recorded.")).toBeVisible();
+    await expect(
+      page.getByText("The scripted observation was saved after approval."),
+    ).toBeVisible();
 
-  const entries = await fetchSessionObservations(page);
-  expect(entries).toHaveLength(1);
-  expect(entries[0].resource).toMatchObject({
-    resourceType: "Observation",
-    code: { text: "Heart rate" },
-    valueQuantity: { value: 72, unit: "bpm" },
+    const entries = await fetchSessionObservations(page);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].resource).toMatchObject({
+      resourceType: "Observation",
+      code: { text: "Heart rate" },
+      valueQuantity: { value: 72, unit: "bpm" },
+    });
+
+    // Approvals leave their evidence as the created resource; the audit trail
+    // records denials only.
+    expect(await fetchSessionAuditEvents(page)).toHaveLength(0);
+    await expect(page.getByText("Run the approval flow on your machine", { exact: true })).toBeVisible();
+    const primaryLink = page.getByRole("link", { name: "Run locally", exact: true });
+    await expect(primaryLink).toHaveAttribute("href", "/docs/quickstart");
+    // toBeVisible and scrollIntoViewIfNeeded alone both passed when the fixed
+    // composer covered this link. Check the automatic reveal before Playwright
+    // can scroll for a click, then exercise real actionability without leaving.
+    await expect.poll(() => primaryLink.evaluate((link) => {
+      const bounds = link.getBoundingClientRect();
+      return link.contains(document.elementFromPoint(
+        bounds.left + bounds.width / 2,
+        bounds.top + bounds.height / 2,
+      ));
+    })).toBe(true);
+    await primaryLink.click({ trial: true });
+    const width = await page.evaluate(() => ({
+      page: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+      viewport: document.documentElement.clientWidth,
+    }));
+    expect(width.page).toBeLessThanOrEqual(width.viewport + 1);
+    await page.screenshot({ path: testInfo.outputPath(`activation-${viewport.name}.png`) });
   });
-
-  // Approvals leave their evidence as the created resource; the audit trail
-  // records denials only.
-  expect(await fetchSessionAuditEvents(page)).toHaveLength(0);
-});
+}

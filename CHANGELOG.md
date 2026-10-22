@@ -6,12 +6,31 @@ self-hosters can tell what moved between pulls.
 ## 0.4.0 — 2026-09-06
 
 `@lastehr/mcp` gains an opt-in remote transport. Stdio stays the default.
+This date records the implementation landing, not npm publication. The
+October 22 release check found npm `latest` still at `0.3.1`; see the
+[release process](./docs/releasing-mcp.md) for artifact verification and
+publication.
+
+October 22 adoption work adds:
+
+- `doctor --connect`: a bounded, read-only stdio connection probe for R4
+  metadata and a count-only Patient search. HTTP diagnostics explicitly leave
+  caller OAuth and host approval behavior unverified.
+- Cursor setup output declares its stdio transport.
+- CI installs the packed MCP tarball outside the checkout and verifies the
+  executable, setup output, HTTP exports, read tools, and approval capability
+  gate. A manual publishing workflow verifies the artifact again after npm
+  publication.
+- The demo's follow-up leads with running locally. Opt-in analytics observe
+  final tool outcomes and distinguish attempts from server-confirmed saves,
+  cancellations, and failures; event properties contain no chart data or IDs.
 
 - `LASTEHR_MCP_TRANSPORT=http` serves streamable HTTP as an OAuth 2.1 resource
   server: every request carries a bearer addressed to this server, verified
   offline against the authorization server's JWKS, and each caller's own FHIR
   credential is obtained once per session by RFC 8693 exchange. The process
-  holds no Medplum credential, so the FHIR backend's AccessPolicy still decides
+  needs no shared Medplum credential; each session holds its exchanged token,
+  and the FHIR backend's AccessPolicy still decides
   what each caller can reach. Sessions are bound to the caller who opened
   them; any other verified identity gets a 404 byte-identical to an unknown
   session. Off by default; refused with `FHIR_BACKEND=hapi`; loopback unless

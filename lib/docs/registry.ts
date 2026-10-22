@@ -120,7 +120,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 20,
     audience: "Agent and MCP builders",
-    lastModified: "2026-10-09",
+    lastModified: "2026-10-22",
     keywords: ["FHIR MCP server", "Claude Code", "Cursor", "Medplum", "read only", "approval"],
   },
   {
@@ -132,7 +132,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 25,
     audience: "MCP operators and security reviewers",
-    lastModified: "2026-10-09",
+    lastModified: "2026-10-22",
     keywords: ["FHIR MCP", "remote MCP", "HTTP", "OAuth", "Medplum", "token exchange"],
   },
   {
@@ -192,7 +192,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Operate & maintain",
     order: 20,
     audience: "Maintainers and growth teams",
-    lastModified: "2026-07-09",
+    lastModified: "2026-10-22",
     keywords: ["metrics", "analytics", "privacy", "adoption", "PostHog"],
   },
 ] as const;

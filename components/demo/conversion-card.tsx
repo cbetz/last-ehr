@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import Link from "next/link";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { IconClose } from "@/components/ui/icons";
 import { track } from "@/lib/analytics";
 
@@ -20,35 +21,23 @@ export function conversionCardDismissed(): boolean {
   }
 }
 
-const links = [
+const secondaryLinks = [
   {
-    target: "star",
-    label: "Star on GitHub",
+    target: "source",
+    label: "View source",
     href: "https://github.com/cbetz/last-ehr",
     external: true,
   },
   {
-    target: "run_local",
-    label: "Run it locally",
-    href: "/docs/quickstart",
+    target: "docs",
+    label: "Read the docs",
+    href: "/docs",
     external: false,
-  },
-  {
-    target: "feedback",
-    label: "Give feedback",
-    href: "https://github.com/cbetz/last-ehr/discussions/77",
-    external: true,
-  },
-  {
-    target: "backend",
-    label: "Request a backend",
-    href: "https://github.com/cbetz/last-ehr/discussions/76",
-    external: true,
   },
 ] as const;
 
-// Shown once, right after the visitor's first approve or reject decision:
-// the demo's conversion moment. Clicking a link does not dismiss the card;
+// Shown after a confirmed save or cancellation, rather than an approval click
+// whose request may fail. Clicking a link does not dismiss the card;
 // only the X does, and that dismissal persists per browser.
 export function ConversionCard({ onDismiss }: { onDismiss: () => void }) {
   // Ref guard keeps the shown event single even when StrictMode
@@ -73,22 +62,29 @@ export function ConversionCard({ onDismiss }: { onDismiss: () => void }) {
           }
           onDismiss();
         }}
-        className="absolute right-2 top-2 rounded p-1.5 opacity-60 transition-opacity hover:opacity-100"
+        className="absolute right-2 top-2 rounded p-1.5 opacity-60 transition-opacity hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <IconClose className="h-3.5 w-3.5" />
       </button>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">
-          That decision was the whole point.
+        <CardTitle className="pr-6 text-base font-medium">
+          Run the approval flow on your machine
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">
-          You just watched a proposed FHIR write wait for a human decision.
-          Here is where it goes next.
+          The local walkthrough uses synthetic records in HAPI FHIR. You need
+          Node.js and Docker, but no Medplum account or model API key.
         </p>
+        <Link
+          href="/docs/quickstart"
+          className={buttonVariants()}
+          onClick={() => track("demo_conversion_clicked", { target: "run_local" })}
+        >
+          Run locally
+        </Link>
         <div className="flex flex-wrap gap-x-4 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
-          {links.map((link) => (
+          {secondaryLinks.map((link) => (
             <Link
               key={link.target}
               href={link.href}

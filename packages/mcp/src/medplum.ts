@@ -4,10 +4,11 @@ import type { McpRuntimeConfig } from "./config.js";
 
 export async function createMedplumClient(
   config: McpRuntimeConfig,
+  fetchFn: typeof globalThis.fetch = fetch,
 ): Promise<MedplumClient> {
   const medplum = new MedplumClient({
     baseUrl: config.baseUrl,
-    fetch,
+    fetch: fetchFn,
   });
 
   try {
