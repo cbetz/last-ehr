@@ -86,7 +86,7 @@ export function createMedplumConfig(options: ConfigOptions) {
     database: {
       host: "postgres", port: 5432, dbname: "medplum", username: "medplum",
       password: options.postgresPassword,
-      ssl: { require: false },
+      ssl: false,
     },
     redis: { host: "redis", port: 6379 },
     supportEmail: "remote-mcp-fixture@example.invalid",

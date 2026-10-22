@@ -31,7 +31,7 @@ describe("disposable Medplum bootstrap", () => {
     expect(config.registerEnabled).toBe(false);
     expect(config.emailProvider).toBe("none");
     expect(config.port).toBe(8103);
-    expect(config.database).toMatchObject({ host: "postgres", username: "medplum", dbname: "medplum" });
+    expect(config.database).toMatchObject({ host: "postgres", username: "medplum", dbname: "medplum", ssl: false });
     expect(config.redis).toEqual({ host: "redis", port: 6379 });
     expect(config.defaultSuperAdminPassword).toHaveLength(43);
     expect(config.defaultSuperAdminPassword).not.toBe("medplum_admin");

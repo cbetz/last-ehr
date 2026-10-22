@@ -258,6 +258,7 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
   let browser: Browser | undefined;
   let callback: Server | undefined;
   let loginTimeout: ReturnType<typeof setTimeout> | undefined;
+  let phase = "keycloak_input_validation";
   const onAbort = () => {
     void browser?.close().catch(() => {});
     callback?.closeAllConnections();
@@ -270,7 +271,9 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
     const redirect = callbackUrl(options.redirectUri);
     const resource = resourceUri(options.resource);
     const clientId = options.clientId ?? CLIENT_ID;
+    phase = "keycloak_discovery_request";
     const metadata = await jsonRequest(new URL(`${issuer}/.well-known/openid-configuration`), {}, options.signal);
+    phase = "keycloak_discovery_validation";
     if (metadata.issuer !== issuer) throw new KeycloakLoginError("Keycloak discovery returned an unexpected issuer.");
     const providerEndpoint = (key: string) => {
       if (typeof metadata[key] !== "string") throw new KeycloakLoginError("Keycloak discovery omitted a required endpoint.");
@@ -341,10 +344,12 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
       resolveCode(code);
     });
     callback.on("error", () => rejectCode(new KeycloakLoginError("The loopback callback server failed.")));
+    phase = "keycloak_callback_listen";
     await withSignal(new Promise<void>((resolve, reject) => {
       callback!.once("error", () => reject(new KeycloakLoginError("The loopback callback port is unavailable.")));
       callback!.listen(Number(redirect.port), redirect.hostname.replace(/^\[|\]$/g, ""), resolve);
     }), options.signal);
+    phase = "keycloak_browser_launch";
     try {
       const launching = chromium.launch({ headless: true, timeout: 15_000 });
       // Chromium launch has no AbortSignal API. A late launch must still be
@@ -359,6 +364,7 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
     }
     // Playwright library contexts do not inherit the test runner's tracing,
     // screenshots or video settings; none are enabled for this credential UI.
+    phase = "keycloak_browser_context";
     const context = await browser.newContext();
     const page = await context.newPage();
     page.setDefaultTimeout(15_000);
@@ -373,17 +379,26 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
       code_challenge: challenge,
       code_challenge_method: "S256",
     })) authorize.searchParams.set(key, value);
+    let authorizationPending = true;
+    const browserPhase = (value: string) => { if (authorizationPending) phase = value; };
     const interactive = (async () => {
+      browserPhase("keycloak_authorization_navigation");
       await page.goto(authorize.href, { waitUntil: "domcontentloaded" });
+      browserPhase("keycloak_username_input");
       await page.locator("#username").fill(options.identity.username);
+      browserPhase("keycloak_password_input");
       await page.locator("#password").fill(options.identity.password);
+      browserPhase("keycloak_login_submission");
       await page.locator("#kc-login").click();
+      browserPhase("keycloak_authorization_callback");
       return codeReceived;
     })();
     const deadline = new Promise<never>((_, reject) => {
-      loginTimeout = setTimeout(() => reject(new KeycloakLoginError("Keycloak browser login timed out.")), LOGIN_TIMEOUT_MS);
+      loginTimeout = setTimeout(() => reject(new KeycloakLoginError("Keycloak browser login timed out.", "keycloak_login_timeout")), LOGIN_TIMEOUT_MS);
     });
     const code = await withSignal(Promise.race([codeReceived, interactive, deadline]), options.signal);
+    authorizationPending = false;
+    phase = "keycloak_token_exchange";
     const tokens = await jsonRequest(tokenEndpoint, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -401,11 +416,15 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
       typeof tokens.id_token !== "string" || !tokens.id_token ||
       typeof tokens.token_type !== "string" || tokens.token_type.toLowerCase() !== "bearer"
     ) throw new KeycloakLoginError("Keycloak omitted the expected bearer and ID tokens.");
+    phase = "keycloak_jwks_request";
     const keys = await jsonRequest(jwksEndpoint, {}, options.signal);
     if (!Array.isArray(keys.keys)) throw new KeycloakLoginError("Keycloak returned an invalid JWKS.");
+    phase = "keycloak_access_token_verification";
     const getKey = createLocalJWKSet({ keys: keys.keys as JSONWebKeySet["keys"] });
     const access = await jwtVerify(tokens.access_token, getKey, { issuer, audience: resource });
+    phase = "keycloak_id_token_verification";
     const id = await jwtVerify(tokens.id_token, getKey, { issuer, audience: clientId });
+    phase = "keycloak_token_claims";
     const audience = access.payload.aud;
     const scopes = typeof access.payload.scope === "string" ? access.payload.scope.split(" ") : [];
     if (
@@ -421,7 +440,8 @@ export async function loginWithPkce(options: LoginOptions): Promise<UserTokens> 
     // Do not attach the original error as a cause or pass it to diagnostics.
     abortCheck(options.signal);
     throw error instanceof KeycloakLoginError
-      ? error : new KeycloakLoginError("Keycloak browser login failed; provider diagnostics were withheld.");
+      ? new KeycloakLoginError(error.message, error.code ?? phase)
+      : new KeycloakLoginError("Keycloak browser login failed; provider diagnostics were withheld.", phase);
   } finally {
     options.signal?.removeEventListener("abort", onAbort);
     clearTimeout(loginTimeout);

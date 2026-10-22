@@ -229,17 +229,32 @@ export async function startTunnel(
   options: { cloudflaredBinary?: string; fetchFn?: typeof fetch } = {},
 ): Promise<{ origin: string; close: () => Promise<void> }> {
   abortCheck(signal);
-  // An empty HOME keeps an existing user's named tunnels/configuration out of this run.
-  const child = spawn(options.cloudflaredBinary ?? "cloudflared", ["tunnel", "--no-autoupdate", "--protocol", "http2", "--edge-ip-version", "4", "--url", `http://127.0.0.1:${proxyPort}`], {
-    env: { NODE_ENV: "test", PATH: process.env.PATH, HOME: directory, TMPDIR: process.env.TMPDIR },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const tunnelDirectory = await mkdtemp(path.join(directory, "cloudflared-"));
+  const configFile = path.join(tunnelDirectory, "config.yml");
+  let child: ChildProcess;
+  try {
+    await chmod(tunnelDirectory, 0o700);
+    await writeFile(configFile, "{}\n", { mode: 0o600, flag: "wx" });
+    abortCheck(signal);
+    // HOME alone does not exclude /etc or /usr/local/etc configuration.
+    // An explicit empty config also prevents inherited named tunnels/ingress.
+    child = spawn(options.cloudflaredBinary ?? "cloudflared", ["tunnel", "--config", configFile, "--no-autoupdate", "--protocol", "http2", "--edge-ip-version", "4", "--url", `http://127.0.0.1:${proxyPort}`], {
+      env: { NODE_ENV: "test", PATH: process.env.PATH, HOME: tunnelDirectory, TMPDIR: process.env.TMPDIR },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (error) {
+    await rm(tunnelDirectory, { recursive: true, force: true });
+    throw error;
+  }
   const lifetime = new AbortController();
   const combined = AbortSignal.any([lifetime.signal, ...(signal ? [signal] : [])]);
   let closing: Promise<void> | undefined;
   const close = () => {
     lifetime.abort();
-    return closing ??= stopProcess(child).finally(() => signal?.removeEventListener("abort", onAbort));
+    return closing ??= stopProcess(child).finally(async () => {
+      signal?.removeEventListener("abort", onAbort);
+      await rm(tunnelDirectory, { recursive: true, force: true });
+    });
   };
   const onAbort = () => { void close(); };
   signal?.addEventListener("abort", onAbort, { once: true });

@@ -471,7 +471,10 @@ export async function verifyRemoteMcp({
   assertActive();
   if (failure) throw failure;
   const combinedLogs = logs.join("\n");
-  if ([...secrets, ...sessionIds].some((secret) => secret && combinedLogs.includes(secret))) {
+  // Production sessions obtain fresh JWTs through separate exchanges; those
+  // credentials are not the tokens from our independent control requests.
+  const containsJwt = /\beyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/.test(combinedLogs);
+  if (containsJwt || [...secrets, ...sessionIds].some((secret) => secret && combinedLogs.includes(secret))) {
     throw new RemoteMcpVerificationError("credential_redaction", "Real-provider remote MCP credential redaction verification failed.");
   }
   checks.push({ name: "remote server logs contain no credentials or raw session identifiers", status: "pass" });

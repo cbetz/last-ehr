@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { createServer } from "node:http";
+import { describe, expect, it, vi } from "vitest";
 
 import { buildRealm, KeycloakLoginError, loginWithPkce } from "./keycloak";
 import type { SyntheticIdentity } from "./types";
@@ -82,5 +83,30 @@ describe("the disposable Keycloak realm contract", () => {
       identity: writer,
       signal: controller.signal,
     })).rejects.toMatchObject({ name: "AbortError", code: "ABORT_ERR", message: "Synthetic login interrupted." });
+  });
+
+  it("reports a static discovery phase without response bodies or transport diagnostics", async () => {
+    const server = createServer((_request, response) => response.end("PRIVATE_PROVIDER_RESPONSE_NOT_JSON"));
+    await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
+    const stderr = vi.spyOn(console, "error").mockImplementation(() => {});
+    const stdout = vi.spyOn(console, "log").mockImplementation(() => {});
+    try {
+      const port = (server.address() as { port: number }).port;
+      const error = await loginWithPkce({
+        issuer: `http://127.0.0.1:${port}/realms/unused`,
+        resource: options.resource,
+        redirectUri: options.redirectUri,
+        identity: writer,
+      }).catch((error: unknown) => error);
+      expect(error).toMatchObject({ code: "keycloak_discovery_request" });
+      expect(String(error)).not.toMatch(/PRIVATE_PROVIDER_RESPONSE|127\.0\.0\.1|SyntaxError/);
+      expect(stderr).not.toHaveBeenCalled();
+      expect(stdout).not.toHaveBeenCalled();
+    } finally {
+      stderr.mockRestore();
+      stdout.mockRestore();
+      server.closeAllConnections();
+      await new Promise<void>(resolve => server.close(() => resolve()));
+    }
   });
 });
