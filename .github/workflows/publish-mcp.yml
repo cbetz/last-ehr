@@ -138,15 +138,26 @@ jobs:
         env:
           LASTEHR_RELEASE_INTEGRITY: ${{ steps.candidate.outputs.integrity }}
         run: |
-          for attempt in 1 2 3 4 5; do
-            if node scripts/check-mcp-package.mjs --published; then
+          # npm can accept a publish before processing makes it publicly available.
+          deadline=$((SECONDS + 600))
+          while (( SECONDS < deadline )); do
+            remaining=$((deadline - SECONDS))
+            if (( remaining <= 0 )); then
+              break
+            fi
+            if timeout --kill-after=5s "${remaining}s" node scripts/check-mcp-package.mjs --published; then
               exit 0
             fi
-            if [ "$attempt" = 5 ]; then
-              exit 1
+            remaining=$((deadline - SECONDS))
+            if (( remaining <= 0 )); then
+              break
             fi
-            sleep 10
+            sleep "$((remaining < 30 ? remaining : 30))"
           done
+          message='npm accepted the publish request, but public verification did not pass within 10 minutes. Inspect npm processing and the public version/integrity before any retry; do not blindly republish.'
+          printf '::error::%s\n' "$message"
+          printf '%s\n' "$message" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
 
       - name: Summarize the release operation
         env:

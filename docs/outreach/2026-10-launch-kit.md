@@ -6,22 +6,48 @@ The first objective is five developer evaluations of one working release. Lead w
 
 ## Release gate before inviting evaluators
 
-**Status: pending release verification.** The initial October 22 audit found npm `latest` at `0.3.1`, while the checkout, documentation, and local MCP registry manifest described `0.4.0`. A local package version does not establish that the version is published. Replace the fields below only after checking the registry, release artifacts, and an installation from a clean directory.
+**Status: release verified; recording pending; outreach unsent.** On October 22, npm `latest` and the Official MCP Registry were verified at `0.4.0`. The downloaded npm artifact matched the tested tarball's SHA-512 integrity and passed installation checks in a temporary directory outside the checkout. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.4.0) targets the tested source below. The synthetic recording is still pending; no invitation, post, or proposal has been sent.
 
-| Evaluation detail | Value to fill after verification |
+| Evaluation detail | Verified value / remaining work |
 | --- | --- |
-| Tested source tag or commit | PENDING |
-| Published MCP package version, if used | PENDING |
-| Exact installation instructions | PENDING; link the instructions for the tested source ref |
-| Test date and operating system | PENDING |
+| Tested source tag or commit | [`f36d05dde21c6e1c6847f2660a966afd2615c646`](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646), tagged `mcp-v0.4.0` |
+| Published MCP package version, if used | [`@lastehr/mcp@0.4.0`](https://www.npmjs.com/package/@lastehr/mcp/v/0.4.0); npm `latest` verified as `0.4.0` |
+| Exact installation instructions | Pinned commands below and the [quickstart at the tested ref](https://github.com/cbetz/last-ehr/blob/f36d05dde21c6e1c6847f2660a966afd2615c646/docs/quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir) |
+| Test date and operating system | October 22, 2026; GitHub Actions Ubuntu 24.04, Node 22.18.0. [CI run 39856748538](https://github.com/cbetz/last-ehr/actions/runs/39856748538) passed 574 unit tests (4 skipped), 12 browser tests, local HAPI checks, and strict conformance. |
 | Synthetic demo recording | PENDING |
-| Scrubbed workflow/conformance report | PENDING; identify the exact source ref and test mode |
+| Scrubbed workflow/conformance report | `fhir-agent-safety-eval` and `awp-conformance` artifacts in [CI run 39856748538](https://github.com/cbetz/last-ehr/actions/runs/39856748538), from the tested ref above, against disposable local synthetic HAPI; conformance used `--strict` with AI labeling and Provenance enabled. |
+| Official MCP Registry record | Exact [`0.4.0`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/0.4.0) and [`latest`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/latest) verified active, pointing to npm `@lastehr/mcp@0.4.0` over stdio; [publication run](https://github.com/cbetz/last-ehr/actions/runs/39860012837) succeeded. |
+
+### Pinned installation
+
+For the fixed synthetic browser walkthrough, start in a clean directory with Node and Docker available. The walkthrough resets and seeds its local synthetic stack; use a disposable stack.
+
+```bash
+git clone https://github.com/cbetz/last-ehr.git last-ehr-0.4.0
+cd last-ehr-0.4.0
+git checkout --detach f36d05dde21c6e1c6847f2660a966afd2615c646
+npm ci
+npm run demo:local
+```
+
+Follow the pinned quickstart's approval, cancellation, independent FHIR checks, and cleanup instructions.
+
+For the published MCP package, verify the pinned version before registering it with a client:
+
+```bash
+npx -y @lastehr/mcp@0.4.0 --version
+claude mcp add lastehr -- npx -y @lastehr/mcp@0.4.0
+```
+
+Configure least-privilege Medplum credentials before connecting that stdio client. For Cursor or portable JSON, `npx -y @lastehr/mcp@0.4.0 init --client cursor` prints a template; change its package argument to `@lastehr/mcp@0.4.0` before saving, because generated templates use an unversioned package name.
+
+Published-package checks covered CLI execution, setup output, HTTP exports, count-only diagnostics, a synthetic MCP read, and the approval capability gate. They do not establish real client approval behavior or a working HTTP identity-provider deployment. The complete real identity-provider-to-Medplum HTTP run remains unverified.
 
 Before using the drafts:
 
-- Confirm the published artifact, source ref, documentation, and registry metadata describe the same functionality. Do not advertise unreleased HTTP/OAuth behavior.
+- Keep the package version, tested source ref, documentation, and registry record pinned to this verified release. Describe HTTP transport as opt-in and retain the real identity-provider verification limit.
 - Follow the pinned quickstart on a clean machine or directory. Verify both approval and denial against the FHIR store.
-- Put the tested ref and the recording URL in the drafts. Do not send an `@latest` command while release behavior is unresolved.
+- Capture the pending synthetic recording and add its URL before sending a draft. Use the pinned installation commands above for evaluators.
 - Use the [support matrix](../support.md) when describing backends. Medplum is the supported authenticated path. The other web adapters are synthetic evaluation paths; the published MCP package supports Medplum and the repository's local HAPI stack.
 
 The current [local walkthrough](../quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir) needs Node 22.18+ or 24.2+ and Docker. It is a fixed sequence using Maria Garcia and a heart-rate Observation of 72 bpm. It makes no model-provider request and does not interpret arbitrary prompts. Describe that limitation in the recording and invitation.
@@ -106,7 +132,7 @@ Draft, after the release gate is complete:
 >
 > Medplum already has its own MCP integration. My focus here is a smaller tool surface and testable write behavior: preview a change, approve or decline it, then independently check what reached the FHIR store. This is alpha software and the walkthrough uses synthetic data.
 >
-> Here's a 90-second example: [recording URL]. The tested setup is [source ref + pinned quickstart URL]. I'm looking for two developers willing to spend 20 minutes installing the local synthetic walkthrough and tell me where it fails or becomes unclear. Would this be useful to review here?
+> Here's a 90-second example: [recording URL — PENDING]. The tested setup is [f36d05d, released as MCP 0.4.0](https://github.com/cbetz/last-ehr/blob/f36d05dde21c6e1c6847f2660a966afd2615c646/docs/quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir). I'm looking for two developers willing to spend 20 minutes installing the local synthetic walkthrough and tell me where it fails or becomes unclear. Would this be useful to review here?
 
 Respect Medplum's [native MCP documentation](https://www.medplum.com/docs/ai/mcp). Also, the [October 8 community prototype](https://www.medplum.com/blog/an-ehr-that-teaches) already describes confirmation of structured entries before saving. Explain the implementation and evidence; do not claim exclusive ownership of human review.
 
@@ -116,7 +142,7 @@ Use only after an interested developer or community has invited the follow-up. P
 
 **Subject, where needed:** 20-minute synthetic FHIR install test
 
-> I'm looking for five developers to try a small local FHIR agent workflow. Would you spend 20 minutes following [pinned quickstart URL for tested ref] on your own machine?
+> I'm looking for five developers to try a small local FHIR agent workflow. Would you spend 20 minutes following the [quickstart at tested source f36d05d](https://github.com/cbetz/last-ehr/blob/f36d05dde21c6e1c6847f2660a966afd2615c646/docs/quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir) on your own machine? Use the pinned checkout commands in the release kit.
 >
 > You need Node 22.18+ or 24.2+ and Docker. No Medplum account or model key is needed for this fixed synthetic walkthrough. First-time Docker downloads may take longer than the session; we'll record that time separately.
 >
@@ -124,7 +150,7 @@ Use only after an interested developer or community has invited the follow-up. P
 >
 > The output I need is one setup result, the point where you got stuck if any, and one thing you'd need before trying a real model-backed workflow. A short written report is also useful if a call is inconvenient. There's no production deployment or sales discussion involved.
 >
-> Code and tested ref: [URL]. Walkthrough: [90-second recording URL]. If you're interested, suggest a convenient time or reply here.
+> Code and tested ref: [f36d05d](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646). Walkthrough: [90-second recording URL — PENDING]. If you're interested, suggest a convenient time or reply here.
 
 For developer communities whose rules discourage AI-generated posts, rewrite these drafts in your own voice. For example, [Health Tech Nerds](https://www.healthtechnerds.com/code-of-conduct) prohibits unsolicited promotion and promotional DMs; it is not a launch-distribution target for this kit.
 

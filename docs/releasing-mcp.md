@@ -72,13 +72,17 @@ The workflow enforces successful CI for its exact main SHA, builds and checks
 the tarball, preserves the candidate, and publishes that same file. It then
 downloads the named npm version, compares integrity with the candidate,
 checks that `latest` selects it, and repeats the isolated-install checks.
+Public verification allows up to ten minutes for npm processing and propagation.
 The publication fails visibly if npm trust is missing; a verified local
 tarball is not a successful release.
 
 If npm publication succeeded but post-publication verification failed, inspect
-the run and public npm metadata before doing anything else. Package versions
-are immutable; do not assume a failed workflow means nothing was published.
-Use the preserved integrity to rerun verification:
+the run and public npm metadata before doing anything else. npm may accept a
+package and report that it is still processing before the version becomes
+public. A successful publish step does not establish public availability.
+Package versions are immutable; do not rerun publishing to resolve a processing
+delay. Once the exact version is public, use the preserved integrity to rerun
+verification:
 
 ```bash
 node scripts/check-mcp-package.mjs --published
