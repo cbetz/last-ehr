@@ -19,6 +19,36 @@ Useful events:
 The goal is not raw traffic. The goal is more evaluators reaching the approval
 moment and then successfully running the project locally.
 
+### Instrumented demo milestones
+
+The demo emits these events only when the optional PostHog integration is
+configured. One tracker lives in memory for each mounted chat; it deduplicates
+streaming rerenders and skips SMART sessions.
+
+| Event | Meaning | Properties |
+| --- | --- | --- |
+| `demo_ready` | The evaluation chat mounted. It does not prove backend connectivity. | None |
+| `demo_first_tool_result` | First final successful result from an allowlisted tool. An empty read result can count; a preliminary result cannot. | Static `tool`, `kind` (`read` or `write`) |
+| `demo_first_approval_shown` | First write tool in the SDK's approval-requested state. | Static `tool` |
+| `demo_write_outcome` | A final tool outcome: `saved`, `canceled`, or `failed`. | Static `tool`, `outcome` |
+| `demo_conversion_shown` | The local-install follow-up appeared after a confirmed save or cancellation. | None |
+| `demo_conversion_clicked` | The visitor chose the local quickstart, source, or docs. | Static `target` |
+
+`saved` requires an explicitly approved final result containing the expected
+FHIR resource type, a valid returned ID, and a summary. It records the
+server-confirmed create response, not an independent read from FHIR. IDs and
+summaries are used only to recognize that result and never sent to analytics.
+`canceled` requires a final SDK denial with the approval decision set to false.
+Errors and invalid write results count as `failed`.
+
+The older click events are now `demo_message_attempt` and
+`demo_write_approval_attempt`. An attempt can fail before the session is ready
+or a write completes; use outcome events when measuring completion.
+
+The primary follow-up is **Run locally**, with source and docs as secondary
+links. A click does not prove a completed installation. Confirm installation
+in developer evaluation sessions; the local CLI sends no adoption telemetry.
+
 ## Hosted-interest funnel
 
 Useful events:

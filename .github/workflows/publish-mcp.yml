@@ -1,0 +1,160 @@
+name: Publish MCP npm package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact stable version in packages/mcp/package.json and server.json
+        required: true
+        type: string
+      publish:
+        description: Publish the verified tarball to npm using trusted publishing
+        required: true
+        type: boolean
+        default: false
+
+# Dispatch with publish=false to inspect the tested candidate without publishing.
+# npm trusted publisher: cbetz / last-ehr / publish-mcp.yml / no environment.
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-lastehr-mcp
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Verify and optionally publish @lastehr/mcp
+    if: github.repository == 'cbetz/last-ehr' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - name: Check out the dispatched main commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node without release caches
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22.18.0'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Use a pinned npm version with trusted publishing support
+        run: npm install --global npm@11.21.1 --ignore-scripts --no-audit --no-fund
+
+      - name: Validate the requested release version
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const version = process.env.EXPECTED_VERSION;
+          assert(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version), 'Enter an exact stable version, such as 0.4.0');
+          assert.equal(process.env.GITHUB_REPOSITORY, 'cbetz/last-ehr');
+          assert.equal(process.env.GITHUB_REF, 'refs/heads/main');
+          const manifest = JSON.parse(readFileSync('packages/mcp/package.json', 'utf8'));
+          const registry = JSON.parse(readFileSync('packages/mcp/server.json', 'utf8'));
+          assert.equal(manifest.name, '@lastehr/mcp');
+          assert.equal(manifest.version, version, 'Requested version must match package.json');
+          assert.equal(registry.version, version, 'Requested version must match server.json');
+          assert(registry.packages.some(pkg => pkg.registryType === 'npm' && pkg.identifier === manifest.name && pkg.version === version), 'Registry npm package must match the release');
+          console.log(`Release candidate: ${manifest.name}@${version} from ${process.env.GITHUB_SHA}`);
+          NODE
+
+      - name: Require successful CI on this exact main commit before publication
+        if: inputs.publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+            -f head_sha="$GITHUB_SHA" -f branch=main -f event=push \
+            -f status=success -f per_page=100 > "$RUNNER_TEMP/mcp-ci-runs.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const { workflow_runs: runs } = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/mcp-ci-runs.json`, 'utf8'));
+          const run = runs.find(run => run.head_sha === process.env.GITHUB_SHA && run.head_branch === 'main' && run.event === 'push' && run.status === 'completed' && run.conclusion === 'success');
+          assert(run, 'Publishing requires completed, successful CI on this exact main SHA; wait for CI and dispatch again');
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Verified main CI: ${run.html_url}\n\n`);
+          console.log(`Verified main CI: ${run.html_url}`);
+          NODE
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build and test the isolated installable tarball
+        run: npm run mcp:pack:check
+
+      - name: Record the exact tested tarball and integrity
+        id: candidate
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { createHash } from 'node:crypto';
+          import { appendFileSync, readFileSync } from 'node:fs';
+          const record = JSON.parse(readFileSync('artifacts/mcp-release/verified.json', 'utf8'));
+          assert.equal(record.name, '@lastehr/mcp');
+          assert.equal(record.version, process.env.EXPECTED_VERSION);
+          assert.equal(record.source, 'workspace');
+          assert.equal(record.filename, `lastehr-mcp-${record.version}.tgz`);
+          assert(Array.isArray(record.checks) && record.checks.length > 0, 'Tarball verification checks must be recorded');
+          const tarball = `artifacts/mcp-release/${record.filename}`;
+          const contents = readFileSync(tarball);
+          const integrity = `sha512-${createHash('sha512').update(contents).digest('base64')}`;
+          assert.equal(integrity, record.integrity, 'Tarball SHA-512 must match the verified artifact');
+          assert.equal(createHash('sha1').update(contents).digest('hex'), record.shasum, 'Tarball SHA-1 must match the verified artifact');
+          appendFileSync(process.env.GITHUB_OUTPUT, `tarball=${tarball}\nintegrity=${integrity}\n`);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Candidate: ${record.name}@${record.version}\n\nCommit: ${process.env.GITHUB_SHA}\n\nIntegrity: \`${integrity}\`\n\nChecks: ${record.checks.join(', ')}\n\n`);
+          NODE
+
+      # Upload before npm publish so a failed publication leaves the exact
+      # tested candidate and verification record available for inspection.
+      - name: Preserve the verified release candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: lastehr-mcp-${{ inputs.version }}-${{ github.sha }}-${{ github.run_attempt }}
+          path: artifacts/mcp-release/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish the tested tarball with npm OIDC
+        if: inputs.publish
+        env:
+          RELEASE_TARBALL: ${{ steps.candidate.outputs.tarball }}
+        run: npm publish "$RELEASE_TARBALL" --access public --tag latest --registry=https://registry.npmjs.org --ignore-scripts
+
+      - name: Verify the published version, integrity, latest tag, and installed behavior
+        if: inputs.publish
+        env:
+          LASTEHR_RELEASE_INTEGRITY: ${{ steps.candidate.outputs.integrity }}
+        run: |
+          for attempt in 1 2 3 4 5; do
+            if node scripts/check-mcp-package.mjs --published; then
+              exit 0
+            fi
+            if [ "$attempt" = 5 ]; then
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Summarize the release operation
+        env:
+          PUBLISH: ${{ inputs.publish }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$PUBLISH" = true ]; then
+            printf 'Published and verified @lastehr/mcp@%s as latest.\n' "$EXPECTED_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf 'Verification only: no package was published.\n' >> "$GITHUB_STEP_SUMMARY"
+          fi

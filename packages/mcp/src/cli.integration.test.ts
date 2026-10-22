@@ -1,8 +1,9 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdtempSync,
   readFileSync,
+  rmSync,
   statSync,
   symlinkSync,
 } from "node:fs";
@@ -27,6 +28,24 @@ const dist = resolve(import.meta.dirname, "../dist/cli.js");
 
 const run = (bin: string) =>
   execFileSync(process.execPath, [bin, "--version"], { encoding: "utf8" }).trim();
+
+function doctor(args: string[], settings: Record<string, string>) {
+  const cwd = mkdtempSync(join(tmpdir(), "lastehr-doctor-"));
+  const env = { ...process.env };
+  for (const key of Object.keys(env)) {
+    if (/^(?:MEDPLUM_|LASTEHR_|HAPI_|FHIR_)/.test(key)) delete env[key];
+  }
+  try {
+    return spawnSync(process.execPath, [dist, "doctor", ...args], {
+      cwd,
+      env: { ...env, ...settings },
+      encoding: "utf8",
+      timeout: 15_000,
+    });
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
 
 describe("the built CLI actually runs", () => {
   // These exercise the compiled artifact, so they need it to exist. CI runs
@@ -69,5 +88,24 @@ describe("the built CLI actually runs", () => {
     // Before the realpath fix this returned "" with exit code 0: no server, no
     // error, no output.
     expect(run(link)).toBe(MCP_SERVER_VERSION);
+  });
+
+  it("runs the default doctor without connecting and keeps stdout empty", () => {
+    const result = doctor([], { MEDPLUM_ACCESS_TOKEN: "private-doctor-token" });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("No connection attempted");
+    expect(result.stderr).not.toContain("private-doctor-token");
+  });
+
+  it("exits nonzero for a failed live connection without raw backend details", () => {
+    const result = doctor(["--connect"], {
+      FHIR_BACKEND: "hapi",
+      HAPI_BASE_URL: "http://127.0.0.1:1/private-doctor-path",
+    });
+    expect(result.status).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("Connection check failed");
+    expect(result.stderr).not.toMatch(/private-doctor-path|127\.0\.0\.1|TypeError|fetch failed/);
   });
 });

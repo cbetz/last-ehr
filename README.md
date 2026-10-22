@@ -239,8 +239,9 @@ surface the web agent has; writes exist only as an explicit opt-in where a
 human approves each proposed write through the client's approval prompt
 ([details](./docs/mcp.md)). It speaks stdio by default; since `0.4.0` an opt-in
 HTTP transport lets a hosted agent reach it as an OAuth resource server, with
-each caller's own FHIR credential obtained per session, so the process holds
-none ([design and evidence](./docs/remote-mcp.md)).
+each caller's own FHIR credential obtained per session. The process needs no
+shared FHIR credential; each session holds its exchanged token
+([design and evidence](./docs/remote-mcp.md)).
 
 ```bash
 npx -y @lastehr/mcp init --client claude-code

@@ -100,6 +100,14 @@ to stdout. Keep the local stack running while the client is connected; use
 
 ## Install and connect
 
+This guide follows the repository's `0.4.0` MCP code. npm releases are
+published separately. Check the version you installed with
+`npx -y @lastehr/mcp --version`; older releases do not include HTTP transport
+or `doctor --connect`. If a matching release is not yet available on npm,
+use the [checkout instructions](#from-a-checkout). The
+[release process](./releasing-mcp.md) verifies a clean installation before
+publication.
+
 The commands below generate a local stdio configuration. They do not install
 the server into your client or configure remote OAuth automatically.
 
@@ -134,8 +142,9 @@ npx -y @lastehr/mcp init
 ```
 
 Replace the placeholder with a least-privilege Medplum token, then add the
-`lastehr` entry to your client's MCP configuration. For Cursor, add
-`"type": "stdio"` as shown below and save the configuration in
+`lastehr` entry to your client's MCP configuration. The Cursor-specific output
+declares `"type": "stdio"`; add that field if using the generic JSON output.
+Save the configuration in
 `~/.cursor/mcp.json` for personal use or `.cursor/mcp.json` for this project.
 See [Cursor's MCP documentation](https://cursor.com/docs/mcp#configuration-locations)
 for its configuration fields and locations.
@@ -176,6 +185,33 @@ MEDPLUM_ACCESS_TOKEN=...
 ```
 
 Set `MEDPLUM_BASE_URL` for self-hosted Medplum.
+
+### Check the connection
+
+`doctor` validates configuration without making a network request:
+
+```bash
+npx -y @lastehr/mcp doctor
+```
+
+In the `0.4.0` code, add `--connect` to check FHIR R4 metadata and make a
+count-only Patient search with your configured stdio credentials:
+
+```bash
+npx -y @lastehr/mcp doctor --connect
+```
+
+The check makes no chart write and prints no patient data or counts. A
+successful count-only search does not establish permission to read individual
+charts, other resource types, or write resources. It also does not test an MCP
+host's approval support. Requests have a ten-second overall deadline and
+refuse redirects.
+
+For HTTP transport, `doctor` checks configuration only. `doctor --connect`
+returns a nonzero exit status because it cannot verify a caller's remote
+OAuth login, token exchange, permissions, or host approval behavior. Follow
+the [remote verification boundary](./remote-mcp.md#what-has-been-verified)
+before relying on that transport.
 
 ## Local stack (`FHIR_BACKEND=hapi`)
 

@@ -60,6 +60,17 @@ repository's local no-auth HAPI stack, set `FHIR_BACKEND=hapi` and
 Run `npx -y @lastehr/mcp doctor` to validate configuration without starting
 MCP.
 
+In `0.4.0`, `doctor --connect` also checks FHIR R4 metadata and a count-only
+Patient search for the stdio backend. It makes no chart write and prints no
+patient data or counts. This does not verify individual chart access, other
+resource permissions, write permissions, or the MCP client's approval support.
+HTTP mode remains configuration-only; its `--connect` check fails explicitly
+rather than treating a configured URL as a verified OAuth session.
+
+The source checkout can be ahead of npm. Check the installed version with
+`--version`. The repository's [release process](https://github.com/cbetz/last-ehr/blob/main/docs/releasing-mcp.md)
+tests the packed artifact in a clean directory before publication.
+
 ## Safety boundary
 
 By default the package exposes `search_patients`, `show_patient_info`,
