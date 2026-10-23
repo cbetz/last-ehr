@@ -18,15 +18,17 @@ bundle).
 
 ## Scope & posture
 
-- **Last EHR is not a HIPAA-covered service.** It is a layer you self-host. When
-  you point it at a backend and a model provider with your own keys, **you** are
-  responsible for the data that flows through them, including any business
-  associate agreements (with your FHIR backend and your model provider) required
-  for real PHI. Every entity that receives PHI needs a BAA, which is why Last
-  EHR ships only BAA-capable model providers (OpenAI, Anthropic) and does not
-  offer aggregators that cannot sign one (OpenRouter, per their current public
-  terms). Zero-data-retention routing is not a substitute for a BAA. Signing
-  the BAA is your step: a bare API key is not PHI-ready on any provider.
+- **This alpha is synthetic-only.** The repository does not establish a
+  HIPAA-qualified deployment or verify any operator's agreements. Publishing
+  software without access to a customer's PHI does not by itself create a
+  business-associate relationship; hosting it or accessing PHI to provide a
+  service can. Determine the actual roles and applicable agreements for the
+  deployment, including infrastructure, model processing, support, and
+  subcontractors. A provider's BAA offering does not cover every product,
+  account, model, or configuration. Zero-data-retention settings and an API key
+  do not substitute for the applicable agreements and safeguards. See the
+  [HIPAA deployment groundwork](./docs/hipaa-deployment.md) for the data map,
+  sources, and unresolved clinical-pilot requirements.
 - **Reads are not gated.** The approval gate applies to writes. Anything the
   agent reads from the chart is sent to your configured model provider as
   context, with no approval step. Choose a provider and agreement appropriate
@@ -38,6 +40,17 @@ bundle).
 - **Session token.** The Medplum access token is held in a server-set,
   HttpOnly + Secure + SameSite cookie (not in JS-readable storage). Run behind
   HTTPS in any non-local deployment.
+- **Processing and storage both matter.** Last processes chart data and
+  proposals even though the web agent has no separate chart database. Model
+  context, assistant memory, error messages, infrastructure logs, and backups
+  need their own review. The opt-in [Assistant Work Lab](./docs/assistant-work.md)
+  deliberately persists synthetic proposals and decisions in local SQLite.
+  Its separate lab keys distinguish roles; they do not authenticate a clinical
+  workforce member or provide production tenant isolation.
+- **MCP approval depends on the host.** A client returning an elicitation
+  approval is not independent evidence that a human reviewed it. The Work Lab
+  exercises separate reviewer credentials and exact-proposal binding using
+  synthetic records; production reviewer identity remains unqualified.
 
 ## Liability
 

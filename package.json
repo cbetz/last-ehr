@@ -27,6 +27,7 @@
     "mcp:pack:check": "npm run mcp:build && node scripts/check-mcp-package.mjs",
     "mcp:remote:verify": "tsx scripts/remote-mcp-eval.ts",
     "mcp:demo": "tsx scripts/mcp-demo.ts",
+    "work:demo": "tsx scripts/work-demo.ts",
     "eval": "tsx scripts/eval.ts",
     "eval:hapi": "tsx scripts/eval.ts --no-prepare",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",
@@ -38,7 +39,8 @@
     "docker:local": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.app.yml up --build",
     "docker:local:down": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.app.yml down",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:work:e2e": "playwright test --config playwright.work.config.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^3.0.105",

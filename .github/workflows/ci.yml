@@ -100,12 +100,21 @@ jobs:
           lib/fhir/hapi.contract.integration.test.ts
           lib/ai/scripted-demo.hapi.integration.test.ts
           lib/ai/coded-read.hapi.integration.test.ts
+      - name: Verify durable work persistence and recovery against HAPI
+        env:
+          RUN_HAPI_E2E: "1"
+        run: >-
+          npm test --
+          scripts/work-demo-fhir.hapi.integration.test.ts
+          scripts/work-demo.restart.hapi.integration.test.ts
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Run browser approval-flow e2e
         env:
           RATE_LIMIT_PER_IP_MAX: "100"
         run: npm run test:e2e
+      - name: Run durable synthetic work browser e2e
+        run: npm run test:work:e2e
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: failure()

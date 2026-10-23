@@ -136,6 +136,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["FHIR MCP", "remote MCP", "HTTP", "OAuth", "Medplum", "token exchange"],
   },
   {
+    slug: "assistant-work",
+    file: "docs/assistant-work.md",
+    title: "Assistant Work Lab",
+    description:
+      "Run a local synthetic work proposal with durable state, separate assistant and reviewer credentials, and a verified FHIR Task result.",
+    group: "Build & integrate",
+    order: 27,
+    audience: "Assistant integrators and workflow evaluators",
+    lastModified: "2026-10-23",
+    keywords: ["assistant", "work", "durable", "review", "Task", "synthetic"],
+  },
+  {
     slug: "evals",
     file: "docs/evals.md",
     title: "FHIR Agent Safety Eval",
@@ -182,6 +194,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     audience: "Operators and platform teams",
     lastModified: "2026-07-17",
     keywords: ["deployment", "Docker", "environment", "rate limit", "PHI"],
+  },
+  {
+    slug: "hipaa-deployment",
+    file: "docs/hipaa-deployment.md",
+    title: "HIPAA Deployment Groundwork",
+    description:
+      "Map patient-data flows, qualify exact services and agreements, and identify the evidence still needed before a clinical pilot.",
+    group: "Operate & maintain",
+    order: 15,
+    audience: "Deployment owners, security reviewers, and privacy counsel",
+    lastModified: "2026-10-23",
+    keywords: ["HIPAA", "BAA", "PHI", "data flow", "deployment", "privacy"],
   },
   {
     slug: "metrics",
