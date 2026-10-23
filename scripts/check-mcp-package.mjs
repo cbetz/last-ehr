@@ -94,12 +94,19 @@ try {
   const bin = path.join(temporary, "node_modules/.bin/lastehr-mcp");
   const cleanEnv = { PATH: process.env.PATH, HOME: temporary, SYSTEMROOT: process.env.SYSTEMROOT };
   const invoke = cliArgs => run(process.execPath, [bin, ...cliArgs], { cwd: temporary, env: cleanEnv, timeout: 15_000 });
-  assert.equal((await invoke(["--version"])).stdout.trim(), manifest.version);
+  const invokedVersion = (await invoke(["--version"])).stdout.trim();
+  assert.equal(invokedVersion, manifest.version);
   assert((await invoke(["--help"])).stdout.includes("doctor --connect"));
-  const cursor = JSON.parse((await invoke(["init", "--client", "cursor"])).stdout);
-  assert.equal(cursor.mcpServers.lastehr.type, "stdio");
-  assert(!cursor.mcpServers.lastehr.env.LASTEHR_MCP_WRITES);
-  assert((await invoke(["init", "--client", "claude-code"])).stdout.includes("claude mcp add lastehr -- npx -y @lastehr/mcp"));
+  const invokedPackage = `@lastehr/mcp@${invokedVersion}`;
+  for (const client of ["json", "cursor"]) {
+    const config = JSON.parse((await invoke(["init", "--client", client])).stdout);
+    assert.equal(config.mcpServers.lastehr.command, "npx");
+    assert.deepEqual(config.mcpServers.lastehr.args, ["-y", invokedPackage], `${client} config must pin the invoked package version`);
+    assert(!config.mcpServers.lastehr.env.LASTEHR_MCP_WRITES);
+    if (client === "cursor") assert.equal(config.mcpServers.lastehr.type, "stdio");
+  }
+  const claude = (await invoke(["init", "--client", "claude-code"])).stdout;
+  assert.equal(claude.split("\n").find(line => line.startsWith("claude mcp add ")), `claude mcp add lastehr -- npx -y ${invokedPackage}`, "Claude Code registration must pin the invoked package version");
 
   await new Promise((resolve, reject) => { fixture.once("error", reject); fixture.listen(0, "127.0.0.1", resolve); });
   const baseUrl = `http://127.0.0.1:${fixture.address().port}/fhir`;
@@ -137,7 +144,7 @@ try {
     name: manifest.name, version: manifest.version, filename: packed.filename,
     integrity: packed.integrity, shasum: packed.shasum,
     source: args.includes("--published") ? "npm" : "workspace",
-    checks: ["isolated installation", "CLI bin", "client config", "remote exports", "read-only doctor", "MCP read", "approval capability gate"],
+    checks: ["isolated installation", "CLI bin", "client config", "exact-version client pinning", "remote exports", "read-only doctor", "MCP read", "approval capability gate"],
   }, null, 2) + "\n");
   console.log(`Verified ${manifest.name}@${manifest.version}: isolated install, CLI, read-only connectivity, 4 reads and capability-gated proposals.`);
   console.log(`Tarball: artifacts/mcp-release/${packed.filename}`);

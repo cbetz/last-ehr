@@ -1,12 +1,12 @@
 # October 2026 distribution kit
 
-Prepared October 22, 2026. These are drafts for Chris to review and send. No posts, messages, demo proposals, or invitations have been submitted.
+Prepared October 22, 2026; recording added October 23. These are drafts for Chris to review and send. No posts, messages, demo proposals, or invitations have been submitted.
 
 The first objective is five developer evaluations of one working release. Lead with bounded chart reads, explicit review of each proposed write, and independent checks of what persisted. Other projects already offer FHIR MCP access and review interfaces; do not claim to be the first.
 
 ## Release gate before inviting evaluators
 
-**Status: release verified; recording pending; outreach unsent.** On October 22, npm `latest` and the Official MCP Registry were verified at `0.4.0`. The downloaded npm artifact matched the tested tarball's SHA-512 integrity and passed installation checks in a temporary directory outside the checkout. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.4.0) targets the tested source below. The synthetic recording is still pending; no invitation, post, or proposal has been sent.
+**Status: recorded release verified; recording ready; outreach unsent.** On October 22, npm `latest` and the Official MCP Registry were verified at `0.4.0`. The downloaded npm artifact matched the tested tarball's SHA-512 integrity and passed installation checks in a temporary directory outside the checkout. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.4.0) targets the recorded source below. The [90-second synthetic recording](https://www.lastehr.com/demo/approve-and-decline.mp4) and [independent FHIR report](../evidence/demo-approval-2026-10-23.json) are ready; no invitation, post, or proposal has been sent. These pins identify the recorded evaluation baseline, rather than a promise about the current `latest` tag.
 
 | Evaluation detail | Verified value / remaining work |
 | --- | --- |
@@ -14,7 +14,8 @@ The first objective is five developer evaluations of one working release. Lead w
 | Published MCP package version, if used | [`@lastehr/mcp@0.4.0`](https://www.npmjs.com/package/@lastehr/mcp/v/0.4.0); npm `latest` verified as `0.4.0` |
 | Exact installation instructions | Pinned commands below and the [quickstart at the tested ref](https://github.com/cbetz/last-ehr/blob/f36d05dde21c6e1c6847f2660a966afd2615c646/docs/quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir) |
 | Test date and operating system | October 22, 2026; GitHub Actions Ubuntu 24.04, Node 22.18.0. [CI run 39856748538](https://github.com/cbetz/last-ehr/actions/runs/39856748538) passed 574 unit tests (4 skipped), 12 browser tests, local HAPI checks, and strict conformance. |
-| Synthetic demo recording | PENDING |
+| Synthetic demo recording | [90-second MP4](https://www.lastehr.com/demo/approve-and-decline.mp4), [transcript](../quickstart.md#recorded-approval-and-cancellation), [capture method and limits](../evidence/demo-approval-2026-10-23.md). Captured October 23 from clean `f36d05d`; actual browser approval/cancellation and direct paginated HAPI reads. |
+| Browser persistence proof | [Projected report](../evidence/demo-approval-2026-10-23.json): Observation IDs/counts `7 → 7 → 8 → 8 → 8`; exactly one added after approval and none after cancellation. Fixed synthetic request, no external model call. |
 | Scrubbed workflow/conformance report | `fhir-agent-safety-eval` and `awp-conformance` artifacts in [CI run 39856748538](https://github.com/cbetz/last-ehr/actions/runs/39856748538), from the tested ref above, against disposable local synthetic HAPI; conformance used `--strict` with AI labeling and Provenance enabled. |
 | Later remote MCP checkout proof | [18-check report](../evidence/remote-mcp-2026-10-22.json), October 22, 2026, clean source `e970461`; real Keycloak, local self-hosted Medplum, public HTTPS UserInfo, and scripted SDK decisions. This is separate from the published package artifact checks. |
 | Official MCP Registry record | Exact [`0.4.0`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/0.4.0) and [`latest`](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.cbetz%2Flast-ehr/versions/latest) verified active, pointing to npm `@lastehr/mcp@0.4.0` over stdio; [publication run](https://github.com/cbetz/last-ehr/actions/runs/39860012837) succeeded. |
@@ -48,7 +49,7 @@ Before using the drafts:
 
 - Keep the package version, tested source ref, documentation, and registry record pinned to this verified release. Describe HTTP transport as opt-in; distinguish the later checkout harness proof and retain its hosted Medplum, public MCP TLS, real-host approval UI, and reviewer-identity limits.
 - Follow the pinned quickstart on a clean machine or directory. Verify both approval and denial against the FHIR store.
-- Capture the pending synthetic recording and add its URL before sending a draft. Use the pinned installation commands above for evaluators.
+- Use the recording and pinned installation commands above for evaluators. Keep the scripted-mode and evidence limits beside the link.
 - Use the [support matrix](../support.md) when describing backends. Medplum is the supported authenticated path. The other web adapters are synthetic evaluation paths; the published MCP package supports Medplum and the repository's local HAPI stack.
 
 The current [local walkthrough](../quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir) needs Node 22.18+ or 24.2+ and Docker. It is a fixed sequence using Maria Garcia and a heart-rate Observation of 72 bpm. It makes no model-provider request and does not interpret arbitrary prompts. Describe that limitation in the recording and invitation.
@@ -71,7 +72,7 @@ The [official series page](https://www.health-samurai.io/events/agents-on-fhir) 
 
 **Desired slot:** Next available 5–10 minute demo slot after the tested release is ready; date and time to be confirmed.
 
-**Demo / code links:** [recording URL after capture] · [repository](https://github.com/cbetz/last-ehr) · [write protocol](https://www.lastehr.com/docs/agent-write-protocol) · [conformance guide](https://www.lastehr.com/docs/conformance)
+**Demo / code links:** [90-second recording](https://www.lastehr.com/demo/approve-and-decline.mp4) · [FHIR report](https://www.lastehr.com/demo/approve-and-decline.proof.json) · [repository](https://github.com/cbetz/last-ehr) · [write protocol](https://www.lastehr.com/docs/agent-write-protocol) · [conformance guide](https://www.lastehr.com/docs/conformance)
 
 ### Five-minute run of show
 
@@ -89,7 +90,7 @@ For a ten-minute slot, spend the additional time on questions and one real failu
 
 ## Ninety-second synthetic demo storyboard
 
-Use the loopback HAPI walkthrough on an isolated, disposable local stack. Prepare Docker images and the seeded records before recording. Keep a browser tab for direct FHIR reads beside the app. Record at a readable font size. Editing out startup waits is fine; label the recording as an edited walkthrough.
+The [completed recording](https://www.lastehr.com/demo/approve-and-decline.mp4) follows this storyboard with edited timing; see the [actual transcript](../quickstart.md#recorded-approval-and-cancellation). It uses native browser frames beside a pane rendered from direct GET snapshots, rather than a second browser tab. The source, exact read counts, and clean final take are disclosed in the [capture notes](../evidence/demo-approval-2026-10-23.md).
 
 | Time | Screen / action | Voiceover or caption |
 | --- | --- | --- |
@@ -111,13 +112,13 @@ These are read requests against the local synthetic server, not API calls throug
    GET http://localhost:8080/fhir/Patient?identifier=https%3A%2F%2Flastehr.com%2Fsynthetic%7Csynthetic-004
    ```
 
-2. Substitute that patient's ID in this heart-rate query. Save the baseline IDs, query again while the proposal is waiting, after approval, and after cancellation:
+2. Substitute that patient's ID in this query of all their Observations. Save the baseline IDs, query again while the proposal is waiting, after approval, and after cancellation:
 
    ```http
-   GET http://localhost:8080/fhir/Observation?patient=PATIENT_ID&code=http%3A%2F%2Floinc.org%7C8867-4&_sort=-_lastUpdated&_count=100
+   GET http://localhost:8080/fhir/Observation?patient=PATIENT_ID&_count=1&_total=accurate
    ```
 
-3. Follow every `Bundle.link` whose `relation` is `next` before comparing ID sets. A response window is not a full-store count. On a freshly seeded demo the result should be small, but verify rather than assume.
+3. Follow every `Bundle.link` whose `relation` is `next` before comparing ID sets. Check that the accurate `Bundle.total` equals the fully traversed unique match count. The recorded run traversed seven pages before approval and eight after it; one response window is not a full-store count.
 4. The approved difference should contain exactly one new Observation with `subject.reference` matching `Patient/PATIENT_ID`, numeric value `72`, unit `bpm`, and LOINC code `8867-4`. Check `meta.security` for code `AIAST` in `http://terminology.hl7.org/CodeSystem/v3-ObservationValue`.
 5. While waiting and after cancellation, there should be no additional Observation compared with the preceding baseline. This checks the visible scenario on a quiet local store. The independent [conformance runner](../conformance.md) probes more failure paths; neither check proves clinical correctness or authorization.
 
@@ -133,7 +134,7 @@ Draft, after the release gate is complete:
 >
 > Medplum already has its own MCP integration. My focus here is a smaller tool surface and testable write behavior: preview a change, approve or decline it, then independently check what reached the FHIR store. This is alpha software and the walkthrough uses synthetic data.
 >
-> Here's a 90-second example: [recording URL — PENDING]. The tested setup is [f36d05d, released as MCP 0.4.0](https://github.com/cbetz/last-ehr/blob/f36d05dde21c6e1c6847f2660a966afd2615c646/docs/quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir). I'm looking for two developers willing to spend 20 minutes installing the local synthetic walkthrough and tell me where it fails or becomes unclear. Would this be useful to review here?
+> Here's a [90-second example](https://www.lastehr.com/demo/approve-and-decline.mp4) with [independent FHIR checks](https://www.lastehr.com/demo/approve-and-decline.proof.json). The tested setup is [f36d05d, released as MCP 0.4.0](https://github.com/cbetz/last-ehr/blob/f36d05dde21c6e1c6847f2660a966afd2615c646/docs/quickstart.md#zero-key-local-synthetic-demo-with-hapi-fhir). I'm looking for two developers willing to spend 20 minutes installing the local synthetic walkthrough and tell me where it fails or becomes unclear. Would this be useful to review here?
 
 Respect Medplum's [native MCP documentation](https://www.medplum.com/docs/ai/mcp). Also, the [October 8 community prototype](https://www.medplum.com/blog/an-ehr-that-teaches) already describes confirmation of structured entries before saving. Explain the implementation and evidence; do not claim exclusive ownership of human review.
 
@@ -151,7 +152,7 @@ Use only after an interested developer or community has invited the follow-up. P
 >
 > The output I need is one setup result, the point where you got stuck if any, and one thing you'd need before trying a real model-backed workflow. A short written report is also useful if a call is inconvenient. There's no production deployment or sales discussion involved.
 >
-> Code and tested ref: [f36d05d](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646). Walkthrough: [90-second recording URL — PENDING]. If you're interested, suggest a convenient time or reply here.
+> Code and tested ref: [f36d05d](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646). Walkthrough: [90-second recording](https://www.lastehr.com/demo/approve-and-decline.mp4). If you're interested, suggest a convenient time or reply here.
 
 For developer communities whose rules discourage AI-generated posts, rewrite these drafts in your own voice. For example, [Health Tech Nerds](https://www.healthtechnerds.com/code-of-conduct) prohibits unsolicited promotion and promotional DMs; it is not a launch-distribution target for this kit.
 

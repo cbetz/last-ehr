@@ -36,7 +36,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Evaluate",
     order: 10,
     audience: "Evaluators and first-time builders",
-    lastModified: "2026-07-25",
+    lastModified: "2026-10-23",
     keywords: ["local", "HAPI", "Medplum", "setup", "Docker"],
   },
   {
@@ -120,7 +120,7 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     group: "Build & integrate",
     order: 20,
     audience: "Agent and MCP builders",
-    lastModified: "2026-10-22",
+    lastModified: "2026-10-23",
     keywords: ["FHIR MCP server", "Claude Code", "Cursor", "Medplum", "read only", "approval"],
   },
   {
@@ -128,11 +128,11 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     file: "docs/remote-mcp.md",
     title: "Remote FHIR MCP: HTTP and OAuth",
     description:
-      "Configure the optional HTTP transport and per-caller OAuth boundary in MCP 0.4.0. Includes test evidence and the remaining real-provider verification gap.",
+      "Configure optional HTTP transport and per-caller OAuth. Includes the real Keycloak and local Medplum test report, plus remaining deployment and reviewer-verification limits.",
     group: "Build & integrate",
     order: 25,
     audience: "MCP operators and security reviewers",
-    lastModified: "2026-10-22",
+    lastModified: "2026-10-23",
     keywords: ["FHIR MCP", "remote MCP", "HTTP", "OAuth", "Medplum", "token exchange"],
   },
   {

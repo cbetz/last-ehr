@@ -1,10 +1,14 @@
+import { MCP_SERVER_VERSION } from "./server.js";
+
 export type McpClient = "json" | "claude-code" | "cursor";
+
+const packageSpecifier = `@lastehr/mcp@${MCP_SERVER_VERSION}`;
 
 const mcpConfig = {
   mcpServers: {
     lastehr: {
       command: "npx",
-      args: ["-y", "@lastehr/mcp"],
+      args: ["-y", packageSpecifier],
       env: {
         MEDPLUM_ACCESS_TOKEN: "<replace-with-a-least-privilege-token>",
       },
@@ -18,7 +22,7 @@ export function renderInit(client: McpClient = "json"): string {
       "# The process inherits MEDPLUM_* variables from your shell or MCP client configuration.",
       "# @lastehr/mcp is read-only unless LASTEHR_MCP_WRITES=proposal is set",
       "# (writes are then elicitation-gated and human-approved per action).",
-      "claude mcp add lastehr -- npx -y @lastehr/mcp",
+      `claude mcp add lastehr -- npx -y ${packageSpecifier}`,
       "",
     ].join("\n");
   }

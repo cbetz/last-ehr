@@ -2,8 +2,10 @@
 
 The repository version, npm package, MCP Registry record, and GitHub release
 are separate artifacts. A merged version change does not publish a package.
-The October 22, 2026 check found the repository at `0.4.0` and npm `latest`
-still at `0.3.1`. Check the registry again when releasing.
+The [0.4.0 release](./releases/mcp-0.4.0.md) was verified on npm and the
+Official MCP Registry on October 22, 2026. This checkout prepares the `0.4.1`
+candidate; that version change does not establish publication. Check public
+registry metadata again when releasing.
 
 ## Verify the package people will install
 
@@ -23,7 +25,7 @@ write. The temporary installation is removed after the checks.
 The candidate and its SHA-512 integrity are retained under
 `artifacts/mcp-release/`, which is ignored by Git:
 
-- `lastehr-mcp-0.4.0.tgz`
+- `lastehr-mcp-0.4.1.tgz`
 - `verified.json`
 
 The version in the filenames follows `packages/mcp/package.json`; it must
@@ -57,7 +59,7 @@ The workflow runs only from `main` in `cbetz/last-ehr`. Its version input must
 match both manifests. First run it without publishing:
 
 ```bash
-gh workflow run publish-mcp.yml --ref main -f version=0.4.0 -f publish=false
+gh workflow run publish-mcp.yml --ref main -f version=0.4.1 -f publish=false
 ```
 
 Inspect the workflow summary and uploaded candidate. Before actual
@@ -65,7 +67,7 @@ publication, wait for all of the `CI` workflow on that exact main commit to
 pass. Then:
 
 ```bash
-gh workflow run publish-mcp.yml --ref main -f version=0.4.0 -f publish=true
+gh workflow run publish-mcp.yml --ref main -f version=0.4.1 -f publish=true
 ```
 
 The workflow enforces successful CI for its exact main SHA, builds and checks
@@ -98,8 +100,8 @@ After the exact npm artifact passes verification:
 
 1. Run `Publish MCP Registry metadata` from the same tested main revision.
    Its publisher verifies the immutable npm version named in `server.json`.
-2. Publish the GitHub release using `docs/releases/mcp-0.4.0.md` as notes.
-   Use an MCP-specific tag such as `mcp-v0.4.0`; an app `v*` tag also triggers
+2. Publish the GitHub release using `docs/releases/mcp-0.4.1.md` as notes.
+   Use an MCP-specific tag such as `mcp-v0.4.1`; an app `v*` tag also triggers
    the separate GHCR app-image workflow.
 3. Check `npm view @lastehr/mcp dist-tags --json`, the public MCP Registry
    record, the GitHub tag's commit, and the install guide.

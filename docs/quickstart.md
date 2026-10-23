@@ -7,6 +7,43 @@ The fastest way to understand Last EHR is the hosted demo:
 It uses synthetic patients, needs no account, and every write stops at an
 approval card.
 
+## Recorded approval and cancellation
+
+[Watch the 90-second walkthrough](https://www.lastehr.com/demo/approve-and-decline.mp4)
+or [view it on the homepage](https://www.lastehr.com/#walkthrough).
+
+This is an edited, sampled screen recording of the fixed local synthetic
+walkthrough, captured October 23, 2026, from clean source
+[`f36d05d`](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646)
+(MCP package version `0.4.0`). No external model is called. The browser frames
+are actual app captures; the adjoining pane shows separate paginated GET
+snapshots from its disposable local HAPI FHIR store.
+
+| Time | Transcript |
+| --- | --- |
+| 0:00–0:08 | A fixed synthetic walkthrough. The browser approval and FHIR persistence paths are real. |
+| 0:08–0:22 | The 72 bpm proposal waits for a human decision. An independent read finds the original seven Observation IDs. |
+| 0:22–0:32 | Inspect the proposed patient reference, LOINC 8867-4, value 72 bpm, and UCUM `/min` in the FHIR preview. |
+| 0:32–0:36 | Approve and save. The pane keeps the last completed backend snapshot until the next read. |
+| 0:36–0:48 | The new FHIR read finds eight Observations: exactly one added ID. Its reviewed fields and `AIAST` label pass the checks. |
+| 0:48–1:00 | Submit again. Scripted mode repeats the same proposal; another read still finds the eight approved-state IDs. |
+| 1:00–1:04 | Cancel and revise the second proposal. |
+| 1:04–1:15 | Read FHIR again: the ID set is unchanged from after approval, with zero additional Observations. |
+| 1:15–1:30 | Try the pinned walkthrough. These checks cover persistence mechanics, not clinical correctness, model quality, or production authorization. |
+
+[FHIR proof JSON](https://www.lastehr.com/demo/approve-and-decline.proof.json)
+· [English captions](https://www.lastehr.com/demo/approve-and-decline.vtt)
+· [Capture method and limits](https://github.com/cbetz/last-ehr/blob/main/docs/evidence/demo-approval-2026-10-23.md).
+The baseline was read before submitting the first proposal and rechecked
+while its card was waiting. Both snapshots contained the same seven IDs.
+The video uses edited timing and holds captured frames for readability.
+
+To reproduce the recorded app version, use a clean directory and the
+prerequisites below, check out `f36d05dde21c6e1c6847f2660a966afd2615c646`, then run
+`npm ci` and `npm run demo:local`. Approve once, repeat and cancel, and compare
+all paginated Observation IDs directly in your local FHIR store. Resource IDs
+will differ between seeded stacks.
+
 ## Zero-key local synthetic demo with HAPI FHIR
 
 Use this path when you want to inspect the approval loop without a Medplum

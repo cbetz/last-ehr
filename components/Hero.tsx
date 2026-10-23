@@ -1,11 +1,24 @@
 import Link from "next/link";
-import { ArrowRight, CircleDotDashed, ClipboardCheck } from "lucide-react";
+import { ArrowRight, CircleDotDashed } from "lucide-react";
 
 import { buttonVariants } from "./ui/button";
 
 export default function Hero() {
+  const video = {
+    "@context": "https://schema.org",
+    "@type": "VideoObject",
+    name: "Approve one FHIR write. Cancel the next.",
+    description: "A 90-second edited screen walkthrough of Last EHR's fixed synthetic local demo. Independent paginated FHIR reads verify one approved Observation and no additional Observation after cancellation. No external model is called.",
+    thumbnailUrl: "https://www.lastehr.com/demo/approve-and-decline.jpg",
+    contentUrl: "https://www.lastehr.com/demo/approve-and-decline.mp4",
+    uploadDate: "2026-10-23T00:00:00-04:00",
+    duration: "PT90S",
+    inLanguage: "en",
+  };
+
   return (
     <section className="relative overflow-hidden border-b marketing-rule">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(video).replace(/</g, "\\u003c") }} />
       <div
         aria-hidden="true"
         className="marketing-grid pointer-events-none absolute inset-x-0 top-0 h-[29rem] opacity-45 [mask-image:linear-gradient(to_bottom,black,transparent)]"
@@ -47,41 +60,39 @@ export default function Hero() {
           </p>
         </div>
 
-        <figure className="min-w-0 border border-border bg-card">
+        <figure id="walkthrough" className="min-w-0 scroll-mt-24 border border-border bg-card">
           <figcaption className="border-b border-border px-5 py-4 font-mono text-xs text-muted-foreground">
-            Example · Synthetic patient
+            90 seconds · Synthetic local walkthrough
           </figcaption>
+          <video
+            className="aspect-video w-full bg-black"
+            controls
+            playsInline
+            preload="none"
+            poster="/demo/approve-and-decline.jpg"
+            width={1920}
+            height={1080}
+            aria-label="Approve one FHIR write and cancel the next, with independent backend checks"
+            aria-describedby="walkthrough-description"
+          >
+            <source src="/demo/approve-and-decline.mp4" type="video/mp4" />
+            <track kind="captions" src="/demo/approve-and-decline.vtt" srcLang="en" label="English" />
+            <a href="/demo/approve-and-decline.mp4">Download the walkthrough</a>
+          </video>
           <div className="p-5 sm:p-7">
-            <p className="text-sm text-muted-foreground">You ask</p>
-            <p className="mt-2 text-xl font-medium leading-8 tracking-tight">
-              “Record a heart rate of 72 bpm for Maria Garcia.”
+            <p className="text-xl font-medium leading-8 tracking-tight">
+              Approve one write. Cancel the next.
             </p>
-            <div className="mt-7 border border-border bg-background">
-              <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-sm font-semibold">
-                <ClipboardCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-                Proposed observation
-              </div>
-              <dl className="divide-y divide-border px-4">
-                {[
-                  ["Patient", "Maria Garcia"],
-                  ["Measurement", "Heart rate"],
-                  ["Value", "72 bpm"],
-                  ["FHIR resource", "Observation"],
-                ].map(([label, value]) => (
-                  <div key={label} className="flex flex-wrap justify-between gap-2 py-3 text-sm">
-                    <dt className="text-muted-foreground">{label}</dt>
-                    <dd className="font-medium">{value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <p className="border-t border-border bg-muted/30 px-4 py-3 text-sm font-medium text-primary">
-                Waiting for your approval. Nothing saved yet.
-              </p>
+            <p id="walkthrough-description" className="mt-3 text-sm leading-6 text-muted-foreground">
+              Watch the approval card and independent FHIR reads. This edited
+              screen walkthrough uses a fixed request and synthetic records;
+              no external model is called.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-sm underline underline-offset-4">
+              <a href="/demo/approve-and-decline.mp4">Watch full size</a>
+              <Link href="/docs/quickstart#recorded-approval-and-cancellation">Transcript and reproduce</Link>
+              <a href="/demo/approve-and-decline.proof.json">FHIR proof (JSON)</a>
             </div>
-            <Link href="/demo" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold hover:text-primary">
-              Try this in the demo
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
           </div>
         </figure>
       </div>

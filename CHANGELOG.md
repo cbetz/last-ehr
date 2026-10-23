@@ -3,13 +3,29 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.4.1 — 2026-10-23
+
+- MCP `init` pins generated JSON, Cursor, and Claude Code commands to the
+  invoked package version. The isolated package check now requires exact
+  version pins in all three formats.
+- The web demo shows visitor-safe startup errors with Retry and a 15-second
+  timeout. Optional analytics use bounded static startup categories and
+  exclude SMART and scripted sessions.
+- The homepage and quickstart include a 90-second synthetic browser recording
+  with captions and independent paginated FHIR proof: one approved
+  Observation and no additional Observation after cancellation. The recording
+  remains pinned to clean source `f36d05d` / MCP `0.4.0`.
+
+Package publication remains separate from merging; use the
+[release process](./docs/releasing-mcp.md) and public artifact checks.
+
 ## 0.4.0 — 2026-09-06
 
 `@lastehr/mcp` gains an opt-in remote transport. Stdio stays the default.
 This date records the implementation landing, not npm publication. The
-October 22 release check found npm `latest` still at `0.3.1`; see the
-[release process](./docs/releasing-mcp.md) for artifact verification and
-publication.
+initial October 22 release check found npm `latest` at `0.3.1`. Later that day,
+the exact `0.4.0` artifact and Official MCP Registry record were published and
+verified; see the [release notes](./docs/releases/mcp-0.4.0.md).
 
 October 22 adoption work adds:
 
@@ -47,8 +63,10 @@ October 22 adoption work adds:
   than the optional standalone GET stream. Found by adversarial review before
   release: without it, a host that never opened a GET stream never saw a
   prompt and every write failed closed. Over stdio this changes nothing.
-- Not yet performed: the end-to-end run against a Medplum with a real identity
-  provider configured.
+- The October 22 checkout harness later passed 18 checks with real Keycloak
+  and local self-hosted Medplum. Its [report](./docs/evidence/remote-mcp-2026-10-22.json)
+  does not verify hosted Medplum, public MCP TLS, a real host approval UI, or
+  actual reviewer identity.
 - `.env.example` no longer says the package exposes two read tools; it has
   exposed four since `read_chart_section` and `read_document` landed.
 
