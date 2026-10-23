@@ -1,15 +1,16 @@
 # Last EHR MCP 0.4.1: version-pinned client setup
 
-**Release candidate.** Publication, public artifact verification and the
-Official MCP Registry update are still pending. A merged version change is
-not a published release.
+Repository version, npm publication, public artifact verification, and the
+Official MCP Registry record are separate. A merged version change is not a
+published release. See the [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.4.1)
+for publication evidence and the exact released source.
 
 `init` now pins every generated client command to the version of the package
 running it. JSON, Cursor and Claude Code output from `@lastehr/mcp@0.4.1`
 therefore starts `@lastehr/mcp@0.4.1`, rather than following npm's future
 `latest` tag. Evaluators no longer need to edit that package argument by hand.
 
-For example, after this version is published:
+To print the setup command from this exact version once it is available on npm:
 
 ```bash
 npx -y @lastehr/mcp@0.4.1 init --client claude-code
@@ -27,7 +28,7 @@ stdio FHIR metadata and a count-only Patient search.
 
 ## Verification and remaining limits
 
-The candidate must pass the [release process](../releasing-mcp.md), including
+The artifact must pass the [release process](../releasing-mcp.md), including
 installation of its exact tarball outside the checkout. The generated
 commands must name the same version reported by that installed executable.
 Public npm availability, matching artifact integrity and the Registry record
@@ -43,5 +44,5 @@ MCP TLS, a real MCP host's human approval interface and actual reviewer
 identity remain unverified. This setup patch does not extend that evidence.
 
 The synthetic browser recording inputs remain pinned to source
-`f36d05dde21c6e1c6847f2660a966afd2615c646` and MCP `0.4.0`; preparing this
+`f36d05dde21c6e1c6847f2660a966afd2615c646` and MCP `0.4.0`; this onboarding
 patch does not relabel that recording's source or package version.
