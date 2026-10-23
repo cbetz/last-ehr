@@ -7,7 +7,7 @@ export function workDemoPage(mode: "reviewer" | "assistant"): string {
 <header><a class="brand" href="/">Last <span>Work Lab</span></a><nav><a href="/">Review inbox</a><a href="/assistant">Assistant</a></nav></header>
 <p class="eyebrow">LOCAL · SYNTHETIC DATA ONLY</p>
 <h1>${mode === "reviewer" ? "Review proposed follow-up Tasks." : "Prepare a follow-up Task."}</h1>
-<p class="intro">${mode === "reviewer" ? "An assistant submits a draft. You review the exact resource before anything reaches FHIR." : "Use the lab’s synthetic patient and result to submit a draft. A separate reviewer decides whether it is saved."}</p>
+<p class="intro">${mode === "reviewer" ? "An assistant submits a draft. You review the exact Task before it is saved to FHIR." : "Use the lab’s synthetic patient and result to submit a draft. A separate reviewer decides whether it is saved."}</p>
 <p class="boundary">This lab uses separate test credentials, not clinical identity verification. It makes no model-provider request. Never enter real patient information.</p>
 <section id="sign-in"><h2>${mode === "reviewer" ? "Reviewer sign-in" : "Assistant connection"}</h2>
 <form id="login-form"><label for="key">${mode === "reviewer" ? "Reviewer sign-in key" : "Assistant API key"}</label>
