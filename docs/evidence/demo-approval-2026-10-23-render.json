@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "width": 1920,
+  "height": 1080,
+  "fps": 5,
+  "durationSeconds": 90,
+  "source": {
+    "commit": "f36d05dde21c6e1c6847f2660a966afd2615c646",
+    "packageVersion": "0.4.0",
+    "reportUrl": "https://www.lastehr.com/demo/approve-and-decline.proof.json"
+  },
+  "edited": true,
+  "sampledCapture": true,
+  "noExternalModelCall": true,
+  "proofStatus": "passed",
+  "manifestSha256": "11b3c3edde68be83da8c66bf7531001e89bcd14c733709ca04d5b630da8c7b2d",
+  "proofSha256": "5be37192395018ea68b2124f19e2b0f5fe5cea598ac439e0408a638a49f3fa61",
+  "video": {
+    "file": "walkthrough.mp4",
+    "bytes": 1295349,
+    "sha256": "32d9b3f3210e05c76084f26a718c4fef40deace1f5231b539960e80b3a0f0814"
+  },
+  "capturedFrames": [
+    {
+      "sha256": "12d589a877cdbd0691e0a4f73f44b7a50ae74fad9fc644bf736dd05b9837d136",
+      "size": 78578,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "74ab1fab4a66738fd61a060541cbf0365c185b77ba80e1092f1bcdc3e98b5587",
+      "size": 78571,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "3b21156e014f533a4d31c22a74fab1f7f3a0f95368393ac88856b5bf664c9467",
+      "size": 78598,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "12d589a877cdbd0691e0a4f73f44b7a50ae74fad9fc644bf736dd05b9837d136",
+      "size": 78578,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "2c4cb27a75a46180e25defa106727e77a6f4859cdfde095fbe5ae91d6e74f3fd",
+      "size": 52088,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "2c4cb27a75a46180e25defa106727e77a6f4859cdfde095fbe5ae91d6e74f3fd",
+      "size": 52088,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "2c4cb27a75a46180e25defa106727e77a6f4859cdfde095fbe5ae91d6e74f3fd",
+      "size": 52088,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "2c4cb27a75a46180e25defa106727e77a6f4859cdfde095fbe5ae91d6e74f3fd",
+      "size": 52088,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "188d3798a13f7e1946df750e6f4fe4e36f68c5ac021413ec7607c34cafdc4164",
+      "size": 48119,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "188d3798a13f7e1946df750e6f4fe4e36f68c5ac021413ec7607c34cafdc4164",
+      "size": 48119,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "188d3798a13f7e1946df750e6f4fe4e36f68c5ac021413ec7607c34cafdc4164",
+      "size": 48119,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "188d3798a13f7e1946df750e6f4fe4e36f68c5ac021413ec7607c34cafdc4164",
+      "size": 48119,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "eb0b588c09bcb040d69ed5515441a749ed49fd51b7e1481635ffc924310e41ef",
+      "size": 49448,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "eb0b588c09bcb040d69ed5515441a749ed49fd51b7e1481635ffc924310e41ef",
+      "size": 49448,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "3b846d698714a4f78d4f1e4be22fee6a898c930bddc97847771162fa35191423",
+      "size": 49333,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "1ae66f303b1de787a256e8b6803d36d2dc5556ec95ff4865419ffcd27d73ef84",
+      "size": 49268,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "1ae66f303b1de787a256e8b6803d36d2dc5556ec95ff4865419ffcd27d73ef84",
+      "size": 49268,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "872ce279f0c4112feecb8a3b4e8f22c7ef320887119cb6b744ea2729721160b5",
+      "size": 62957,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ef323cd2cdaf9a2164f1f639e87694dc6aac9d3d4c0801d13c258c762edcf664",
+      "size": 64388,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ef323cd2cdaf9a2164f1f639e87694dc6aac9d3d4c0801d13c258c762edcf664",
+      "size": 64388,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ef323cd2cdaf9a2164f1f639e87694dc6aac9d3d4c0801d13c258c762edcf664",
+      "size": 64388,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ef323cd2cdaf9a2164f1f639e87694dc6aac9d3d4c0801d13c258c762edcf664",
+      "size": 64388,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ec96914fa1d12ca2064c625915d54a4a6240d087632e5f6f10642b636599d733",
+      "size": 53277,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ec96914fa1d12ca2064c625915d54a4a6240d087632e5f6f10642b636599d733",
+      "size": 53277,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ec96914fa1d12ca2064c625915d54a4a6240d087632e5f6f10642b636599d733",
+      "size": 53277,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ec96914fa1d12ca2064c625915d54a4a6240d087632e5f6f10642b636599d733",
+      "size": 53277,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ec96914fa1d12ca2064c625915d54a4a6240d087632e5f6f10642b636599d733",
+      "size": 53277,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "ec96914fa1d12ca2064c625915d54a4a6240d087632e5f6f10642b636599d733",
+      "size": 53277,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    },
+    {
+      "sha256": "6b1471de468f9cb5b9804cae45381f90e6e17db044943a034d987a72d4fff010",
+      "size": 55844,
+      "format": "jpeg"
+    }
+  ],
+  "posterFrame": 185
+}

@@ -1,0 +1,54 @@
+WEBVTT
+
+NOTE Edited, sampled synthetic screen recording; scripted; no external model call.
+NOTE Source f36d05dde21c6e1c6847f2660a966afd2615c646; MCP 0.4.0.
+
+1
+00:00:00.000 --> 00:00:08.000
+A fixed synthetic walkthrough. No external model is called.
+The browser approval and FHIR persistence paths are real.
+
+2
+00:00:08.000 --> 00:00:22.000
+The proposed 72 bpm Observation is waiting for a human decision.
+A separate FHIR read still finds the same seven IDs.
+
+3
+00:00:22.000 --> 00:00:27.000
+Review the FHIR preview: patient, heart-rate code, quantity, and units.
+Persistence still requires approval.
+
+4
+00:00:27.000 --> 00:00:32.000
+The preview binds this patient to 72 bpm, with LOINC 8867-4 and UCUM /min.
+Nothing has been saved.
+
+5
+00:00:32.000 --> 00:00:36.000
+Approve &amp; save sends the reviewed proposal to FHIR.
+The pane keeps the last direct snapshot until the next query.
+
+6
+00:00:36.000 --> 00:00:48.000
+A new direct FHIR read finds exactly one added Observation.
+Its patient, quantity, LOINC code, UCUM unit, and AIAST label pass the checks.
+
+7
+00:00:48.000 --> 00:01:00.000
+Submit again: scripted mode repeats the same fixed proposal.
+While it waits, the direct FHIR query still returns the eight approved-state IDs.
+
+8
+00:01:00.000 --> 00:01:04.000
+Cancel &amp; revise declines this proposal.
+Now repeat the independent backend query to check the result.
+
+9
+00:01:04.000 --> 00:01:15.000
+The final FHIR read returns the same eight IDs as after approval: zero added, zero removed.
+Canceling the second proposal created no additional Observation.
+
+10
+00:01:15.000 --> 00:01:30.000
+Try the pinned synthetic walkthrough: lastehr.com/docs/quickstart
+This checks persistence mechanics, not clinical correctness, model quality, or production authorization.

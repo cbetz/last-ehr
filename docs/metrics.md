@@ -21,6 +21,19 @@ moment and then successfully running the project locally.
 
 ### Instrumented demo milestones
 
+Startup emits `demo_quickstart_started` once per mounted quickstart and
+`demo_quickstart_ready` after the session endpoint returns a successful status.
+Neither has properties. A successful session response does not prove FHIR
+connectivity. Retrying does not create a second started milestone.
+
+Startup failures use `demo_error_shown` with one static `category`:
+`quickstart_rate_limited` (429), `quickstart_unavailable` (other unsuccessful
+statuses), `quickstart_network` (request rejection), or `quickstart_timeout`
+(15 seconds). Each category is emitted at most once per mount. These events
+skip SMART sessions and the scripted local walkthrough, and require the
+optional analytics configuration. Response bodies, status text, URLs, tokens,
+and exception diagnostics are never included.
+
 The demo emits these events only when the optional PostHog integration is
 configured. One tracker lives in memory for each mounted chat; it deduplicates
 streaming rerenders and skips SMART sessions.

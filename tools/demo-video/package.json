@@ -1,0 +1,20 @@
+{
+  "name": "lastehr-demo-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone renderer for the captured synthetic Last EHR walkthrough.",
+  "scripts": {
+    "render": "node render.mjs",
+    "check": "node render.mjs --check",
+    "studio": "remotion studio entry.jsx"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.538",
+    "@remotion/cli": "4.0.538",
+    "@remotion/renderer": "4.0.538",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.538"
+  }
+}

@@ -100,7 +100,7 @@ to stdout. Keep the local stack running while the client is connected; use
 
 ## Install and connect
 
-This guide follows the repository's `0.4.0` MCP code. npm releases are
+This guide follows the repository's `0.4.1` MCP code. npm releases are
 published separately. Check the version you installed with
 `npx -y @lastehr/mcp --version`; older releases do not include HTTP transport
 or `doctor --connect`. If a matching release is not yet available on npm,
@@ -110,6 +110,8 @@ publication.
 
 The commands below generate a local stdio configuration. They do not install
 the server into your client or configure remote OAuth automatically.
+Since `0.4.1`, `init` pins the generated package command to its own version,
+so invoking a specific release produces a configuration for that release.
 
 ### Claude Code
 

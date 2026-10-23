@@ -6,7 +6,7 @@ opt-in transport in 0.4.0 with `LASTEHR_MCP_TRANSPORT=http`. It supports Medplum
 with per-caller OAuth; the local no-auth HAPI stack is refused. Stdio remains
 the default.
 
-This page describes the `0.4.0` repository code. The checkout can be ahead of
+This page describes the `0.4.1` repository code. The checkout can be ahead of
 npm publication; follow the [installation and version check](./mcp.md#install-and-connect)
 before configuring these transport options.
 
