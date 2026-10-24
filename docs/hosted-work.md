@@ -86,6 +86,10 @@ computer. [Grok Bot computer model](https://docs.x.ai/grok-bot/computer-and-apps
 
 ## Configure and run the service
 
+For the selected low-cost pilot, follow the step-by-step
+[OVHcloud and Auth0 runbook](./ovh-work.md), including ordering, DNS, reviewer
+sign-in, private configuration, and recovery checks.
+
 Start from [work-hosted.example.json](../work-hosted.example.json). It contains
 placeholder public URLs and identity subjects, without real credentials.
 Create your private `work-hosted.json`, fill in the actual endpoints and

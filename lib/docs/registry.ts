@@ -172,6 +172,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["Work", "MCP", "Grok", "OAuth", "OIDC", "synthetic", "Docker"],
   },
   {
+    slug: "ovh-work",
+    file: "docs/ovh-work.md",
+    title: "OVHcloud Work Pilot",
+    description:
+      "Set up the synthetic Work pilot on an OVHcloud VPS with Auth0, public HTTPS, private FHIR storage, and separate reviewer sign-in.",
+    group: "Operate & maintain",
+    order: 27,
+    audience: "Synthetic pilot operators",
+    lastModified: "2026-10-24",
+    keywords: ["OVHcloud", "Work", "Auth0", "OIDC", "MCP", "Docker", "synthetic"],
+  },
+  {
     slug: "evals",
     file: "docs/evals.md",
     title: "FHIR Agent Safety Eval",
