@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "syntheticOnly": true,
+  "publicOrigin": "https://work.example.org",
+  "listenHost": "0.0.0.0",
+  "listenPort": 3400,
+  "storePath": "/var/lib/lastehr-work/store/work.sqlite",
+  "hapiUrl": "http://hapi:8080/fhir",
+  "issuer": "https://identity.example.org/realms/last-work",
+  "jwksUri": "https://identity.example.org/realms/last-work/protocol/openid-connect/certs",
+  "authorizationEndpoint": "https://identity.example.org/realms/last-work/protocol/openid-connect/auth",
+  "tokenEndpoint": "https://identity.example.org/realms/last-work/protocol/openid-connect/token",
+  "reviewerSubject": "replace-with-reviewer-oidc-subject",
+  "reviewerClientId": "last-work-reviewer",
+  "assistantIdentities": [
+    { "clientId": "last-work-assistant", "subject": "replace-with-assistant-service-subject" }
+  ]
+}

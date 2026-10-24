@@ -25,6 +25,27 @@ jobs:
       - name: Verify the installable MCP tarball
         run: npm run mcp:pack:check
 
+  hosted-work-image:
+    name: Hosted synthetic Work image
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the standalone Work image
+        run: docker build -f Dockerfile.work -t lastehr-work:ci .
+      - name: Verify runtime entry point and private volume ownership
+        run: |
+          docker run --rm lastehr-work:ci node --import tsx scripts/work-hosted.ts --help
+          docker run --rm --entrypoint node lastehr-work:ci -e '
+            const fs = require("node:fs");
+            if (process.getuid() !== 1000) process.exit(1);
+            for (const path of ["/var/lib/lastehr-work", "/var/lib/lastehr-work/store"]) {
+              const stat = fs.statSync(path);
+              if (stat.uid !== process.getuid() || (stat.mode & 0o777) !== 0o700) process.exit(1);
+            }
+          '
+
   local-hapi:
     name: Local scripted HAPI quickstart
     needs: build
@@ -120,7 +141,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: synthetic-work-lab
-          path: artifacts/work-lab/*.png
+          path: |
+            artifacts/work-lab/*.png
+            artifacts/work-lab/hosted-work-browser.json
           if-no-files-found: error
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4

@@ -113,6 +113,11 @@ native-client run from deterministic automated checks.
 
 Next for this path:
 
+- The [hosted synthetic Work service](./docs/hosted-work.md) adds authenticated
+  HTTP MCP and a separate OIDC reviewer inbox on a persistent, single-replica
+  deployment. Configure the actual host and identity provider, then record a
+  real Grok Bot acceptance before making a client-compatibility claim.
+
 - Verify additional external clients individually and publish reproducible
   synthetic setup and outcome evidence.
 - Recruit five evaluators and measure setup completion and the first approved

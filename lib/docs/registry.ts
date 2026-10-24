@@ -160,6 +160,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["MCP", "assistant", "work", "durable", "review", "synthetic", "Task"],
   },
   {
+    slug: "hosted-work",
+    file: "docs/hosted-work.md",
+    title: "Hosted Synthetic Work",
+    description:
+      "Deploy the synthetic Work service with authenticated HTTP MCP, separate OIDC reviewer sign-in, and persistent work state. Actual Grok acceptance remains a separate check.",
+    group: "Operate & maintain",
+    order: 26,
+    audience: "Synthetic pilot operators and external assistant integrators",
+    lastModified: "2026-10-23",
+    keywords: ["Work", "MCP", "Grok", "OAuth", "OIDC", "synthetic", "Docker"],
+  },
+  {
     slug: "evals",
     file: "docs/evals.md",
     title: "FHIR Agent Safety Eval",

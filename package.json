@@ -30,6 +30,7 @@
     "work:demo": "tsx scripts/work-demo.ts",
     "work:mcp": "tsx scripts/work-mcp.ts",
     "work:claude": "tsx scripts/work-mcp-claude.ts",
+    "work:hosted": "tsx scripts/work-hosted.ts",
     "eval": "tsx scripts/eval.ts",
     "eval:hapi": "tsx scripts/eval.ts --no-prepare",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",
@@ -42,7 +43,8 @@
     "docker:local:down": "docker compose --env-file .env.local -f docker-compose.yml -f docker-compose.app.yml down",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "test:work:e2e": "playwright test --config playwright.work.config.ts"
+    "test:work:e2e": "playwright test --config playwright.work.config.ts",
+    "test:work:hosted": "playwright test --config playwright.hosted-work.config.ts"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^3.0.105",
@@ -67,6 +69,7 @@
     "ai": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "jose": "6.2.3",
     "lucide-react": "^1.17.0",
     "mermaid": "^11.16.0",
     "next": "^15.5.18",

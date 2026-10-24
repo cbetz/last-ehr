@@ -11,6 +11,11 @@ loopback HTTP. It is separate from the published `@lastehr/mcp` `0.4.1` package
 and the [remote OAuth MCP server](./remote-mcp.md). It does not implement the MCP
 Tasks extension: the client calls ordinary tools and retains Last's Work ID.
 
+For the separately deployed HTTPS service with OAuth assistant identities and
+an OIDC reviewer inbox, see [Hosted Synthetic Work](./hosted-work.md). It
+requires its own persistent host and identity-provider configuration; the
+local connector remains loopback-only.
+
 A saved FHIR Task records requested work. It does not mean a patient was
 contacted or the follow-up was completed. Use invented data only, including
 in prompts and Task descriptions. Review happens after the assistant has read
