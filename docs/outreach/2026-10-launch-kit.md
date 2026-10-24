@@ -4,6 +4,39 @@ Prepared October 22, 2026; recording added October 23. These are drafts for Chri
 
 The first objective is five developer evaluations of one working release. Lead with bounded chart reads, explicit review of each proposed write, and independent checks of what persisted. Other projects already offer FHIR MCP access and review interfaces; do not claim to be the first.
 
+## Real assistant Work Lab follow-up (draft)
+
+**UNSENT — prepared October 23, 2026, America/New_York.** This is a new variant
+for the real-provider assistant acceptance in
+[PR #200](https://github.com/cbetz/last-ehr/pull/200).
+Implementation is pinned at [`64828fd`](https://github.com/cbetz/last-ehr/tree/64828fd7a2fbea24e4b0bc6ec92eb7d94f4c8f5e).
+The [new acceptance record](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/evidence/assistant-agent-2026-10-23.md)
+and [projected report](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/evidence/assistant-agent-2026-10-23.json) distinguish
+the actual model run from deterministic CI. The older manual variant and MCP
+0.4.0 recording pins below remain historical and unchanged.
+
+### Public post draft
+
+> Last's local Work Lab now uses a real assistant to prepare work: Claude
+> Sonnet 4.6 read an invented patient's selected result, drafted a follow-up
+> Task, and submitted it for separate review. Before approval, FHIR held zero
+> Tasks for that work item. After a separately credentialed test reviewer
+> approved it, an independent FHIR read found exactly one matching Task, and
+> the assistant page reported the verified result automatically.
+>
+> The test reviewer was automated; this does not establish human identity or
+> clinical correctness. Saving a Task records a request and does not contact
+> the patient. This is a synthetic-only local lab, with no Muse, Grok Bot, or
+> eve connection and no PHI permitted. Real model mode requires your own
+> supported provider API key.
+>
+> I'm looking for five developers to try the flow on their own machines:
+> ask for a draft, review the exact proposal in a separate human-owned
+> browser/profile, approve one and decline another, then check FHIR directly.
+> Node, Docker, and a model API key are required. Please report the first
+> setup blocker or unexpected persisted resource. [Setup guide](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/assistant-work.md)
+> · [acceptance evidence and limits](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/evidence/assistant-agent-2026-10-23.md).
+
 ## Assistant Work Lab follow-up (draft)
 
 **UNSENT — prepared October 23, 2026.** This follow-up concerns
