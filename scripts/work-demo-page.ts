@@ -7,18 +7,23 @@ export function workDemoPage(mode: "reviewer" | "assistant"): string {
 <header><a class="brand" href="/">Last <span>Work Lab</span></a><nav><a href="/">Review inbox</a><a href="/assistant">Assistant</a></nav></header>
 <p class="eyebrow">LOCAL · SYNTHETIC DATA ONLY</p>
 <h1>${mode === "reviewer" ? "Review proposed follow-up Tasks." : "Prepare a follow-up Task."}</h1>
-<p class="intro">${mode === "reviewer" ? "An assistant submits a draft. You review the exact Task before it is saved to FHIR." : "Use the lab’s synthetic patient and result to submit a draft. A separate reviewer decides whether it is saved."}</p>
-<p class="boundary">This lab uses separate test credentials, not clinical identity verification. It makes no model-provider request. Never enter real patient information.</p>
+<p class="intro">${mode === "reviewer" ? "An assistant submits a draft. You review the exact Task before it is saved to FHIR." : "Ask the assistant to read the invented chart and prepare work. A separate reviewer decides whether the Task is saved."}</p>
+<p class="boundary">Synthetic data only. Agent mode sends your request and the invented chart to the configured model provider. Use a separate, human-owned browser for review. These test credentials do not verify a clinical identity.</p>
 <section id="sign-in"><h2>${mode === "reviewer" ? "Reviewer sign-in" : "Assistant connection"}</h2>
 <form id="login-form"><label for="key">${mode === "reviewer" ? "Reviewer sign-in key" : "Assistant API key"}</label>
 <div class="row"><input id="key" type="password" required autocomplete="off" spellcheck="false"><button type="submit">${mode === "reviewer" ? "Open inbox" : "Connect"}</button></div>
 <p class="hint">Use the ${mode === "reviewer" ? "reviewer" : "assistant"} key printed by <code>npm run work:demo</code>.</p></form></section>
 <div id="workspace" hidden>
-${mode === "assistant" ? `<section><h2>Selected synthetic context</h2><p id="fixture"></p>
+${mode === "assistant" ? `<section><h2>Selected synthetic context</h2><p id="fixture"></p><p id="model-info" class="meta"></p></section>
+<div id="agent-workspace" hidden><section><h2>Ask the assistant</h2>
+<form id="agent-form"><label for="request">What should the assistant prepare?</label><textarea id="request" rows="3" maxlength="2000" required>Read the synthetic patient's HbA1c result and prepare a Task for the care team to review it by November 1, 2026. Include the result and its date. Do not contact the patient.</textarea><button type="submit">Ask assistant</button></form>
+<p class="hint">The assistant reads the selected chart, drafts one follow-up Task, and sends it for review. It cannot approve or save its own draft.</p><button id="refresh-runs" type="button" class="secondary">Refresh assistant status</button></section>
+<div id="runs" aria-live="polite"></div></div>
+<details id="manual-tools"><summary>Manual API test tools</summary><section><h2>Submit a Task directly</h2>
 <form id="proposal-form"><label for="description">Follow-up Task</label><textarea id="description" rows="3" maxlength="2000" required>Review the selected synthetic result with the care team.</textarea>
 <label for="due-date">Due date (optional)</label><input id="due-date" type="date">
 <button type="submit">Submit for review</button></form></section>
-<section><h2>Work status</h2><form id="lookup-form" class="row"><label for="job-id">Work ID</label><input id="job-id" required><button type="submit">Check status</button></form><div id="jobs"></div></section>` : `<div class="toolbar"><h2>Work inbox</h2><div class="row"><button id="refresh" type="button" class="secondary">Refresh</button><button id="recover" type="button" class="secondary">Reconcile interrupted saves</button><button id="sign-out" type="button" class="secondary">Sign out</button></div></div><div id="jobs"></div>`}
+<section><h2>Work status</h2><form id="lookup-form" class="row"><label for="job-id">Work ID</label><input id="job-id" required><button type="submit">Check status</button></form><div id="jobs"></div></section></details>` : `<div class="toolbar"><h2>Work inbox</h2><div class="row"><button id="refresh" type="button" class="secondary">Refresh</button><button id="recover" type="button" class="secondary">Reconcile interrupted saves</button><button id="sign-out" type="button" class="secondary">Sign out</button></div></div><div id="jobs"></div>`}
 </div><p id="message" role="status" aria-live="polite"></p>
 <footer>Saving a Task records a work request. It does not contact the patient or complete the follow-up.</footer>
 </main></body></html>`;
@@ -35,12 +40,13 @@ const mode = document.body.dataset.mode;
 const byId = (id) => document.getElementById(id);
 let assistantKey = "";
 let fixture;
+let agentSubmission;
 function message(text, error = false) { byId("message").textContent = text; byId("message").dataset.error = String(error); }
 async function api(path, options = {}) {
   const headers = { ...(options.body ? {"content-type":"application/json"} : {}), ...(mode === "assistant" ? {authorization:"Bearer " + assistantKey} : {}), ...options.headers };
   const response = await fetch(path, {...options, headers, credentials:"same-origin", cache:"no-store"});
   const data = await response.json();
-  if (response.status === 401 && mode === "reviewer" && path !== "/api/reviewer/session") { byId("workspace").hidden = true; byId("sign-in").hidden = false; byId("jobs").replaceChildren(); }
+  if (response.status === 401 && path !== "/api/reviewer/session") { byId("workspace").hidden = true; byId("sign-in").hidden = false; byId("jobs").replaceChildren(); }
   if (!response.ok) throw new Error(data.message || "The request could not be completed.");
   return data;
 }
@@ -50,7 +56,7 @@ async function perform(button, action) {
   finally { if (button) button.disabled = false; }
 }
 function el(tag, text, className) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node; }
-const states = {awaiting_review:"Pending review",committing:"Saving — outcome pending",succeeded:"Saved to FHIR",denied:"Declined — no write",cancelled:"Cancelled — no write",expired:"Expired — no write",failed:"Stopped — no write",needs_reconciliation:"Save outcome needs reconciliation"};
+const states = {generating:"Assistant is preparing work",interrupted:"Preparation interrupted",awaiting_review:"Pending review",committing:"Saving — outcome pending",succeeded:"Saved to FHIR",denied:"Declined — no write",cancelled:"Cancelled — no write",expired:"Expired — no write",failed:"Stopped — no write",needs_reconciliation:"Save outcome needs reconciliation"};
 function renderJob(job) {
   const card = el("article", undefined, "job"); card.dataset.jobId = job.id;
   const head = el("div", undefined, "job-head"); head.append(el("h3", "Follow-up Task"));
@@ -83,9 +89,31 @@ function renderJob(job) {
 }
 function showJobs(jobs) { const container = byId("jobs"); container.replaceChildren(); if (!jobs.length) container.append(el("p", "No work yet. Submit a draft from the Assistant page or API.", "meta")); for (const job of jobs) container.append(renderJob(job)); }
 async function loadInbox() { const data = await api("/api/reviewer/work"); showJobs(data.jobs); }
+let pollTimer;
+let polling = false;
+function showRuns(runs) {
+  const container = byId("runs"); container.replaceChildren();
+  for (const run of runs) {
+    const card = el("section"); card.dataset.runId = run.id;
+    const head = el("div", undefined, "job-head"); head.append(el("h2", "Assistant work")); const state = el("span", states[run.state] || run.state, "status"); state.dataset.state = run.state; head.append(state); card.append(head);
+    card.append(el("p", "Your request: " + run.prompt), el("p", "Model: " + run.modelLabel + " · Run: " + run.id, "meta"));
+    const progress = el("ol"); for (const event of run.events) progress.append(el("li", event.message)); card.append(progress);
+    card.append(el("p", run.message));
+    if (run.job) { card.append(renderJob(run.job)); if (run.job.state === "awaiting_review") card.append(el("p", "Review inbox URL — open in your separate human-owned browser/profile: " + location.origin + "/", "meta")); }
+    if (run.state === "generating") { const cancel = el("button", "Cancel preparation", "secondary"); cancel.addEventListener("click", () => perform(cancel, async () => { await api("/api/assistant/runs/" + run.id + "/cancel", {method:"POST"}); await loadRuns(); })); card.append(cancel); }
+    if (run.state === "needs_reconciliation") card.append(el("p", "A reviewer must reconcile this save from the inbox before its outcome can be reported."));
+    container.append(card);
+  }
+  byId("agent-form").querySelector("button").disabled = runs.some(run => run.state === "generating");
+  if (agentSubmission && runs.some(run => run.id === agentSubmission.id && ["failed","interrupted","cancelled","denied","expired","succeeded"].includes(run.state))) agentSubmission = undefined;
+  clearTimeout(pollTimer);
+  if (runs.some(run => ["generating","awaiting_review","committing","needs_reconciliation"].includes(run.state))) pollTimer = setTimeout(pollRuns, 1800);
+}
+async function loadRuns() { const data = await api("/api/assistant/runs"); showRuns(data.runs); }
+async function pollRuns() { if (polling) return; polling = true; try { await loadRuns(); } catch (error) { message("Status connection interrupted. Refresh assistant status or reconnect with the current key to recover your saved work.", true); } finally { polling = false; } }
 async function openWorkspace() {
   if (mode === "reviewer") await loadInbox();
-  else { const data = await api("/api/fixture"); fixture = data.fixture; byId("fixture").textContent = fixture.patientLabel + " · " + fixture.resultLabel; }
+  else { const data = await api("/api/fixture"); fixture = data.fixture; byId("fixture").textContent = fixture.patientLabel + " · " + fixture.resultLabel; byId("model-info").textContent = data.assistant.modelLabel; byId("agent-workspace").hidden = !data.assistant.enabled; byId("manual-tools").open = !data.assistant.enabled; if (data.assistant.enabled) await loadRuns(); else byId("model-info").textContent += ". Start with --agent to ask a real assistant."; }
   byId("workspace").hidden = false; byId("sign-in").hidden = true;
 }
 byId("login-form").addEventListener("submit", (event) => { event.preventDefault(); perform(event.submitter, async () => {
@@ -99,6 +127,14 @@ if (mode === "reviewer") {
   byId("sign-out").addEventListener("click", (event) => perform(event.currentTarget, async () => { await api("/api/reviewer/session", {method:"DELETE"}); byId("workspace").hidden = true; byId("sign-in").hidden = false; byId("jobs").replaceChildren(); }));
   openWorkspace().catch(() => {});
 } else {
+  byId("refresh-runs").addEventListener("click", (event) => perform(event.currentTarget, loadRuns));
+  byId("agent-form").addEventListener("submit", (event) => { event.preventDefault(); perform(event.submitter, async () => {
+    const body = JSON.stringify({prompt:byId("request").value});
+    if (!agentSubmission || agentSubmission.body !== body) agentSubmission = {body,key:crypto.randomUUID()};
+    const result = await api("/api/assistant/runs", {method:"POST",headers:{"idempotency-key":agentSubmission.key},body});
+    agentSubmission.id = result.run.id;
+    await loadRuns();
+  }); });
   let submission;
   byId("proposal-form").addEventListener("submit", (event) => { event.preventDefault(); perform(event.submitter, async () => {
     const input = {patientId:fixture.patientId,source:fixture.source,description:byId("description").value,...(byId("due-date").value ? {dueDate:byId("due-date").value} : {})};

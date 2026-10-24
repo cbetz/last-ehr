@@ -2,6 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage } from "node:http";
 
 import type { DurableWorkService, WorkActor } from "../lib/work/service";
+import type { AssistantWorkRuntime } from "../lib/work/assistant";
 import { workDemoCss, workDemoPage, workDemoScript } from "./work-demo-page";
 
 export const LAB_TENANT = "synthetic-work-lab";
@@ -53,6 +54,8 @@ export function createWorkLabServer(options: {
   fixture: WorkLabFixture;
   assistantKey: string;
   reviewerKey: string;
+  assistant?: AssistantWorkRuntime;
+  modelLabel?: string;
 }) {
   validateLabKeys(options.assistantKey, options.reviewerKey);
   // Fixed lab identity only. A real deployment needs an authenticated identity
@@ -116,7 +119,24 @@ export function createWorkLabServer(options: {
       }
       if (path === "/api/fixture" && req.method === "GET") {
         requireAssistant();
-        return send(200, { fixture: options.fixture });
+        return send(200, { fixture: options.fixture, assistant: { enabled: Boolean(options.assistant), modelLabel: options.modelLabel ?? "Manual API client — no model" } });
+      }
+      if (path === "/api/assistant/runs") {
+        requireAssistant();
+        if (!options.assistant) throw new HttpError(503, "agent_disabled", "Start the lab with --agent to enable a real assistant.");
+        if (req.method === "GET") return send(200, { runs: await options.assistant.list() });
+        if (req.method === "POST") {
+          const body = await jsonBody(req);
+          if (Object.keys(body).length !== 1 || !("prompt" in body)) throw new HttpError(400, "invalid_input", "Send only a synthetic work request in prompt.");
+          return send(202, { run: await options.assistant.start(body.prompt, req.headers["idempotency-key"]) });
+        }
+      }
+      const assistantRun = path.match(/^\/api\/assistant\/runs\/([a-zA-Z0-9-]+)(\/cancel)?$/);
+      if (assistantRun) {
+        requireAssistant();
+        if (!options.assistant) throw new HttpError(503, "agent_disabled", "Start the lab with --agent to enable a real assistant.");
+        if (req.method === "GET" && !assistantRun[2]) return send(200, { run: await options.assistant.get(assistantRun[1]) });
+        if (req.method === "POST" && assistantRun[2]) return send(200, { run: await options.assistant.cancel(assistantRun[1]) });
       }
       if (path === "/api/work" && req.method === "POST") {
         requireAssistant();

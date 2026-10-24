@@ -6,7 +6,9 @@ import { request as httpRequest } from "node:http";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DurableWorkService, type FollowUpTask, type WorkJob, type WorkTaskRecord } from "../lib/work/service";
-import { createWorkLabServer, LAB_REVIEWER, validateLabKeys } from "./work-demo-server";
+import { AssistantWorkRuntime } from "../lib/work/assistant";
+import { createWorkScriptedModel } from "../lib/work/assistant-scripted-model";
+import { createWorkLabServer, LAB_ASSISTANT, LAB_REVIEWER, validateLabKeys } from "./work-demo-server";
 
 const assistantKey = "assistant-test-credential-0000000000000000";
 const reviewerKey = "reviewer-test-credential-00000000000000000";
@@ -16,6 +18,7 @@ const input = { patientId: fixture.patientId, source: fixture.source, descriptio
 describe("synthetic work HTTP role boundary", () => {
   let directory: string;
   let service: DurableWorkService;
+  let assistant: AssistantWorkRuntime;
   let server: ReturnType<typeof createWorkLabServer>;
   let origin: string;
   let writes: number;
@@ -39,13 +42,14 @@ describe("synthetic work HTTP role boundary", () => {
         },
       },
     });
-    server = createWorkLabServer({ service, fixture, assistantKey, reviewerKey });
+    assistant = new AssistantWorkRuntime({ storePath: join(directory, "work.sqlite"), service, actor: LAB_ASSISTANT, model: createWorkScriptedModel(), modelLabel: "SCRIPTED TEST", readContext: async () => ({ patient: { reference: `Patient/${fixture.patientId}`, label: "Invented patient", dateOfBirth: "2000-01-01" }, observation: { ...fixture.source, label: "Synthetic HbA1c", value: 6.4, unit: "%", effectiveDateTime: "2026-01-01T12:00:00Z" } }) });
+    server = createWorkLabServer({ service, fixture, assistantKey, reviewerKey, assistant, modelLabel: "SCRIPTED TEST" });
     await new Promise<void>((accept) => server.listen(0, "127.0.0.1", accept));
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   afterEach(async () => {
     await new Promise<void>((accept, reject) => { server.close((error) => error ? reject(error) : accept()); server.closeAllConnections(); });
-    service.close();
+    await assistant.close(); service.close();
     rmSync(directory, { recursive: true, force: true });
   });
 
@@ -137,6 +141,29 @@ describe("synthetic work HTTP role boundary", () => {
     const script = await asset.text();
     expect(script).toContain("textContent");
     expect(script).not.toContain("innerHTML");
+  });
+
+  it("authenticates durable assistant runs and reports the verified decision through the same run", async () => {
+    expect((await fetch(`${origin}/api/assistant/runs`)).status).toBe(401);
+    const headers = { authorization: `Bearer ${assistantKey}`, "content-type": "application/json", "idempotency-key": "assistant-http" };
+    const body = JSON.stringify({ prompt: "Prepare a follow-up for the invented HbA1c." });
+    const response = await fetch(`${origin}/api/assistant/runs`, { method: "POST", headers, body });
+    expect(response.status).toBe(202);
+    const { run: started } = await response.json();
+    await expect.poll(async () => (await assistant.get(started.id)).state).toBe("awaiting_review");
+    const result = await (await fetch(`${origin}/api/assistant/runs/${started.id}`, { headers })).json();
+    expect(result.run.events.some((event: { type: string }) => event.type === "chart_read")).toBe(true);
+    expect(writes).toBe(0);
+    const duplicate = await (await fetch(`${origin}/api/assistant/runs`, { method: "POST", headers, body })).json();
+    expect(duplicate.run.id).toBe(started.id);
+    expect((await fetch(`${origin}/api/assistant/runs`, { method: "POST", headers, body: JSON.stringify({ prompt: "Other request", approve: true }) })).status).toBe(400);
+    const cookie = (await login()).headers.get("set-cookie")!.split(";")[0];
+    expect((await decision(result.run.job, cookie)).status).toBe(200);
+    const completed = await (await fetch(`${origin}/api/assistant/runs/${started.id}`, { headers })).json();
+    expect(completed.run.state).toBe("succeeded");
+    expect(completed.run.message).toContain("independently verified Task/task-1");
+    expect(writes).toBe(1);
+    expect((await (await fetch(`${origin}/api/assistant/runs`, { headers })).json()).runs).toHaveLength(1);
   });
 });
 

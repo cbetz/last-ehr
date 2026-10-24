@@ -115,6 +115,12 @@ jobs:
         run: npm run test:e2e
       - name: Run durable synthetic work browser e2e
         run: npm run test:work:e2e
+      - name: Upload synthetic work browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-work-lab
+          path: artifacts/work-lab/*.png
+          if-no-files-found: error
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: failure()

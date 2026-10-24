@@ -8,11 +8,12 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report/work" }]],
   use: { baseURL: "http://127.0.0.1:3301", trace: "retain-on-failure" },
   webServer: {
-    command: "npm run work:demo -- --port 3301 --store .lastehr/work-lab-e2e/work.sqlite",
+    command: "npm run work:demo -- --port 3301 --store .lastehr/work-lab-e2e/work.sqlite --scripted-agent",
     url: "http://127.0.0.1:3301/health",
     timeout: 30_000,
     reuseExistingServer: false,
     env: {
+      NODE_ENV: "test",
       LASTEHR_WORK_ASSISTANT_KEY: "assistant-browser-test-00000000000000000000",
       LASTEHR_WORK_REVIEWER_KEY: "reviewer-browser-test-000000000000000000000",
     },

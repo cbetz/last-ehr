@@ -1,4 +1,5 @@
 import { WORK_JOB_IDENTIFIER, type FollowUpTask, type WorkCommitter, type WorkTaskRecord } from "../lib/work/service";
+import type { WorkAssistantContext } from "../lib/work/assistant";
 
 export const WORK_DEMO_FHIR_URL = "http://127.0.0.1:8080/fhir";
 export const WORK_DEMO_TENANT_ID = "synthetic-work-lab";
@@ -142,6 +143,7 @@ function assertJobId(jobId: string): void {
 
 export type WorkDemoFhirAdapter = WorkCommitter & {
   getFixture(): Promise<WorkDemoFixture>;
+  readContext(): Promise<WorkAssistantContext>;
 };
 
 export function createWorkDemoFhirAdapter({
@@ -270,6 +272,29 @@ export function createWorkDemoFhirAdapter({
         source: { reference: `Observation/${result.id}`, versionId: (result.meta as JsonObject).versionId as string },
         patientLabel: "Alex Synthetic Worklab — invented patient",
         resultLabel: "Demonstration HbA1c: 6.4% — synthetic result dated January 1, 2026",
+      };
+    },
+    async readContext() {
+      // Project only the approved synthetic fields after fresh authoritative
+      // reads verify both resources. Marker search results alone are not chart
+      // context, and identifiers, metadata and arbitrary FHIR text stay local.
+      const { patient, result } = await readFixture();
+      const name = (patient.name as Array<{ given: string[]; family: string }>)[0];
+      const quantity = result.valueQuantity as { value: number; unit: string };
+      return {
+        patient: {
+          reference: `Patient/${patient.id}`,
+          label: [...name.given, name.family].join(" "),
+          dateOfBirth: patient.birthDate as string,
+        },
+        observation: {
+          reference: `Observation/${result.id}`,
+          versionId: (result.meta as JsonObject).versionId as string,
+          label: (result.code as { text: string }).text,
+          value: quantity.value,
+          unit: quantity.unit,
+          effectiveDateTime: result.effectiveDateTime as string,
+        },
       };
     },
     async validateContext({ tenantId, patientId, source }) {

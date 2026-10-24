@@ -14,11 +14,12 @@ test("assistant draft → separate browser review → independently verified FHI
     await assistant.goto(`${baseURL}/assistant`);
     await assistant.getByLabel("Assistant API key").fill(assistantKey);
     await assistant.getByRole("button", { name: "Connect", exact: true }).click();
+    await assistant.getByText("Manual API test tools", { exact: true }).click();
     const description = `Review the selected synthetic result with the care team. Evaluation ${crypto.randomUUID()}.`;
     await assistant.getByLabel("Follow-up Task", { exact: true }).fill(description);
     await assistant.getByLabel("Due date (optional)").fill("2026-11-01");
     await assistant.getByRole("button", { name: "Submit for review" }).click();
-    await expect(assistant.getByText("Pending review", { exact: true })).toBeVisible();
+    await expect(assistant.locator("#jobs").getByText("Pending review", { exact: true })).toBeVisible();
     const jobId = await assistant.getByLabel("Work ID", { exact: true }).inputValue();
     const auth = { authorization: `Bearer ${assistantKey}` };
     const job = (await (await request.get(`${baseURL}/api/work/${jobId}`, { headers: auth })).json()).job;
@@ -43,7 +44,7 @@ test("assistant draft → separate browser review → independently verified FHI
     expect(resource.focus).toEqual(job.proposal.focus);
     expect(resource.restriction.period.end).toBe("2026-11-01");
     await assistant.getByRole("button", { name: "Check status" }).click();
-    await expect(assistant.getByText("Saved to FHIR", { exact: true })).toBeVisible();
+    await expect(assistant.locator("#jobs").getByText("Saved to FHIR", { exact: true })).toBeVisible();
     await card.screenshot({ path: "artifacts/work-lab/approved-task.png" });
     await reviewer.setViewportSize({ width: 390, height: 844 });
     expect(await reviewer.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);

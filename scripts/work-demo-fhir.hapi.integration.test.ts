@@ -40,6 +40,38 @@ async function independentTaskRead(jobId: string) {
 }
 
 describe.skipIf(!runHapiE2E)("synthetic work adapter against local HAPI", () => {
+  it("reads bounded assistant context matching independent authoritative FHIR reads", async () => {
+    const adapter = createWorkDemoFhirAdapter();
+    const fixture = await adapter.getFixture();
+    const context = await adapter.readContext();
+    const read = async (reference: string) => {
+      const response = await fetch(`${WORK_DEMO_FHIR_URL}/${reference}`, {
+        headers: { Accept: "application/fhir+json" },
+        credentials: "omit", redirect: "error", signal: AbortSignal.timeout(5_000),
+      });
+      expect(response.ok).toBe(true);
+      return await response.json();
+    };
+    const [patient, observation] = await Promise.all([
+      read(`Patient/${fixture.patientId}`), read(fixture.source.reference),
+    ]);
+    expect(context).toEqual({
+      patient: {
+        reference: `Patient/${patient.id}`,
+        label: [...patient.name[0].given, patient.name[0].family].join(" "),
+        dateOfBirth: patient.birthDate,
+      },
+      observation: {
+        reference: `Observation/${observation.id}`,
+        versionId: observation.meta.versionId,
+        label: observation.code.text,
+        value: observation.valueQuantity.value,
+        unit: observation.valueQuantity.unit,
+        effectiveDateTime: observation.effectiveDateTime,
+      },
+    });
+  }, 30_000);
+
   it("seeds an exact invented context and conditionally creates one verified Task across repeated requests", async () => {
     const adapter = createWorkDemoFhirAdapter();
     const fixture = await adapter.getFixture();

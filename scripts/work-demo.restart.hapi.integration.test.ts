@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import type { AssistantRun } from "../lib/work/assistant";
 import type { WorkJob } from "../lib/work/service";
 import type { WorkDemoFixture } from "./work-demo-fhir";
 
@@ -49,8 +50,8 @@ async function stopChild(child: ChildProcess | undefined): Promise<void> {
   if (!await waitForExit(child, 3_000)) throw new Error("The local work lab test process did not stop.");
 }
 
-async function startChild(port: number, storePath: string): Promise<ChildProcess> {
-  const child = spawn(process.execPath, ["--import", loader, cli, "--port", String(port), "--store", storePath], {
+async function startChild(port: number, storePath: string, scriptedAgent = false): Promise<ChildProcess> {
+  const child = spawn(process.execPath, ["--import", loader, cli, "--port", String(port), "--store", storePath, ...(scriptedAgent ? ["--scripted-agent"] : [])], {
     cwd: repositoryRoot,
     // No application environment, model keys, FHIR credentials or .env path is inherited.
     env: { NODE_ENV: "test", LASTEHR_WORK_ASSISTANT_KEY: assistantKey, LASTEHR_WORK_REVIEWER_KEY: reviewerKey },
@@ -154,6 +155,105 @@ describe.skipIf(!runHapiE2E)("actual work lab CLI restart against synthetic HAPI
       const { job: recovered } = await receiptResponse.json() as { job: WorkJob };
       expect(recovered).toEqual(completed);
       expect(recovered.receipt).toEqual(completed.receipt);
+      expect(await taskRead(job.id)).toMatchObject({ total: 1 });
+    } finally {
+      await stopChild(child);
+      await rm(directory, { recursive: true, force: true });
+    }
+  }, 90_000);
+
+  it("retains a model-generated assistant run, exact reviewed proposal, and verified receipt across three CLI processes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "lastehr-assistant-restart-"));
+    await chmod(directory, 0o700);
+    const storePath = join(directory, "work.sqlite");
+    const port = await freePort();
+    const origin = `http://127.0.0.1:${port}`;
+    const assistantHeaders = { authorization: `Bearer ${assistantKey}` };
+    const submissionKey = randomUUID();
+    const prompt = "Read the selected synthetic chart and prepare a follow-up Task for the HbA1c result, due 2026-11-01.";
+    let child: ChildProcess | undefined;
+    const request = (path: string, init: RequestInit = {}) => fetch(`${origin}${path}`, {
+      ...init, redirect: "error", credentials: "omit", signal: AbortSignal.timeout(10_000),
+    });
+    const readRun = async (id: string): Promise<AssistantRun> => {
+      const response = await request(`/api/assistant/runs/${id}`, { headers: assistantHeaders });
+      expect(response.status).toBe(200);
+      return (await response.json() as { run: AssistantRun }).run;
+    };
+    try {
+      // The explicit test-only model exercises the real tool loop and HAPI
+      // adapter, without inheriting or using any external model credential.
+      child = await startChild(port, storePath, true);
+      const submitted = await request("/api/assistant/runs", {
+        method: "POST", headers: { ...assistantHeaders, "content-type": "application/json", "idempotency-key": submissionKey },
+        body: JSON.stringify({ prompt }),
+      });
+      expect(submitted.status).toBe(202);
+      const { run: initial } = await submitted.json() as { run: AssistantRun };
+      expect(initial.state).toBe("generating");
+      let pending = initial;
+      const generationDeadline = Date.now() + 15_000;
+      while (pending.state === "generating" && Date.now() < generationDeadline) {
+        await new Promise((accept) => setTimeout(accept, 50));
+        pending = await readRun(initial.id);
+      }
+      expect(pending.state).toBe("awaiting_review");
+      expect(pending.prompt).toBe(prompt);
+      expect(pending.modelLabel).toBe("SCRIPTED TEST — no model provider");
+      expect(pending.events.map((event) => event.type)).toEqual(["started", "chart_read", "drafted", "awaiting_review"]);
+      expect(pending.job?.input.description).toContain("6.4%");
+      const job = pending.job!;
+      expect(job.input.source.reference).toMatch(/^Observation\//);
+      expect(job.proposal.input[0].valueString).toBe(`${job.input.source.reference}/_history/${job.input.source.versionId}`);
+      expect(await taskRead(job.id)).toMatchObject({ total: 0 });
+
+      await stopChild(child);
+      child = await startChild(port, storePath, true);
+      const recoveredPending = await readRun(initial.id);
+      expect(recoveredPending).toEqual(pending);
+      expect(recoveredPending.job?.proposalHash).toBe(job.proposalHash);
+      const replay = await request("/api/assistant/runs", {
+        method: "POST", headers: { ...assistantHeaders, "content-type": "application/json", "idempotency-key": submissionKey },
+        body: JSON.stringify({ prompt }),
+      });
+      expect(replay.status).toBe(202);
+      expect((await replay.json() as { run: AssistantRun }).run.id).toBe(initial.id);
+      const runList = await request("/api/assistant/runs", { headers: assistantHeaders });
+      expect(runList.status).toBe(200);
+      expect((await runList.json() as { runs: AssistantRun[] }).runs.map((run) => run.id)).toEqual([initial.id]);
+      expect(await taskRead(job.id)).toMatchObject({ total: 0 });
+
+      const login = await request("/api/reviewer/session", {
+        method: "POST", headers: { origin, "content-type": "application/json" }, body: JSON.stringify({ key: reviewerKey }),
+      });
+      expect(login.status).toBe(200);
+      const cookie = login.headers.get("set-cookie")?.split(";")[0];
+      expect(cookie).toBeTruthy();
+      const decision = await request(`/api/reviewer/work/${job.id}/decision`, {
+        method: "POST", headers: { origin, cookie: cookie!, "content-type": "application/json" },
+        body: JSON.stringify({ decision: "approve", proposalHash: recoveredPending.job!.proposalHash }),
+      });
+      expect(decision.status).toBe(200);
+      const { job: completedJob } = await decision.json() as { job: WorkJob };
+      expect(completedJob.state).toBe("succeeded");
+      expect(completedJob.decision?.subject).toBe("reviewer-lab");
+      const completed = await readRun(initial.id);
+      expect(completed.state).toBe("succeeded");
+      expect(completed.job).toEqual(completedJob);
+      expect(completed.message).toContain(`independently verified Task/${completedJob.receipt!.id}`);
+      expect(completed.message).toContain("does not mean the patient has been contacted");
+      const persisted = await taskRead(job.id);
+      expect(persisted.total).toBe(1);
+      const { id, meta, ...reviewed } = persisted.entry![0].resource;
+      expect(reviewed).toEqual(job.proposal);
+      expect(id).toBe(completedJob.receipt!.id);
+      expect(meta).toMatchObject({ versionId: completedJob.receipt!.versionId });
+
+      await stopChild(child);
+      child = await startChild(port, storePath, true);
+      const recoveredCompleted = await readRun(initial.id);
+      expect(recoveredCompleted).toEqual(completed);
+      expect(recoveredCompleted.job?.receipt).toEqual(completedJob.receipt);
       expect(await taskRead(job.id)).toMatchObject({ total: 1 });
     } finally {
       await stopChild(child);

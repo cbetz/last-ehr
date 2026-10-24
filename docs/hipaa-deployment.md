@@ -17,9 +17,12 @@ does not authorize an otherwise inappropriate disclosure to that service.
 
 The web agent has no separate chart database. That does not mean it avoids
 patient-data processing. Durable proposals add storage: the opt-in
-[Assistant Work Lab](./assistant-work.md) keeps synthetic work and review
-records in local SQLite. Any future clinical work service must qualify that
-store, its access controls, retention, and backups explicitly.
+[Assistant Work Lab](./assistant-work.md) keeps synthetic requests, assistant
+run progress, work proposals, decisions, and receipts in local SQLite. Its
+opt-in real agent sends the request and bounded invented chart context to the
+configured model provider. Its default manual mode and explicit scripted test
+mode make no provider request. Any future clinical work service must qualify
+each store, its access controls, retention, and backups explicitly.
 
 ## Determine the operator's role
 
@@ -46,12 +49,12 @@ including free text, resource references, derived summaries, and recordings.
 | --- | --- | --- |
 | Browser and review UI | Current web chat; separate local Work Lab UI | Chat, chart results, and proposals appear in browser memory. Review browser extensions, shared workstations, screenshots, caches, session expiry, and identity. |
 | FHIR backend | Medplum authenticated path; local HAPI and other evaluation adapters | Source chart and committed resources remain here. Backend access policies govern authenticated FHIR calls. Local HAPI has no clinical authentication. |
-| Last web process | Next.js chat and FHIR tools | Handles prompts, tokens, chart context, draft payloads, and results. Qualify runtime administrators, network paths, secrets, and request logging. |
-| Model API | Configured provider in the model-backed web agent | Receives prompt and tool results. Qualify exact model, endpoint, account, retention, abuse monitoring, region, and contractual coverage. Scripted walkthroughs do not call a model. |
+| Last process | Next.js chat and FHIR tools; separate opt-in local Work Lab HTTP server and assistant runner | Handles prompts, tokens, chart context, draft payloads, and results. Qualify runtime administrators, network paths, secrets, and request logging. The lab exposes no model tool for a reviewer decision. |
+| Model API | Configured direct provider in the model-backed web agent and opt-in Work Lab agent | Receives prompt and tool results before write approval. The Work Lab sends only its allowed invented patient/result projection plus the user's synthetic request; keys, reviewer sessions, and decision endpoints are not model context. Qualify exact model, endpoint, account, retention, abuse monitoring, region, and contractual coverage. Manual lab mode and explicitly scripted walkthroughs do not call a model. |
 | Remote MCP server | Optional OAuth transport | Exchanges the caller's token and handles chart results. Host support for elicitation does not authenticate the human reviewer. Review the separate [remote MCP evidence and limits](./remote-mcp.md). |
 | Assistant host | Muse/Grok Bot integrations proposed, not proven here | Could retain chat, tool results, memories, files, computer state, and logs. A connector transfers data to that host even if Last stores no transcript. |
-| Durable work store | Implemented only in the opt-in synthetic Work Lab | Local SQLite holds proposals, proposal hashes, role identifiers, decisions, states, and commit receipts. The default location is `.lastehr/work-lab/work.sqlite`; include SQLite sidecar files and disk backups in cleanup. Owner-only file permissions are not encryption or clinical identity. |
-| Agent execution | eve reference worker proposed; not installed for this lab | A future executor can retain checkpoints, tool results, traces, sandbox files, and subagent context. Inventory each store and every provider it calls before enabling it. |
+| Durable work store | Implemented only in the opt-in synthetic Work Lab | Local SQLite holds requests, assistant run progress, proposals, proposal hashes, role identifiers, decisions, states, and commit receipts. The default `.lastehr/work-lab/work.sqlite` contains both work and assistant-run tables; include SQLite sidecar files and disk backups in retention and cleanup. Owner-only file permissions are not encryption or clinical identity. |
+| Agent execution | Existing AI SDK stack in the local Work Lab; eve reference worker remains proposed | The local runner calls the configured direct model and bounded read/proposal tools. A future executor may also retain checkpoints, traces, sandbox files, and subagent context. Inventory each store and every provider it calls before enabling it. |
 | Audit and provenance | Existing optional FHIR audit/provenance; local lab state/receipts | Current audit features are not a complete authenticated clinical audit trail. Determine record contents, access, integrity, retention, and failure behavior. A receipt proves a bounded outcome, not clinical correctness. |
 | Logs, analytics, and monitoring | Server errors; optional demo analytics | Error summaries can retain error-message content. Bounded analytics events are not evidence that all platform logging is PHI-free. Inspect actual log samples and disable unqualified tracking on clinical surfaces. See [metrics](./metrics.md). |
 | Infrastructure and support | Operator-selected hosting, proxy, database, backups, and support access | Review TLS termination, request inspection, storage snapshots, disaster recovery, support tickets, incident tools, CI artifacts, and deletion. Do not put PHI in builds, demos, issues, or public repositories. |

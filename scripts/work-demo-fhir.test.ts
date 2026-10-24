@@ -137,6 +137,63 @@ describe("synthetic work FHIR adapter boundary", () => {
     await expect(adapter.validateContext(context)).rejects.toMatchObject({ code: "FHIR_FIXTURE_MISMATCH" });
   });
 
+  it("projects only approved model context from fresh authoritative fixture reads", async () => {
+    const hapi = fakeHapi();
+    const seed = createWorkDemoFhirAdapter({ fetch: hapi.fetcher });
+    const fixture = await seed.getFixture();
+    hapi.resources[0].meta = { versionId: "1", security: [{ code: "PRIVATE METADATA" }] };
+    hapi.resources[1].meta = { versionId: "2", source: "PRIVATE METADATA" };
+    const adapter = createWorkDemoFhirAdapter({ fetch: async (input, init) => {
+      const response = await hapi.fetcher(input, init);
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/Observation") && url.search) {
+        const bundle = await response.json();
+        for (const entry of bundle.entry) entry.resource.meta.versionId = "1";
+        return new Response(JSON.stringify(bundle));
+      }
+      return response;
+    } });
+    const before = hapi.calls.length;
+    expect(await adapter.readContext()).toEqual({
+      patient: {
+        reference: `Patient/${fixture.patientId}`,
+        label: "Alex Synthetic Worklab",
+        dateOfBirth: "2000-01-01",
+      },
+      observation: {
+        reference: fixture.source.reference,
+        versionId: "2",
+        label: "Demonstration HbA1c result (synthetic)",
+        value: 6.4,
+        unit: "%",
+        effectiveDateTime: "2026-01-01T12:00:00Z",
+      },
+    });
+    expect(hapi.calls.slice(before).map(({ url }) => url.pathname)).toEqual([
+      "/fhir/Patient", `/fhir/Patient/${fixture.patientId}`,
+      "/fhir/Observation", `/fhir/${fixture.source.reference}`,
+    ]);
+    expect(hapi.calls.slice(before).every(({ init }) => !init.method)).toBe(true);
+  });
+
+  it.each(["Patient", "Observation"])("rejects %s drift on direct read before disclosing model context", async (type) => {
+    const hapi = fakeHapi();
+    await createWorkDemoFhirAdapter({ fetch: hapi.fetcher }).getFixture();
+    const adapter = createWorkDemoFhirAdapter({ fetch: async (input, init) => {
+      const response = await hapi.fetcher(input, init);
+      const url = new URL(String(input));
+      if (!url.search && url.pathname.startsWith(`/fhir/${type}/`)) {
+        const resource = await response.json();
+        if (type === "Patient") resource.birthDate = "1985-01-01";
+        else resource.valueQuantity.value = 99;
+        return new Response(JSON.stringify(resource));
+      }
+      return response;
+    } });
+    await expect(adapter.readContext()).rejects.toMatchObject({ code: "FHIR_FIXTURE_MISMATCH" });
+    expect(hapi.calls.filter(({ init }) => init.method === "POST")).toHaveLength(2);
+  });
+
   it("uses a fresh direct read when the search index still reports the pinned version", async () => {
     const hapi = fakeHapi();
     const initial = createWorkDemoFhirAdapter({ fetch: hapi.fetcher });
