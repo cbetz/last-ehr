@@ -38,6 +38,8 @@ export type HostedWorkMcpOptions = {
 };
 
 const defaults: HostedWorkMcpLimits = { maxSessions: 64, maxSessionsPerPrincipal: 4, idleTimeoutMs: 15 * 60_000, maxSessionLifetimeMs: 60 * 60_000, maxBodyBytes: 16 * 1024, bodyTimeoutMs: 10_000, authTimeoutMs: 10_000 };
+const maxMessageElements = 256;
+const maxMessageDepth = 16;
 const sessionNotFound = '{"jsonrpc":"2.0","error":{"code":-32001,"message":"Session not found"},"id":null}';
 const identityPart = /^[A-Za-z0-9._:@/-]{1,160}$/;
 const safeText = z.string().trim().min(1).max(2000).refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value));
@@ -91,6 +93,24 @@ function bounded<T>(promise: Promise<T>, milliseconds: number): Promise<T> {
   });
 }
 
+/** Bound validation work before any SDK/Zod schema traverses caller data. */
+function boundedMessage(value: unknown): boolean {
+  const stack = [{ value, depth: 0 }];
+  let elements = 0;
+  while (stack.length) {
+    const node = stack.pop()!;
+    if (node.value === null || typeof node.value !== "object") continue;
+    if (node.depth > maxMessageDepth) return false;
+    for (const key in node.value) {
+      if (!Object.prototype.hasOwnProperty.call(node.value, key)) continue;
+      if (++elements > maxMessageElements) return false;
+      const child: unknown = (node.value as Record<string, unknown>)[key];
+      if (child !== null && typeof child === "object") stack.push({ value: child, depth: node.depth + 1 });
+    }
+  }
+  return true;
+}
+
 function readBody(req: IncomingMessage, limits: HostedWorkMcpLimits): Promise<{ status: number; body?: unknown }> {
   const declared = req.headers["content-length"];
   if (declared !== undefined && (!/^\d+$/.test(declared) || Number(declared) > limits.maxBodyBytes)) return Promise.resolve({ status: 413 });
@@ -111,7 +131,9 @@ function readBody(req: IncomingMessage, limits: HostedWorkMcpLimits): Promise<{ 
     const onEnd = () => {
       try {
         const body = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks)));
-        if (Array.isArray(body) || !JSONRPCMessageSchema.safeParse(body).success) { finish(400); return; }
+        if (Array.isArray(body)) { finish(400); return; }
+        if (!boundedMessage(body)) { finish(413); return; }
+        if (!JSONRPCMessageSchema.safeParse(body).success) { finish(400); return; }
         finish(200, body);
       } catch { finish(400); }
     };
