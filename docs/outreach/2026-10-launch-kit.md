@@ -4,6 +4,53 @@ Prepared October 22, 2026; recording added October 23. These are drafts for Chri
 
 The first objective is five developer evaluations of one working release. Lead with bounded chart reads, explicit review of each proposed write, and independent checks of what persisted. Other projects already offer FHIR MCP access and review interfaces; do not claim to be the first.
 
+## External assistant Work MCP follow-up (draft)
+
+**UNSENT — prepared October 23, 2026, America/New_York.** This variant covers
+the checkout-only connector at [`9f493ac`](https://github.com/cbetz/last-ehr/tree/9f493acf186825e42bb829975f369b93468f610a), with the
+[pinned acceptance record](https://github.com/cbetz/last-ehr/blob/90aac31312533f02bb6d6bd6e47e518179f3993b/docs/evidence/work-mcp-2026-10-23.md). The older variants below retain
+their original source and package pins.
+
+### Public post draft
+
+> An assistant should be able to submit work, disconnect, and check what
+> actually happened later.
+>
+> Last now has a local Work MCP connector for that loop. In our acceptance
+> test, a real Claude Code client read an invented result, proposed a
+> follow-up Task, and exited. Last held the draft for separate review.
+> After an automated test reviewer approved it in Last's browser inbox,
+> a fresh Claude Code process retrieved the same Work ID and verified Task
+> receipt. A direct FHIR query found exactly one matching Task.
+>
+> Here's the [60-second edited evidence walkthrough](https://github.com/cbetz/last-ehr/blob/90aac31312533f02bb6d6bd6e47e518179f3993b/public/demo/work-mcp-walkthrough.mp4)
+> and the [setup guide](https://github.com/cbetz/last-ehr/blob/90aac31312533f02bb6d6bd6e47e518179f3993b/docs/work-mcp.md). The walkthrough labels synthetic data
+> and automated review. This is a local experiment with ordinary MCP tools;
+> Muse, Grok Bot, eve, production identity, and clinical deployment remain
+> untested. No PHI is permitted, and saving a Task does not contact a patient.
+>
+> I'm looking for five developers to try it: submit a draft, close the
+> assistant, review the exact proposal in a separate human-owned browser,
+> and reconnect to check the result. Please report the first setup blocker
+> or unexpected saved resource. Node, Docker, installed Claude Code, and
+> your own direct Anthropic API key are required; each bounded client run
+> has a $1 API budget cap.
+
+### Evaluator task
+
+Ask interested developers to use the same pinned guide. Run one approved
+proposal, then a separate declined proposal; retain each Work ID. The
+approved item must return one exact matching Task and receipt after client
+reconnection. The declined item must return its denial and no matching Task.
+Record cold download time separately from active setup, and record any
+coaching. The committed automated acceptance is evidence about one native
+client configuration, not a substitute for these independent evaluations.
+
+The 60-second clip can accompany a contextual Medplum introduction or an
+Agents on FHIR proposal using the routes below when Chris chooses to submit
+them. No community post, organizer message, or evaluator invitation has been
+sent.
+
 ## Real assistant Work Lab follow-up (draft)
 
 **UNSENT — prepared October 23, 2026, America/New_York.** This is a new variant
