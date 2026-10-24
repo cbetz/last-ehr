@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage } from "node:http";
 
 import type { DurableWorkService, WorkActor } from "../lib/work/service";
 import type { AssistantWorkRuntime } from "../lib/work/assistant";
+import { workContextSchema, type WorkAssistantContext } from "../lib/work/context";
 import { workDemoCss, workDemoPage, workDemoScript } from "./work-demo-page";
 
 export const LAB_TENANT = "synthetic-work-lab";
@@ -56,6 +57,7 @@ export function createWorkLabServer(options: {
   reviewerKey: string;
   assistant?: AssistantWorkRuntime;
   modelLabel?: string;
+  readContext?: () => Promise<WorkAssistantContext>;
 }) {
   validateLabKeys(options.assistantKey, options.reviewerKey);
   // Fixed lab identity only. A real deployment needs an authenticated identity
@@ -120,6 +122,15 @@ export function createWorkLabServer(options: {
       if (path === "/api/fixture" && req.method === "GET") {
         requireAssistant();
         return send(200, { fixture: options.fixture, assistant: { enabled: Boolean(options.assistant), modelLabel: options.modelLabel ?? "Manual API client — no model" } });
+      }
+      if (path === "/api/work/context" && req.method === "GET") {
+        requireAssistant();
+        if (!options.readContext) throw new HttpError(503, "context_disabled", "The bounded synthetic chart reader is unavailable.");
+        const parsed = workContextSchema.safeParse(await options.readContext());
+        if (!parsed.success || parsed.data.patient.reference !== `Patient/${options.fixture.patientId}` || parsed.data.observation.reference !== options.fixture.source.reference || parsed.data.observation.versionId !== options.fixture.source.versionId) {
+          throw new HttpError(503, "context_unavailable", "The bounded synthetic chart could not be verified.");
+        }
+        return send(200, { context: parsed.data });
       }
       if (path === "/api/assistant/runs") {
         requireAssistant();

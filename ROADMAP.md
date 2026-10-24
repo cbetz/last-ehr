@@ -98,6 +98,29 @@ commit; they never bypass approval. Near-term work:
 - Extend policy configuration by resource type, project, environment,
   or SMART scope while retaining explicit approval for every write.
 
+The checkout-only [Assistant Work Lab](./docs/assistant-work.md) adds a
+different approval lifecycle: a model drafts a synthetic Task, Last persists
+the proposal, a separate reviewer decides, and an independent FHIR read
+establishes the result. Its [Work MCP connector](./docs/work-mcp.md) lets an
+external assistant read that bounded fixture, submit work, disconnect, and
+return with a Work ID. These are ordinary MCP tools over Last's durable
+state, not an implementation of the MCP Tasks extension. This lab remains
+local and synthetic-only. A real Claude Code client has read and proposed,
+exited before a separate test-reviewer browser approved, and returned in a
+fresh process for the verified FHIR receipt; the
+[acceptance record](./docs/evidence/work-mcp-2026-10-23.md) distinguishes that
+native-client run from deterministic automated checks.
+
+Next for this path:
+
+- Verify additional external clients individually and publish reproducible
+  synthetic setup and outcome evidence.
+- Recruit five evaluators and measure setup completion and the first approved
+  Task; use their failures to prioritize the hosted pilot.
+- Add authenticated reviewer identities, scoped Medplum access, and the
+  operating controls needed for a hosted pilot before considering clinical
+  data or broader work types.
+
 ### 5. More useful clinical tools
 
 The agent is narrow by default, not by ceiling: a deployment should have to opt

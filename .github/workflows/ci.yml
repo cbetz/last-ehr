@@ -107,6 +107,7 @@ jobs:
           npm test --
           scripts/work-demo-fhir.hapi.integration.test.ts
           scripts/work-demo.restart.hapi.integration.test.ts
+          scripts/work-mcp.hapi.integration.test.ts
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
       - name: Run browser approval-flow e2e

@@ -1,0 +1,18 @@
+{
+  "workId": "0eb67b52-99c7-482b-a365-755896c92e7b",
+  "proposalHash": "74b57107759419250a7f2bf6596274ab11fcd77dba4c480d8fc76a3a98e24c26",
+  "beforeApproval": {
+    "matchingTaskCount": 0,
+    "observation": "Independent GET assertion passed before CUA reviewer approval; exact snapshot timestamp was not retained."
+  },
+  "afterApproval": {
+    "verifiedAt": "2026-10-24T01:12:42.405Z",
+    "query": "GET /fhir/Task?identifier=https%3A%2F%2Flastehr.com%2Fwork-lab%2Fjob%7C0eb67b52-99c7-482b-a365-755896c92e7b&_count=2&_total=accurate",
+    "matchingTaskCount": 1,
+    "resourceType": "Task",
+    "id": "1034",
+    "versionId": "1",
+    "exactApprovedFieldsMatch": true
+  },
+  "scope": "Invented fixtures only. Browser review was automated by the test operator, not evidence of actual clinical human identity."
+}

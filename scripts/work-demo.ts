@@ -57,7 +57,7 @@ When omitted, new keys are generated and printed locally at startup.`);
   const fixture = await committer.getFixture();
   const service = new DurableWorkService({ storePath: resolve(values.store!), reviewer: LAB_REVIEWER, committer });
   const assistant = modelConfig ? new AssistantWorkRuntime({ storePath: resolve(values.store!), service, actor: LAB_ASSISTANT, readContext: () => committer.readContext(), ...modelConfig }) : undefined;
-  const server = createWorkLabServer({ service, fixture, assistantKey, reviewerKey, assistant, modelLabel: modelConfig?.modelLabel });
+  const server = createWorkLabServer({ service, fixture, assistantKey, reviewerKey, assistant, modelLabel: modelConfig?.modelLabel, readContext: () => committer.readContext() });
   try {
     await service.recover();
     await new Promise<void>((accept, reject) => {

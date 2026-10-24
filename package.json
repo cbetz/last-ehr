@@ -28,6 +28,8 @@
     "mcp:remote:verify": "tsx scripts/remote-mcp-eval.ts",
     "mcp:demo": "tsx scripts/mcp-demo.ts",
     "work:demo": "tsx scripts/work-demo.ts",
+    "work:mcp": "tsx scripts/work-mcp.ts",
+    "work:claude": "tsx scripts/work-mcp-claude.ts",
     "eval": "tsx scripts/eval.ts",
     "eval:hapi": "tsx scripts/eval.ts --no-prepare",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",

@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "width": 1920,
+  "height": 1080,
+  "fps": 5,
+  "durationSeconds": 60,
+  "frames": 300,
+  "type": "recorded-evidence-walkthrough",
+  "syntheticOnly": true,
+  "edited": true,
+  "continuousScreenRecording": false,
+  "nativeClient": "Claude Code",
+  "realProviderCall": true,
+  "reviewer": "automated test reviewer",
+  "noPatientContact": true,
+  "workId": "0eb67b52-99c7-482b-a365-755896c92e7b",
+  "proposalHash": "74b57107759419250a7f2bf6596274ab11fcd77dba4c480d8fc76a3a98e24c26",
+  "receipt": {
+    "resourceType": "Task",
+    "id": "1034",
+    "versionId": "1",
+    "verifiedAt": "2026-10-24T01:08:14.695Z"
+  },
+  "screenshot": {
+    "format": "jpeg",
+    "width": 955,
+    "height": 920
+  },
+  "independentPersistenceCheck": {
+    "workId": "0eb67b52-99c7-482b-a365-755896c92e7b",
+    "proposalHash": "74b57107759419250a7f2bf6596274ab11fcd77dba4c480d8fc76a3a98e24c26",
+    "beforeApproval": {
+      "matchingTaskCount": 0,
+      "observation": "Independent GET assertion passed before CUA reviewer approval; exact snapshot timestamp was not retained."
+    },
+    "afterApproval": {
+      "verifiedAt": "2026-10-24T01:12:42.405Z",
+      "query": "GET /fhir/Task?identifier=https%3A%2F%2Flastehr.com%2Fwork-lab%2Fjob%7C0eb67b52-99c7-482b-a365-755896c92e7b&_count=2&_total=accurate",
+      "matchingTaskCount": 1,
+      "resourceType": "Task",
+      "id": "1034",
+      "versionId": "1",
+      "exactApprovedFieldsMatch": true
+    },
+    "scope": "Invented fixtures only. Browser review was automated by the test operator, not evidence of actual clinical human identity."
+  },
+  "inputs": [
+    {
+      "file": "artifacts/work-lab/claude-code-proposal.json",
+      "bytes": 2537,
+      "sha256": "b1f1e065275daca543dd6f26a92d9c90a740abe6621cbae57ff83802b4a8bc59"
+    },
+    {
+      "file": "artifacts/work-lab/claude-code-result.json",
+      "bytes": 2899,
+      "sha256": "b5697ebe701d28babeaa51ab25d8e9fe22947f06f93c6c6881574c364be6c6a9"
+    },
+    {
+      "file": "artifacts/work-lab/claude-code-fhir-proof.json",
+      "bytes": 814,
+      "sha256": "3435dd5938ac5749a0cf5690a89e0dc911441665c0fe3a1083c5a39a32ca76c3"
+    },
+    {
+      "file": "artifacts/work-lab/claude-code-reviewed.png",
+      "bytes": 92737,
+      "sha256": "d4bd306c014d995981e496d9eb0cc7ea27bf269060b52335f41ddc2c97f02b45"
+    }
+  ],
+  "verificationScope": "Renderer validates and hashes recorded reports, proof, and screenshot. It does not query FHIR or rerun the assistant. The before-approval proof explicitly lacks its original snapshot timestamp.",
+  "sources": [
+    {
+      "file": "tools/demo-video/work-mcp-entry.jsx",
+      "sha256": "902468569199e86c27e9e80b592784128770fe12d3867265a8debd71f71dc268"
+    },
+    {
+      "file": "tools/demo-video/work-mcp-composition.jsx",
+      "sha256": "3a68ecd18dcf5488218512934b04d6ecd06c8673b8c738dfc4348d91139df350"
+    },
+    {
+      "file": "tools/demo-video/render-work-mcp.mjs",
+      "sha256": "fef8318f89a34ad1942c6772efb34737b4da07622ef6b02cb01f17222f36e6bd"
+    }
+  ],
+  "outputs": [
+    {
+      "file": "work-mcp-walkthrough.mp4",
+      "bytes": 1803752,
+      "sha256": "3804cf75239b8d62a5f324237238602da8b20bb633374cfb7423afcc71fa884b"
+    },
+    {
+      "file": "work-mcp-poster.png",
+      "bytes": 275649,
+      "sha256": "e1f9c67b6c651da2be0d613475983e6359e05586bf7fd90597b257b09af64a10"
+    },
+    {
+      "file": "work-mcp-scene-1.png",
+      "bytes": 293936,
+      "sha256": "14e8eda3ab7650fcfe7d89705bac3073934aed119db79ce1c415db71acac0f80"
+    },
+    {
+      "file": "work-mcp-scene-2.png",
+      "bytes": 519900,
+      "sha256": "579749b8cae926dbb104fd629a905d2b5803da7b2dc7e2fa325db72b6cdeae9d"
+    },
+    {
+      "file": "work-mcp-scene-3.png",
+      "bytes": 275649,
+      "sha256": "e1f9c67b6c651da2be0d613475983e6359e05586bf7fd90597b257b09af64a10"
+    }
+  ],
+  "mediaMetadata": {
+    "fps": 5,
+    "width": 1920,
+    "height": 1080,
+    "durationInSeconds": 60,
+    "codec": "h264",
+    "canPlayInVideoTag": true,
+    "supportsSeeking": true,
+    "colorSpace": "bt601",
+    "audioCodec": null,
+    "audioFileExtension": null,
+    "pixelFormat": "yuv420p"
+  },
+  "representativeFrames": [
+    50,
+    150,
+    250
+  ],
+  "screenshotCrop": {
+    "imageWidth": 1110,
+    "imageTop": -220,
+    "viewportHeight": 748
+  }
+}

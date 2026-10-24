@@ -56,6 +56,7 @@ evaluation), or start with the zero-key local synthetic walkthrough.
 | Give an MCP client bounded chart tools — read-only by default, opt-in approved writes (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
 | Have an assistant draft synthetic work, wait for separate review, and verify the saved FHIR Task | `npm run work:demo -- --agent --model-env .env.local` — see the [Assistant Work Lab](./docs/assistant-work.md); omit the flags for a provider-free manual client |
+| Connect an external MCP assistant to durable synthetic work and a separate reviewer inbox | Start the Work Lab, then `npm run --silent work:mcp -- --print-config` — see the [Work MCP connector](./docs/work-mcp.md) |
 | Prove the synthetic web-agent workflow locally | `npm run eval` |
 | Inspect the complete flow locally with no account or model key | `npm run demo:local` |
 
@@ -213,6 +214,7 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 - [FHIR Agent Safety Eval](./docs/evals.md): a disposable synthetic workflow report for proposal, approval, denial, association, and cleanup mechanics.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
 - [Assistant Work Lab](./docs/assistant-work.md): a model reads a bounded synthetic result and drafts a Task; separate review, durable state, and independent FHIR verification determine the outcome.
+- [Work MCP connector](./docs/work-mcp.md): an external assistant submits synthetic work, disconnects, and retrieves its durable result after separate review; checkout-only, distinct from the published MCP package.
 - [HIPAA deployment groundwork](./docs/hipaa-deployment.md): the data map, service-specific agreement questions, and evidence needed before a clinical pilot.
 - [Threat model](./docs/threat-model.md): trust boundaries and known limitations.
 - [Roadmap](./ROADMAP.md): what is current, next, and deliberately out of scope.
@@ -262,6 +264,13 @@ a real project.
 From a checkout, `npm run mcp` builds and starts that same package. Full setup,
 client configuration, and the support boundary are in the [MCP guide](./docs/mcp.md).
 The [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr) is the canonical discovery record for the exact, verified release.
+
+For a separate reviewer inbox and work that survives an assistant disconnect,
+use the checkout-only [Work MCP connector](./docs/work-mcp.md). Its four tools
+read one invented chart, propose a Task, check a durable Work ID, and cancel
+pending work. It is a local synthetic experiment with ordinary MCP tools;
+it is not included in `@lastehr/mcp` and does not implement the MCP Tasks
+extension or remote OAuth transport.
 
 To evaluate the MCP surface before configuring Medplum, use the separate local
 lab from a repository checkout:
