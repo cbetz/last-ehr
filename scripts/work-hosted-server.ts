@@ -71,7 +71,7 @@ export function createHostedWorkServer(options: {
         return redirect(login.location);
       }
       if (req.method === "GET" && url.pathname === "/auth/callback") {
-        // Always remove the one-use browser binding, including failed callbacks.
+        // Always clear the browser binding, including failed callbacks.
         res.setHeader("set-cookie", cookieHeader(loginName, "", 0, "Lax"));
         if ([...url.searchParams].some(([name]) => !["code", "state", "session_state", "iss"].includes(name)) ||
           url.searchParams.getAll("code").length !== 1 || url.searchParams.getAll("state").length !== 1 ||
@@ -113,7 +113,7 @@ export function createHostedWorkServer(options: {
     } catch (error) {
       if (res.headersSent || res.destroyed) { res.end(); return; }
       if (error instanceof HttpError) return send(error.status, { error: error.code, message: error.message });
-      if (error instanceof HostedWorkAuthError) return send(error.code === "login_capacity" ? 429 : 401, { error: error.code, message: error.message });
+      if (error instanceof HostedWorkAuthError) return send(401, { error: error.code, message: error.message });
       if (error instanceof WorkError) {
         const status = { invalid_input: 400, forbidden: 403, not_found: 404, conflict: 409, expired: 410 }[error.code];
         return send(status, { error: error.code, message: error.message });

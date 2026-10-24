@@ -65,11 +65,14 @@ For the reviewer:
    enable that method at the provider or use a registered public PKCE client.
 
 The service validates ID-token signature, issuer, audience, nonce, subject,
-issued-at and expiry. Login state is bounded, single use, and valid for five
-minutes. Reviewer sessions use opaque server-side IDs and expire within one
-hour or the ID token's earlier expiry. A process restart requires reviewer
-sign-in again; durable work remains on disk. Local logout invalidates the
-Last session, without logging the user out of their identity provider.
+issued-at and expiry. The browser's server-authenticated login cookie binds
+state, nonce and PKCE for five minutes, without allocating a shared queue for
+anonymous sign-in attempts. The identity provider must enforce single-use
+authorization codes. Last clears the login cookie on every callback.
+Reviewer sessions use opaque server-side IDs and expire within one hour or
+the ID token's earlier expiry. A process restart invalidates pending sign-ins
+and reviewer sessions; durable work remains on disk. Local logout invalidates
+the Last session, without logging the user out of their identity provider.
 
 Startup and the inbox's batch reconciliation check at most ten interrupted
 items at a time. A reviewer can reconcile an individual uncertain item by its

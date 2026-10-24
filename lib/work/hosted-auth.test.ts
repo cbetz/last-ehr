@@ -36,9 +36,14 @@ async function jwt(claims: Record<string, unknown>, key = privateKey) {
 
 function harness(input: HostedWorkAuthConfig = config) {
   let at = Date.now();
+  let nextCode = 0;
+  const redeemedCodes = new Set<string>();
   let response: Response | (() => Promise<Response>) = new Response("{}", { headers: { "content-type": "application/json" } });
   const fetcher = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-    void url; void init;
+    void url;
+    const code = new URLSearchParams(init?.body as string).get("code") || "";
+    if (redeemedCodes.has(code)) return new Response('{"error":"invalid_grant"}', { status: 400, headers: { "content-type": "application/json" } });
+    redeemedCodes.add(code);
     return typeof response === "function" ? response() : response;
   });
   const auth = createHostedWorkAuth(input, { getKey, fetch: fetcher, now: () => at });
@@ -47,10 +52,11 @@ function harness(input: HostedWorkAuthConfig = config) {
     respond: (value: Response | (() => Promise<Response>)) => { response = value; },
     async start(claims: Record<string, unknown> = {}) {
       const login = auth.beginReviewerLogin();
+      const code = `single-use-auth-code-${++nextCode}`;
       const url = new URL(login.location);
       const idToken = await jwt({ aud: input.reviewer.clientId, sub: input.reviewer.subject, nonce: url.searchParams.get("nonce"), ...claims });
       response = new Response(JSON.stringify({ id_token: idToken, access_token: "do-not-retain-access-token", token_type: "Bearer" }), { headers: { "content-type": "application/json" } });
-      return { ...login, url, idToken, finish: () => auth.finishReviewerLogin({ code: "single-use-auth-code", state: url.searchParams.get("state")!, loginCookie: login.loginCookie }) };
+      return { ...login, url, idToken, code, finish: () => auth.finishReviewerLogin({ code, state: url.searchParams.get("state")!, loginCookie: login.loginCookie }) };
     },
   };
 }
@@ -120,14 +126,14 @@ describe("hosted Work reviewer OIDC", () => {
     expect(login.url.searchParams.get("scope")).toBe("openid");
     expect(login.url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(login.url.searchParams.has("client_secret")).toBe(false);
-    expect(login.loginCookie).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(login.loginCookie).toMatch(/^[A-Za-z0-9_-]{96}$/);
     const session = await login.finish();
     const [url, init] = h.fetcher.mock.calls[0];
     expect(url).toBe(config.reviewer.tokenEndpoint);
     expect(init).toMatchObject({ method: "POST", redirect: "error", credentials: "omit", cache: "no-store" });
     const body = new URLSearchParams(init?.body as string);
     expect(body.get("client_secret")).toBe(config.reviewer.clientSecret);
-    expect(body.get("code")).toBe("single-use-auth-code");
+    expect(body.get("code")).toBe(login.code);
     expect(body.get("redirect_uri")).toBe(config.reviewer.redirectUri);
     expect(createHash("sha256").update(body.get("code_verifier")!).digest("base64url")).toBe(login.url.searchParams.get("code_challenge"));
     expect(session.actor).toEqual(h.auth.reviewerActor);
@@ -147,12 +153,14 @@ describe("hosted Work reviewer OIDC", () => {
     expect(new URLSearchParams(h.fetcher.mock.calls[0][1]?.body as string).has("client_secret")).toBe(false);
   });
 
-  it("rejects callback state mismatch before exchange and consumes the browser-bound login", async () => {
+  it("rejects callback state mismatch before exchange without allocating consumed-state entries", async () => {
     const h = harness();
     const login = await h.start();
     await expect(h.auth.finishReviewerLogin({ code: "code", state: "x".repeat(43), loginCookie: login.loginCookie })).rejects.toMatchObject({ code: "reviewer_login_failed" });
-    await expect(login.finish()).rejects.toMatchObject({ code: "reviewer_login_failed" });
     expect(h.fetcher).not.toHaveBeenCalled();
+    // A valid original callback still works; the HTTP route clears the browser
+    // cookie after a failed callback rather than retaining server-side state.
+    await expect(login.finish()).resolves.toMatchObject({ actor: h.auth.reviewerActor });
   });
 
   it("does not accept state from another browser login", async () => {
@@ -173,7 +181,7 @@ describe("hosted Work reviewer OIDC", () => {
     h.respond(async () => { throw new Error("https://private.example/ client-secret raw-token"); });
     await expect(login.finish()).rejects.toThrow("Reviewer sign-in could not be verified. Start a new sign-in.");
     await expect(login.finish()).rejects.toMatchObject({ code: "reviewer_login_failed" });
-    expect(h.fetcher).toHaveBeenCalledTimes(1);
+    expect(h.fetcher).toHaveBeenCalledTimes(2);
   });
 
   it("rejects wrong signed ID token claims, absent expiry and unauthorized multi-audience party", async () => {
@@ -220,12 +228,50 @@ describe("hosted Work reviewer OIDC", () => {
     await expect(next.auth.verifyAssistant(`Bearer ${await jwt({})}`)).rejects.toMatchObject({ code: "unauthorized" });
   });
 
-  it("caps pending logins without evicting existing logins", async () => {
+  it("allows a reviewer to finish after more than 128 anonymous login starts", async () => {
     const h = harness();
-    for (let i = 0; i < 128; i++) h.auth.beginReviewerLogin();
-    expect(() => h.auth.beginReviewerLogin()).toThrow("Reviewer sign-in is temporarily unavailable. Try again later.");
-    h.advance(300_001);
-    expect(h.auth.beginReviewerLogin().loginCookie).toBeDefined();
+    const reviewer = await h.start();
+    const anonymous = new Set<string>();
+    for (let i = 0; i < 512; i++) anonymous.add(h.auth.beginReviewerLogin().loginCookie);
+    expect(anonymous.size).toBe(512);
+    expect(anonymous.has(reviewer.loginCookie)).toBe(false);
+    await expect(reviewer.finish()).resolves.toMatchObject({ actor: h.auth.reviewerActor });
+  });
+
+  it("rejects forged, malformed and modified-expiry login cookies before token exchange", async () => {
+    const h = harness();
+    const login = await h.start();
+    const payload = Buffer.from(login.loginCookie, "base64url");
+    const entropy = Buffer.from(payload); entropy[0] ^= 1;
+    const mac = Buffer.from(payload); mac[71] ^= 1;
+    const expiry = Buffer.from(payload); expiry.writeBigUInt64BE(BigInt(Date.now() + 3_600_000), 32);
+    for (const loginCookie of ["", "x".repeat(43), `${login.loginCookie}=`, `${login.loginCookie}\n`, "!".repeat(96), entropy.toString("base64url"), mac.toString("base64url"), expiry.toString("base64url")]) {
+      await expect(h.auth.finishReviewerLogin({ code: login.code, state: login.url.searchParams.get("state")!, loginCookie })).rejects.toMatchObject({ code: "reviewer_login_failed" });
+    }
+    expect(h.fetcher).not.toHaveBeenCalled();
+    await expect(login.finish()).resolves.toBeDefined();
+  });
+
+  it("invalidates login cookies under a new process key and when the clock exceeds their five-minute lifetime", async () => {
+    const h = harness();
+    const login = await h.start();
+    const restarted = harness();
+    await expect(restarted.auth.finishReviewerLogin({ code: login.code, state: login.url.searchParams.get("state")!, loginCookie: login.loginCookie })).rejects.toMatchObject({ code: "reviewer_login_failed" });
+    expect(restarted.fetcher).not.toHaveBeenCalled();
+    h.advance(300_000);
+    await expect(login.finish()).rejects.toMatchObject({ code: "reviewer_login_failed" });
+    expect(h.fetcher).not.toHaveBeenCalled();
+    h.auth.close();
+    await expect(login.finish()).rejects.toMatchObject({ code: "reviewer_login_failed" });
+  });
+
+  it("relies on one-use IdP authorization codes to reject a replayed successful callback", async () => {
+    const h = harness();
+    const login = await h.start();
+    const session = await login.finish();
+    await expect(login.finish()).rejects.toMatchObject({ code: "reviewer_login_failed" });
+    expect(h.fetcher).toHaveBeenCalledTimes(2);
+    expect(h.auth.getReviewerSession(session.sessionCookie)).toBeDefined();
   });
 
   it("rejects redirects, oversized and malformed upstream responses without exposing their contents", async () => {
@@ -254,7 +300,7 @@ describe("hosted Work reviewer OIDC", () => {
     await vi.advanceTimersByTimeAsync(10_001);
     expect(await result).toMatchObject({ code: "reviewer_login_failed" });
     await expect(login.finish()).rejects.toMatchObject({ code: "reviewer_login_failed" });
-    expect(h.fetcher).toHaveBeenCalledTimes(1);
+    expect(h.fetcher).toHaveBeenCalledTimes(2);
   });
 });
 

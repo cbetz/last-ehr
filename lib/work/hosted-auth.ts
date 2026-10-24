@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
 
 import { createOAuthTokenVerifier } from "../../packages/mcp/src/oauth-verifier";
@@ -32,7 +32,6 @@ const errors = {
   invalid_configuration: "Hosted Work authentication configuration is invalid.",
   unauthorized: "This identity cannot access hosted Work.",
   reviewer_login_failed: "Reviewer sign-in could not be verified. Start a new sign-in.",
-  login_capacity: "Reviewer sign-in is temporarily unavailable. Try again later.",
 } as const;
 
 /** Fixed diagnostics never expose credentials, upstream responses, or claims. */
@@ -47,7 +46,7 @@ export type HostedReviewerSession = { actor: WorkActor; expiresAt: number };
 
 const LOGIN_TTL_MS = 5 * 60_000;
 const SESSION_TTL_MS = 60 * 60_000;
-const MAP_CAPACITY = 128;
+const SESSION_CAPACITY = 128;
 const TOKEN_TIMEOUT_MS = 10_000;
 const TOKEN_RESPONSE_LIMIT = 64 * 1024;
 const opaque = () => randomBytes(32).toString("base64url");
@@ -97,8 +96,9 @@ export function createHostedWorkAuth(input: HostedWorkAuthConfig, deps: HostedWo
     tenantId: config.tenantId, role: "reviewer",
     subject: `reviewer:${digest(JSON.stringify(["reviewer", config.issuer, config.reviewer.subject]))}`,
   });
-  type Pending = { state: string; nonce: string; verifier: string; expiresAt: number };
-  const pending = new Map<string, Pending>();
+  // Anonymous login starts allocate no server-side entries. The browser keeps
+  // random entropy and expiry authenticated by this instance's private key.
+  const loginKey = randomBytes(32);
   const sessions = new Map<string, HostedReviewerSession>();
   let closed = false;
 
@@ -110,8 +110,26 @@ export function createHostedWorkAuth(input: HostedWorkAuthConfig, deps: HostedWo
 
   function sweep(): void {
     const at = clock();
-    for (const [key, login] of pending) if (login.expiresAt <= at) pending.delete(key);
     for (const [key, session] of sessions) if (session.expiresAt <= at) sessions.delete(key);
+  }
+
+  const loginHmac = (label: "cookie" | "state" | "nonce" | "verifier", payload: Buffer) =>
+    createHmac("sha256", loginKey).update(`last-hosted-reviewer-v1:${label}:`).update(payload).digest();
+  const loginDetails = (payload: Buffer) => ({
+    state: loginHmac("state", payload).toString("base64url"),
+    nonce: loginHmac("nonce", payload).toString("base64url"),
+    verifier: loginHmac("verifier", payload).toString("base64url"),
+  });
+  function authenticateLoginCookie(value: unknown) {
+    if (typeof value !== "string" || !/^[A-Za-z0-9_-]{96}$/.test(value)) throw new HostedWorkAuthError("reviewer_login_failed");
+    const cookie = Buffer.from(value, "base64url");
+    if (cookie.length !== 72 || cookie.toString("base64url") !== value) throw new HostedWorkAuthError("reviewer_login_failed");
+    const payload = cookie.subarray(0, 40);
+    if (!timingSafeEqual(cookie.subarray(40), loginHmac("cookie", payload))) throw new HostedWorkAuthError("reviewer_login_failed");
+    const expiry = payload.readBigUInt64BE(32);
+    const at = BigInt(clock());
+    if (expiry > BigInt(Number.MAX_SAFE_INTEGER) || expiry <= at || expiry > at + BigInt(LOGIN_TTL_MS)) throw new HostedWorkAuthError("reviewer_login_failed");
+    return loginDetails(payload);
   }
 
   async function tokenResponse(body: URLSearchParams): Promise<Record<string, unknown>> {
@@ -175,11 +193,11 @@ export function createHostedWorkAuth(input: HostedWorkAuthConfig, deps: HostedWo
 
     beginReviewerLogin(): { location: string; loginCookie: string } {
       if (closed) throw new HostedWorkAuthError("reviewer_login_failed");
-      sweep();
-      if (pending.size >= MAP_CAPACITY || sessions.size >= MAP_CAPACITY) throw new HostedWorkAuthError("login_capacity");
-      const loginCookie = opaque();
-      const login = { state: opaque(), nonce: opaque(), verifier: opaque(), expiresAt: clock() + LOGIN_TTL_MS };
-      pending.set(digest(loginCookie), login);
+      const payload = Buffer.alloc(40);
+      randomBytes(32).copy(payload);
+      payload.writeBigUInt64BE(BigInt(clock()) + BigInt(LOGIN_TTL_MS), 32);
+      const loginCookie = Buffer.concat([payload, loginHmac("cookie", payload)]).toString("base64url");
+      const login = loginDetails(payload);
       const location = new URL(config.reviewer.authorizationEndpoint);
       location.search = new URLSearchParams({
         response_type: "code", client_id: config.reviewer.clientId, redirect_uri: config.reviewer.redirectUri,
@@ -193,17 +211,16 @@ export function createHostedWorkAuth(input: HostedWorkAuthConfig, deps: HostedWo
       try {
         if (closed) throw new HostedWorkAuthError("reviewer_login_failed");
         sweep();
-        if (!opaqueValue(loginCookie)) throw new HostedWorkAuthError("reviewer_login_failed");
-        const key = digest(loginCookie);
-        const login = pending.get(key);
-        // Consume once before any network operation, including failed exchanges.
-        pending.delete(key);
-        if (!login || !opaqueValue(state) || !equal(state, login.state) || !identity(code, 4096)) throw new HostedWorkAuthError("reviewer_login_failed");
+        const login = authenticateLoginCookie(loginCookie);
+        if (!opaqueValue(state) || !equal(state, login.state) || !identity(code, 4096)) throw new HostedWorkAuthError("reviewer_login_failed");
         const body = new URLSearchParams({
           grant_type: "authorization_code", code, client_id: config.reviewer.clientId,
           redirect_uri: config.reviewer.redirectUri, code_verifier: login.verifier,
           ...(config.reviewer.clientSecret ? { client_secret: config.reviewer.clientSecret } : {}),
         });
+        // The IdP must redeem authorization codes only once. The HTTP callback
+        // also clears its browser binding on every success or failure; no
+        // anonymous consumed-state map can exhaust another reviewer's login.
         const response = await tokenResponse(body);
         if (typeof response.id_token !== "string" || response.id_token.length > TOKEN_RESPONSE_LIMIT) throw new HostedWorkAuthError("reviewer_login_failed");
         const { payload } = await jwtVerify(response.id_token, getKey, { issuer: config.issuer, audience: config.reviewer.clientId, currentDate: new Date(clock()) });
@@ -214,7 +231,7 @@ export function createHostedWorkAuth(input: HostedWorkAuthConfig, deps: HostedWo
           (payload.azp !== undefined && payload.azp !== config.reviewer.clientId) ||
           (Array.isArray(payload.aud) && payload.aud.length > 1 && payload.azp !== config.reviewer.clientId)) throw new HostedWorkAuthError("reviewer_login_failed");
         sweep();
-        if (sessions.size >= MAP_CAPACITY) throw new HostedWorkAuthError("reviewer_login_failed");
+        if (sessions.size >= SESSION_CAPACITY) throw new HostedWorkAuthError("reviewer_login_failed");
         const sessionCookie = opaque();
         const session = { actor: { ...reviewerActor }, expiresAt: Math.min(expiresAt, clock() + SESSION_TTL_MS) };
         sessions.set(digest(sessionCookie), session);
@@ -235,7 +252,7 @@ export function createHostedWorkAuth(input: HostedWorkAuthConfig, deps: HostedWo
 
     close(): void {
       closed = true;
-      pending.clear();
+      loginKey.fill(0);
       sessions.clear();
     },
   };
