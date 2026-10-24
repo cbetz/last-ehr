@@ -1,0 +1,27 @@
+{
+  "verifiedAt": "2026-10-24T00:35:46.023Z",
+  "provider": "anthropic / claude-sonnet-4-6",
+  "runId": "acc545ec-ad8b-4bc7-8e0c-c52ec03fb1f2",
+  "jobId": "372b0a27-d517-4717-ae93-34748427460e",
+  "proposalHash": "e508ef306ee5191ac8c714da81edf69fa2a47d0221c6805c4a6d72d0c702f21b",
+  "source": {
+    "reference": "Observation/1001",
+    "versionId": "1"
+  },
+  "description": "Care team review requested: Patient Alex Synthetic Worklab has a synthetic HbA1c result of 6.4% dated January 1, 2026. Please review this result and determine any appropriate next steps. Do not contact the patient at this time.",
+  "receipt": {
+    "id": "1021",
+    "resourceType": "Task",
+    "verifiedAt": "2026-10-24T00:35:46.012Z",
+    "versionId": "1"
+  },
+  "checks": {
+    "realProviderToolLoop": true,
+    "zeroTasksBeforeReview": true,
+    "separateReviewerCredential": true,
+    "exactProposalPersisted": true,
+    "oneTask": true,
+    "authoritativeAssistantOutcome": true
+  },
+  "scope": "Local loopback synthetic acceptance; reviewer API test role, not production clinical authentication."
+}

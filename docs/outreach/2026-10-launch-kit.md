@@ -4,6 +4,98 @@ Prepared October 22, 2026; recording added October 23. These are drafts for Chri
 
 The first objective is five developer evaluations of one working release. Lead with bounded chart reads, explicit review of each proposed write, and independent checks of what persisted. Other projects already offer FHIR MCP access and review interfaces; do not claim to be the first.
 
+## Real assistant Work Lab follow-up (draft)
+
+**UNSENT — prepared October 23, 2026, America/New_York.** This is a new variant
+for the real-provider assistant acceptance in
+[PR #200](https://github.com/cbetz/last-ehr/pull/200).
+Implementation is pinned at [`64828fd`](https://github.com/cbetz/last-ehr/tree/64828fd7a2fbea24e4b0bc6ec92eb7d94f4c8f5e).
+The [new acceptance record](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/evidence/assistant-agent-2026-10-23.md)
+and [projected report](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/evidence/assistant-agent-2026-10-23.json) distinguish
+the actual model run from deterministic CI. The older manual variant and MCP
+0.4.0 recording pins below remain historical and unchanged.
+
+### Public post draft
+
+> Last's local Work Lab now uses a real assistant to prepare work: Claude
+> Sonnet 4.6 read an invented patient's selected result, drafted a follow-up
+> Task, and submitted it for separate review. Before approval, FHIR held zero
+> Tasks for that work item. After a separately credentialed test reviewer
+> approved it, an independent FHIR read found exactly one matching Task, and
+> the assistant page reported the verified result automatically.
+>
+> The test reviewer was automated; this does not establish human identity or
+> clinical correctness. Saving a Task records a request and does not contact
+> the patient. This is a synthetic-only local lab, with no Muse, Grok Bot, or
+> eve connection and no PHI permitted. Real model mode requires your own
+> supported provider API key.
+>
+> I'm looking for five developers to try the flow on their own machines:
+> ask for a draft, review the exact proposal in a separate human-owned
+> browser/profile, approve one and decline another, then check FHIR directly.
+> Node, Docker, and a model API key are required. Please report the first
+> setup blocker or unexpected persisted resource. [Setup guide](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/assistant-work.md)
+> · [acceptance evidence and limits](https://github.com/cbetz/last-ehr/blob/7846af0b4a92637d687255e680c5efbd3b3168a7/docs/evidence/assistant-agent-2026-10-23.md).
+
+## Assistant Work Lab follow-up (draft)
+
+**UNSENT — prepared October 23, 2026.** This follow-up concerns
+[PR #200](https://github.com/cbetz/last-ehr/pull/200), tested implementation
+[`c55bffd`](https://github.com/cbetz/last-ehr/tree/c55bffda7573b09edcc648c077039722d9f33997).
+Use the [guide at that ref](https://github.com/cbetz/last-ehr/blob/c55bffda7573b09edcc648c077039722d9f33997/docs/assistant-work.md)
+and [local verification evidence](https://github.com/cbetz/last-ehr/blob/c55bffda7573b09edcc648c077039722d9f33997/docs/evidence/assistant-work-2026-10-23.md).
+CI is still running as this draft is prepared; do not describe it as passed.
+The recorded MCP 0.4.0 baseline and installation pins below remain separate.
+
+### Public post draft
+
+> What happens when FHIR saves a Task but the caller loses the response?
+>
+> Last's new local Assistant Work Lab exercises that failure case alongside
+> durable proposals and separate review. A scripted assistant submits a
+> follow-up Task; a separately credentialed reviewer approves or declines the
+> exact resource. We check FHIR independently, preserve pending work across a
+> process restart, and reconcile uncertain saves without blindly creating a
+> second Task.
+>
+> This is an invented-patient lab with scripted roles, no LLM call, and no
+> Muse, Grok Bot, or eve connection. PHI is not allowed. The keys do not prove
+> human presence; reviewers must use a separate human-owned browser/profile.
+> [Try the pinned guide](https://github.com/cbetz/last-ehr/blob/c55bffda7573b09edcc648c077039722d9f33997/docs/assistant-work.md)
+> and inspect the [evidence and limits](https://github.com/cbetz/last-ehr/blob/c55bffda7573b09edcc648c077039722d9f33997/docs/evidence/assistant-work-2026-10-23.md).
+> Which failure case would you test next?
+
+### Agents on FHIR demo variant
+
+**Draft title:** The Task saved. The response disappeared. Now what?
+
+> I'd like to offer a 5–10 minute synthetic demo of Last's local Work Lab:
+> submit a draft, restart the process, review the recovered proposal, approve
+> one Task and decline another, then inspect FHIR directly. I'll also show the
+> lost-response test and why an uncertain outcome stays blocked until it can
+> be reconciled. This uses scripted assistant/reviewer roles without an LLM
+> or a Muse/Grok Bot/eve connection; PHI is not allowed. The question for the
+> group is which recovery or review boundary needs a stronger test.
+
+Request the next available slot only if Chris chooses to submit this draft.
+No proposal or scheduling request has been sent.
+
+### Five-developer test ask
+
+> I'm looking for five developers to try the
+> [pinned synthetic Work Lab](https://github.com/cbetz/last-ehr/blob/c55bffda7573b09edcc648c077039722d9f33997/docs/assistant-work.md)
+> on their own machines. Submit a Task draft, restart with the same store,
+> review it using a separate human-owned browser/profile, approve one proposal
+> and decline a different one, and independently verify the results in local
+> HAPI FHIR. Please report the first setup blocker or unexpected persisted
+> resource. This is a scripted lab: no LLM or Muse/Grok Bot/eve integration,
+> and no PHI. Node and Docker are required; cold downloads may take longer.
+
+**Article hook:** Trace one lost response from persisted Task to uncertain
+job state to verified receipt. Keep observed restart tests and simulated
+response loss distinct; link the pinned evidence instead of implying a
+production incident or proven clinical resilience.
+
 ## Release gate before inviting evaluators
 
 **Status: recorded release verified; recording ready; outreach unsent.** On October 22, npm `latest` and the Official MCP Registry were verified at `0.4.0`. The downloaded npm artifact matched the tested tarball's SHA-512 integrity and passed installation checks in a temporary directory outside the checkout. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.4.0) targets the recorded source below. The [90-second synthetic recording](https://www.lastehr.com/demo/approve-and-decline.mp4) and [independent FHIR report](../evidence/demo-approval-2026-10-23.json) are ready; no invitation, post, or proposal has been sent. These pins identify the recorded evaluation baseline, rather than a promise about the current `latest` tag.

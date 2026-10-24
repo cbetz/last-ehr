@@ -37,7 +37,7 @@ implementation: bring your own FHIR backend and model key for a real agent
 (Medplum for the authenticated path, or any verified adapter for synthetic
 evaluation), or start with the zero-key local synthetic walkthrough.
 
-> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, Aidbox, or Oystehr for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record, stores no PHI of its own, and never bundles or forks the backend.
+> **Last EHR is a _layer_, not an EHR.** It runs *on top of* a headless FHIR backend (Medplum for authenticated use; HAPI FHIR, Firely Server, Aidbox, or Oystehr for synthetic evaluation) and talks to it over the FHIR API. It is not the system of record and never bundles or forks the backend. The web agent has no separate chart database, but processes chart data and sends chart context to the configured model provider. The opt-in local Work Lab persists synthetic requests, run progress, proposals, and decisions. See the [HIPAA deployment groundwork](./docs/hipaa-deployment.md) before planning a clinical deployment.
 
 **Status: early / alpha.** APIs, structure, and scope will change. Use synthetic data only. · License: [Apache-2.0](./LICENSE)
 
@@ -55,6 +55,7 @@ evaluation), or start with the zero-key local synthetic walkthrough.
 | Test an MCP (stdio) implementation of the protocol | `npx @lastehr/agent-write-conformance` — see the [conformance guide](./docs/conformance.md) |
 | Give an MCP client bounded chart tools — read-only by default, opt-in approved writes (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
+| Have an assistant draft synthetic work, wait for separate review, and verify the saved FHIR Task | `npm run work:demo -- --agent --model-env .env.local` — see the [Assistant Work Lab](./docs/assistant-work.md); omit the flags for a provider-free manual client |
 | Prove the synthetic web-agent workflow locally | `npm run eval` |
 | Inspect the complete flow locally with no account or model key | `npm run demo:local` |
 
@@ -129,7 +130,7 @@ flowchart LR
     A -- "writes<br/>add_note, record_observation,<br/>record_superseding_observation, create_task" --> C{"Approval card"}
     C -- "Approve & save" --> M
     C -- "Cancel" --> N["Nothing saved"]
-    M -. "Every call runs as the signed-in user,<br/>bounded by your AccessPolicy.<br/>The layer stores no PHI." .-> A
+    M -. "Authenticated calls use the signed-in user,<br/>bounded by your AccessPolicy.<br/>Chart context reaches the configured model." .-> A
 ```
 
 On the public demo, writes are also tagged with your session, so you only ever see the seed data plus your own edits.
@@ -211,6 +212,8 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 - [MCP server](./docs/mcp.md): published chart tools (Medplum, or the local HAPI stack) — read-only by default with an opt-in human-approved write profile — plus the checkout-only synthetic Local Lab.
 - [FHIR Agent Safety Eval](./docs/evals.md): a disposable synthetic workflow report for proposal, approval, denial, association, and cleanup mechanics.
 - [Deployment](./docs/deployment.md): env vars, rate limiting, Docker, and public-demo hardening.
+- [Assistant Work Lab](./docs/assistant-work.md): a model reads a bounded synthetic result and drafts a Task; separate review, durable state, and independent FHIR verification determine the outcome.
+- [HIPAA deployment groundwork](./docs/hipaa-deployment.md): the data map, service-specific agreement questions, and evidence needed before a clinical pilot.
 - [Threat model](./docs/threat-model.md): trust boundaries and known limitations.
 - [Roadmap](./ROADMAP.md): what is current, next, and deliberately out of scope.
 
@@ -302,7 +305,14 @@ waitlist (Neon) are optional and lastehr.com-specific.
 
 ## Security & data
 
-Last EHR stores no patient data of its own; everything lives in your FHIR backend. But be clear about what the approval gate is: **it is a write-safety control, not a privacy control.** In external-model modes, anything the agent reads from the chart is sent to your model provider as context, under your API key, with no approval step. The scripted local demo makes no model request and is restricted to its one seeded synthetic record; it is not a path for real data.
+The web agent has no separate chart database, but it processes chart data. The
+opt-in local Work Lab also stores synthetic requests, run progress, proposals,
+decisions, and receipts in SQLite. The approval gate is **a write-safety
+control, not a privacy control**: in external-model modes, chart context is sent
+to your configured model provider before write approval. The Work Lab's real
+agent mode sends your synthetic prompt and bounded invented chart fields to
+that provider. Its default manual client and test-only scripted mode make no
+model request. None of these lab modes is qualified for real patient data.
 
 **Use synthetic data unless you have real agreements in place.** Pointing this at real PHI requires, at minimum:
 
