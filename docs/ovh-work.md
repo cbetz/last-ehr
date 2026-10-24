@@ -125,6 +125,7 @@ Create a **Regular Web Application**, named `Last Work Reviewer`, with:
 | Allowed Callback URLs | `https://work.lastehr.com/auth/callback` |
 | Application Login URI | `https://work.lastehr.com/auth/login` |
 | Grant type | Authorization Code |
+| ID token signing algorithm | RS256 |
 | ID token expiration | 3600 seconds |
 | Token endpoint authentication | Client Secret (Post) |
 
