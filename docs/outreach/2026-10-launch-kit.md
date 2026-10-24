@@ -11,30 +11,49 @@ the checkout-only connector at [`9f493ac`](https://github.com/cbetz/last-ehr/tre
 [pinned acceptance record](https://github.com/cbetz/last-ehr/blob/90aac31312533f02bb6d6bd6e47e518179f3993b/docs/evidence/work-mcp-2026-10-23.md). The older variants below retain
 their original source and package pins.
 
-### Public post draft
+### Publication-ready LinkedIn post — unsent
 
-> An assistant should be able to submit work, disconnect, and check what
-> actually happened later.
+> Claude Code read an invented lab result, proposed a follow-up Task, and
+> disconnected. A fresh Claude Code process later retrieved the verified
+> result from Last.
 >
-> Last now has a local Work MCP connector for that loop. In our acceptance
-> test, a real Claude Code client read an invented result, proposed a
-> follow-up Task, and exited. Last held the draft for separate review.
-> After an automated test reviewer approved it in Last's browser inbox,
-> a fresh Claude Code process retrieved the same Work ID and verified Task
-> receipt. A direct FHIR query found exactly one matching Task.
+> Between those two sessions, Last held the exact proposal for separate
+> review. An automated test reviewer approved it in Last's browser inbox.
+> An independent FHIR query found exactly one matching Task; the new client
+> received the same Work ID and Task receipt.
 >
-> Here's the [60-second edited evidence walkthrough](https://github.com/cbetz/last-ehr/blob/90aac31312533f02bb6d6bd6e47e518179f3993b/public/demo/work-mcp-walkthrough.mp4)
-> and the [setup guide](https://github.com/cbetz/last-ehr/blob/90aac31312533f02bb6d6bd6e47e518179f3993b/docs/work-mcp.md). The walkthrough labels synthetic data
-> and automated review. This is a local experiment with ordinary MCP tools;
-> Muse, Grok Bot, eve, production identity, and clinical deployment remain
-> untested. No PHI is permitted, and saving a Task does not contact a patient.
+> This is the working loop we're opening up for developers to test:
+> propose work, review it separately, and check what was actually saved.
 >
-> I'm looking for five developers to try it: submit a draft, close the
-> assistant, review the exact proposal in a separate human-owned browser,
-> and reconnect to check the result. Please report the first setup blocker
-> or unexpected saved resource. Node, Docker, installed Claude Code, and
-> your own direct Anthropic API key are required; each bounded client run
-> has a $1 API budget cap.
+> [60-second walkthrough](https://www.lastehr.com/demo/work-mcp-walkthrough.mp4)
+> · [Setup guide](https://www.lastehr.com/docs/work-mcp)
+> · [Pinned evidence and limits](https://github.com/cbetz/last-ehr/blob/90aac31312533f02bb6d6bd6e47e518179f3993b/docs/evidence/work-mcp-2026-10-23.md)
+>
+> I'm looking for five developers to try it on their own machines and
+> report the first setup blocker. Submit a draft, disconnect, review the
+> proposal in a separate human-owned browser, and reconnect to check the
+> receipt. Node, Docker, installed Claude Code, and your own direct
+> Anthropic API key are required.
+>
+> Synthetic data only; no PHI. The video is an edited evidence walkthrough,
+> and the recorded reviewer was automated. Saving a Task does not contact
+> a patient. This local connector has been tested with Claude Code; Grok
+> Bot compatibility and clinical deployment have not been established.
+
+### When to share
+
+1. **Share the verified Claude Code loop now.** Use the post and live links
+   above on Chris's own LinkedIn, with five developer trials as the ask.
+   The existing evidence is enough for this bounded announcement; a Grok
+   integration is not a prerequisite. This draft remains unsent.
+2. **Share the Grok milestone after actual client acceptance.** Publish a
+   second walkthrough only after Grok Bot connects to the hosted synthetic
+   service, proposes work, disconnects, and retrieves the verified receipt
+   after separate review. Describe the exact tested client and setup.
+3. **Share evaluator findings after measured sessions.** Report completed
+   trials, first blockers, active setup time, coaching needed, and whether
+   approval, denial, and reconnect checks passed. Include failures and the
+   resulting fixes; do not imply independent adoption from internal tests.
 
 ### Evaluator task
 
