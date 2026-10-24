@@ -45,6 +45,54 @@ jobs:
               if (stat.uid !== process.getuid() || (stat.mode & 0o777) !== 0o700) process.exit(1);
             }
           '
+      - name: Boot the bounded hosted stack with private synthetic storage
+        run: |
+          python3 - <<'PY'
+          import json, os
+          with open('work-hosted.example.json') as source:
+              config = json.load(source)
+          descriptor = os.open('work-hosted.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+          with os.fdopen(descriptor, 'w') as target:
+              json.dump(config, target)
+          PY
+          sudo chown 1000:1000 work-hosted.json
+          cat > /tmp/hosted-work-ci.yml <<'YAML'
+          services:
+            work:
+              image: lastehr-work:ci
+          YAML
+          docker compose -p lastehr-hosted-ci -f docker-compose.work.yml -f /tmp/hosted-work-ci.yml up -d --no-build
+          for attempt in $(seq 1 90); do
+            if curl --fail --silent --connect-timeout 1 --max-time 2 --header 'Host: work.example.org' http://127.0.0.1:3400/health > /tmp/hosted-work-health.json; then
+              jq -e '.status == "ready" and .mode == "synthetic-only"' /tmp/hosted-work-health.json
+              break
+            fi
+            if [ "$attempt" -eq 90 ]; then exit 1; fi
+            sleep 4
+          done
+          curl --fail --silent --connect-timeout 1 --max-time 2 --header 'Host: work.example.org' http://127.0.0.1:3400/.well-known/oauth-protected-resource/mcp | jq -e '.resource == "https://work.example.org/mcp"'
+          test "$(curl --silent --connect-timeout 1 --max-time 2 --output /dev/null --write-out '%{http_code}' --header 'Host: work.example.org' http://127.0.0.1:3400/mcp)" = 401
+          for service in work hapi postgres; do
+            container=$(docker compose -p lastehr-hosted-ci -f docker-compose.work.yml -f /tmp/hosted-work-ci.yml ps -q "$service")
+            docker inspect --format '{{.Name}} memory={{.HostConfig.Memory}} oomKilled={{.State.OOMKilled}}' "$container"
+            expected_memory=1073741824
+            if [ "$service" = hapi ]; then expected_memory=3221225472; fi
+            test "$(docker inspect --format '{{.HostConfig.Memory}}' "$container")" = "$expected_memory"
+            test "$(docker inspect --format '{{.State.OOMKilled}}' "$container")" = false
+            test "$(docker inspect --format '{{.RestartCount}}' "$container")" = 0
+          done
+          docker compose -p lastehr-hosted-ci -f docker-compose.work.yml -f /tmp/hosted-work-ci.yml restart work
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --connect-timeout 1 --max-time 2 --header 'Host: work.example.org' http://127.0.0.1:3400/health > /dev/null; then break; fi
+            if [ "$attempt" -eq 30 ]; then exit 1; fi
+            sleep 2
+          done
+      - name: Show hosted stack logs on failure
+        if: failure()
+        run: docker compose -p lastehr-hosted-ci -f docker-compose.work.yml logs --no-color --tail=100
+      - name: Stop the disposable hosted CI stack
+        if: always()
+        run: docker compose -p lastehr-hosted-ci -f docker-compose.work.yml down --volumes --remove-orphans
 
   local-hapi:
     name: Local scripted HAPI quickstart
