@@ -148,6 +148,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["assistant", "work", "durable", "review", "Task", "synthetic"],
   },
   {
+    slug: "work-mcp",
+    file: "docs/work-mcp.md",
+    title: "Work MCP Connector",
+    description:
+      "Connect an external assistant to local synthetic work with a durable Work ID, separate review, and a verified FHIR Task receipt.",
+    group: "Build & integrate",
+    order: 28,
+    audience: "MCP client builders and assistant workflow evaluators",
+    lastModified: "2026-10-23",
+    keywords: ["MCP", "assistant", "work", "durable", "review", "synthetic", "Task"],
+  },
+  {
     slug: "evals",
     file: "docs/evals.md",
     title: "FHIR Agent Safety Eval",

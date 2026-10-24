@@ -15,6 +15,12 @@ Grok Bot, eve, or production clinical integration. A FHIR Task records
 requested work; a successful run does not mean someone contacted a patient or
 completed the clinical follow-up.
 
+To use an assistant running outside the Work Lab, follow the
+[Work MCP connector guide](./work-mcp.md). The external client can read the
+bounded synthetic context, submit a proposal, disconnect, and retrieve the
+same Work ID after separate review. Default manual lab mode is sufficient for
+that connector; its model runs in the external client.
+
 ## Run locally
 
 Prerequisites are the repository's supported Node version, installed
@@ -129,6 +135,7 @@ signs in separately and uses reviewer-only routes.
 | Surface | Purpose |
 | --- | --- |
 | `GET /api/fixture` | Retrieve the one allowed synthetic patient/result pair and the assistant execution mode/model label. |
+| `GET /api/work/context` | Freshly read the bounded synthetic Patient/Observation projection for an external assistant; no model request. |
 | `POST /api/assistant/runs` | Persist a synthetic natural-language request and start the configured assistant; requires an `idempotency-key` header. |
 | `GET /api/assistant/runs` | List up to 100 recent runs for the lab assistant. |
 | `GET /api/assistant/runs/:id` | Retrieve run progress and authoritative work state/receipt. |

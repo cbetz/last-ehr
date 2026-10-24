@@ -6,7 +6,8 @@ import { request as httpRequest } from "node:http";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { DurableWorkService, type FollowUpTask, type WorkJob, type WorkTaskRecord } from "../lib/work/service";
-import { AssistantWorkRuntime } from "../lib/work/assistant";
+import { AssistantWorkRuntime, type WorkAssistantContext } from "../lib/work/assistant";
+import { WorkConnectorClient } from "../lib/work/connector-client";
 import { createWorkScriptedModel } from "../lib/work/assistant-scripted-model";
 import { createWorkLabServer, LAB_ASSISTANT, LAB_REVIEWER, validateLabKeys } from "./work-demo-server";
 
@@ -14,6 +15,7 @@ const assistantKey = "assistant-test-credential-0000000000000000";
 const reviewerKey = "reviewer-test-credential-00000000000000000";
 const fixture = { patientId: "synthetic-patient", source: { reference: "Observation/synthetic-result", versionId: "1" }, patientLabel: "Invented patient", resultLabel: "Invented result" };
 const input = { patientId: fixture.patientId, source: fixture.source, description: "Review this invented result.", dueDate: "2026-11-01" };
+const context: WorkAssistantContext = { patient: { reference: `Patient/${fixture.patientId}`, label: "Invented patient", dateOfBirth: "2000-01-01" }, observation: { ...fixture.source, label: "Synthetic HbA1c", value: 6.4, unit: "%", effectiveDateTime: "2026-01-01T12:00:00Z" } };
 
 describe("synthetic work HTTP role boundary", () => {
   let directory: string;
@@ -23,11 +25,15 @@ describe("synthetic work HTTP role boundary", () => {
   let origin: string;
   let writes: number;
   let saved: Map<string, WorkTaskRecord>;
+  let contextReads: number;
+  let contextReader: () => Promise<WorkAssistantContext>;
 
   beforeEach(async () => {
     directory = mkdtempSync(join(tmpdir(), "last-work-http-"));
     saved = new Map();
     writes = 0;
+    contextReads = 0;
+    contextReader = async () => { contextReads++; return structuredClone(context); };
     service = new DurableWorkService({
       storePath: join(directory, "work.sqlite"), reviewer: LAB_REVIEWER,
       committer: {
@@ -43,7 +49,7 @@ describe("synthetic work HTTP role boundary", () => {
       },
     });
     assistant = new AssistantWorkRuntime({ storePath: join(directory, "work.sqlite"), service, actor: LAB_ASSISTANT, model: createWorkScriptedModel(), modelLabel: "SCRIPTED TEST", readContext: async () => ({ patient: { reference: `Patient/${fixture.patientId}`, label: "Invented patient", dateOfBirth: "2000-01-01" }, observation: { ...fixture.source, label: "Synthetic HbA1c", value: 6.4, unit: "%", effectiveDateTime: "2026-01-01T12:00:00Z" } }) });
-    server = createWorkLabServer({ service, fixture, assistantKey, reviewerKey, assistant, modelLabel: "SCRIPTED TEST" });
+    server = createWorkLabServer({ service, fixture, assistantKey, reviewerKey, assistant, modelLabel: "SCRIPTED TEST", readContext: () => contextReader() });
     await new Promise<void>((accept) => server.listen(0, "127.0.0.1", accept));
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
@@ -71,6 +77,68 @@ describe("synthetic work HTTP role boundary", () => {
     const missing = await fetch(`${origin}/api/work`, { method: "POST", headers: { authorization: `Bearer ${assistantKey}`, "content-type": "application/json" }, body: JSON.stringify(input) });
     expect(missing.status).toBe(400);
     expect(writes).toBe(0);
+  });
+
+  it("authenticates each bounded chart read and returns a fresh projection without model or FHIR writes", async () => {
+    expect((await fetch(`${origin}/api/work/context`)).status).toBe(401);
+    expect((await fetch(`${origin}/api/work/context`, { headers: { authorization: `Bearer ${reviewerKey}` } })).status).toBe(401);
+    expect(contextReads).toBe(0);
+    const client = new WorkConnectorClient({ baseUrl: origin, assistantKey });
+    expect(await client.readContext()).toEqual(context);
+    contextReader = async () => { contextReads++; return { ...context, observation: { ...context.observation, label: "Fresh bounded result projection" } }; };
+    expect((await client.readContext()).observation.label).toBe("Fresh bounded result projection");
+    expect(contextReads).toBe(2);
+    expect(await assistant.list()).toEqual([]);
+    expect(writes).toBe(0);
+  });
+
+  it("rejects unbounded or cross-fixture projections and redacts reader failures", async () => {
+    const headers = { authorization: `Bearer ${assistantKey}` };
+    contextReader = async () => ({ ...context, arbitraryFullChart: true });
+    expect((await fetch(`${origin}/api/work/context`, { headers })).status).toBe(503);
+    contextReader = async () => ({ ...context, patient: { ...context.patient, reference: "Patient/other-patient" } });
+    expect((await fetch(`${origin}/api/work/context`, { headers })).status).toBe(503);
+    contextReader = async () => ({ ...context, observation: { ...context.observation, versionId: "2" } });
+    expect((await fetch(`${origin}/api/work/context`, { headers })).status).toBe(503);
+    contextReader = async () => { throw new Error("secret-upstream-content"); };
+    const failed = await fetch(`${origin}/api/work/context`, { headers });
+    expect(failed.status).toBe(500);
+    expect(await failed.text()).not.toContain("secret-upstream-content");
+    expect(writes).toBe(0);
+  });
+
+  it("leaves the context API disabled when no bounded reader was configured", async () => {
+    const manual = createWorkLabServer({ service, fixture, assistantKey, reviewerKey });
+    await new Promise<void>((accept) => manual.listen(0, "127.0.0.1", accept));
+    const base = `http://127.0.0.1:${(manual.address() as AddressInfo).port}`;
+    try {
+      expect((await fetch(`${base}/api/work/context`)).status).toBe(401);
+      const response = await fetch(`${base}/api/work/context`, { headers: { authorization: `Bearer ${assistantKey}` } });
+      expect(response.status).toBe(503);
+      expect((await response.json()).error).toBe("context_disabled");
+      expect(contextReads).toBe(0);
+    } finally {
+      await new Promise<void>((accept, reject) => { manual.close((error) => error ? reject(error) : accept()); manual.closeAllConnections(); });
+    }
+  });
+
+  it("allows connector disconnect, idempotent reconnect and reviewer approval followed by a verified status receipt", async () => {
+    const draft = { description: input.description, dueDate: input.dueDate, sourceReference: fixture.source.reference, sourceVersionId: fixture.source.versionId, idempotencyKey: "external-connector" };
+    const first = new WorkConnectorClient({ baseUrl: origin, assistantKey });
+    await first.readContext();
+    const proposed = await first.propose(draft);
+    expect(proposed.state).toBe("awaiting_review");
+    expect(writes).toBe(0);
+    const reconnected = new WorkConnectorClient({ baseUrl: origin, assistantKey });
+    expect((await reconnected.get(proposed.id)).state).toBe("awaiting_review");
+    await reconnected.readContext();
+    expect((await reconnected.propose(draft)).id).toBe(proposed.id);
+    const cookie = (await login()).headers.get("set-cookie")!.split(";")[0];
+    expect((await decision(proposed, cookie)).status).toBe(200);
+    const completed = await reconnected.get(proposed.id);
+    expect(completed.state).toBe("succeeded");
+    expect(completed.receipt?.id).toBe("task-1");
+    expect(writes).toBe(1);
   });
 
   it("an assistant cannot establish a reviewer session or approve through a bearer token", async () => {

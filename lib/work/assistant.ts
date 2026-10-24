@@ -7,11 +7,8 @@ import { ToolLoopAgent, stepCountIs, tool, type LanguageModel } from "ai";
 import { z } from "zod";
 
 import { DurableWorkService, WorkError, type FollowUpInput, type WorkActor, type WorkJob, type WorkState } from "./service";
-
-export type WorkAssistantContext = {
-  patient: { reference: string; label: string; dateOfBirth: string };
-  observation: { reference: string; versionId: string; label: string; value: number; unit: string; effectiveDateTime: string };
-};
+import { workContextSchema, type WorkAssistantContext } from "./context";
+export { workContextSchema, type WorkAssistantContext } from "./context";
 
 export type AssistantRun = {
   id: string;
@@ -34,11 +31,6 @@ type RunRow = {
 
 const safeText = (max: number) => z.string().trim().min(1).max(max).refine((value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value));
 const fhirId = z.string().regex(/^[A-Za-z0-9\-.]{1,64}$/);
-const contextSchema = z.object({
-  patient: z.object({ reference: z.string().regex(/^Patient\/[A-Za-z0-9\-.]{1,64}$/), label: safeText(160), dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) }).strict(),
-  observation: z.object({ reference: z.string().regex(/^Observation\/[A-Za-z0-9\-.]{1,64}$/), versionId: fhirId, label: safeText(160), value: z.number().finite(), unit: safeText(80), effectiveDateTime: z.string().datetime({ offset: true }) }).strict(),
-}).strict();
-
 const proposalSchema = z.object({
   description: safeText(2000),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value).optional(),
@@ -234,7 +226,7 @@ You cannot approve proposals or save FHIR resources. The reviewer owns approval.
           inputSchema: z.object({}).strict(),
           execute: async () => {
             assertActive();
-            try { context = contextSchema.parse(await this.options.readContext()); }
+            try { context = workContextSchema.parse(await this.options.readContext()); }
             catch { failureCode = "context_unavailable"; throw new Error("The fixed synthetic chart could not be read."); }
             assertActive();
             this.event(id, "chart_read", `Read ${context.patient.reference} and ${context.observation.reference}/_history/${context.observation.versionId} from the synthetic FHIR server.`);

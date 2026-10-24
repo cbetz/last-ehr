@@ -73,3 +73,42 @@ published MP4 can be checked against its SHA-256.
 The recording demonstrates synthetic persistence and approval mechanics.
 It does not establish clinical correctness, model quality, or production
 authorization.
+
+## Native Work MCP evidence walkthrough
+
+The separate `render-work-mcp.mjs` renderer creates a 60-second, 1920 × 1080,
+5 fps walkthrough of a recorded native Claude Code acceptance run. It uses
+projected fields from actual client reports and one cropped reviewer-inbox
+capture. Every scene labels this as an edited evidence walkthrough with
+synthetic data and an automated test reviewer. It is not a continuous screen
+recording, and it does not imply that a clinician reviewed the draft.
+
+The renderer reads four existing files from `artifacts/work-lab`, regardless
+of the caller's working directory: `claude-code-proposal.json`,
+`claude-code-result.json`, `claude-code-fhir-proof.json`, and
+`claude-code-reviewed.png`. The screenshot is decoded according to its actual
+PNG/JPEG bytes, even if its filename uses a different extension. These inputs
+must come from a completed acceptance run; missing evidence is never filled in.
+The [committed acceptance bundle](../../docs/evidence/work-mcp-2026-10-23.md#walkthrough-and-reproduction)
+includes commands to restore those four inputs and rerender this recorded run.
+
+```bash
+node tools/demo-video/render-work-mcp.mjs --check
+node tools/demo-video/render-work-mcp.mjs
+```
+
+Validation requires the same durable Work ID and exact proposal hash in both
+native reports, read/propose tools before review, `get_work` alone after
+reconnection, a matching separate-reviewer decision, and a verified Task
+receipt. The independent FHIR proof must record zero matching Tasks before
+approval and one exact matching Task afterward. Its missing original
+pre-approval snapshot timestamp remains explicitly disclosed. The renderer
+validates this recorded proof; it does not query FHIR or rerun an assistant.
+
+Outputs stay in ignored `artifacts/work-lab`: `work-mcp-walkthrough.mp4`,
+`work-mcp-poster.png`, three representative scene PNGs, and
+`work-mcp-render-report.json`. The report records SHA-256 hashes of all four
+inputs, renderer sources, and output assets, plus independently inspected
+encoded duration, dimensions, frame rate, and codec. Inspect all three scene
+PNGs and the MP4 before publishing. The older 90-second recording and renderer
+remain separate.
