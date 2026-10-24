@@ -1,0 +1,24 @@
+FROM node:22.18-alpine AS deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY packages/mcp/package.json ./packages/mcp/package.json
+COPY packages/conformance/package.json ./packages/conformance/package.json
+RUN npm ci
+
+FROM deps AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+COPY packages/mcp/src ./packages/mcp/src
+COPY package.json package-lock.json tsconfig.json ./
+COPY lib ./lib
+COPY scripts ./scripts
+# A new named volume inherits this ownership and private directory mode.
+# Keep the service at one replica: its durable queue is a local SQLite file.
+RUN mkdir -p /var/lib/lastehr-work/store \
+    && chown -R node:node /var/lib/lastehr-work \
+    && chmod 0700 /var/lib/lastehr-work /var/lib/lastehr-work/store
+USER node
+EXPOSE 3400
+STOPSIGNAL SIGTERM
+CMD ["node", "--import", "tsx", "scripts/work-hosted.ts", "--config", "/run/secrets/work-hosted.json"]

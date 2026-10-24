@@ -5,4 +5,7 @@ npm-debug.log
 .env
 .env.local
 .env.*.local
+work-hosted.json
+.lastehr
+artifacts
 tsconfig.tsbuildinfo

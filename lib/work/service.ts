@@ -399,16 +399,25 @@ export class DurableWorkService {
   }
 
   /** Reconcile interrupted writes by identifier; never turn an uncertain outcome into a second create. */
-  async recover(): Promise<WorkJob[]> {
-    const rows = this.db.prepare("SELECT * FROM work_jobs WHERE state IN ('committing', 'needs_reconciliation') ORDER BY created_at LIMIT 1000").all() as Row[];
+  async recover(options: { limit?: number; signal?: AbortSignal; workId?: string } = {}): Promise<WorkJob[]> {
+    const limit = options.limit === undefined ? 1000 : options.limit;
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000) throw new WorkError("invalid_input");
+    if (options.workId !== undefined && (typeof options.workId !== "string" || !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(options.workId))) throw new WorkError("invalid_input");
+    if (options.signal?.aborted) return [];
+    const rows = (options.workId !== undefined
+      ? this.db.prepare("SELECT * FROM work_jobs WHERE state IN ('committing', 'needs_reconciliation') AND id = ? ORDER BY created_at LIMIT ?").all(options.workId, limit)
+      : this.db.prepare("SELECT * FROM work_jobs WHERE state IN ('committing', 'needs_reconciliation') ORDER BY created_at LIMIT ?").all(limit)) as Row[];
+    const processed: Row[] = [];
     for (const row of rows) {
+      if (options.signal?.aborted) break;
       const job = jobFrom(row);
-      if (!this.hasBoundApproval(job)) { this.uncertain(job.id); continue; }
+      if (!this.hasBoundApproval(job)) { this.uncertain(job.id); processed.push(row); continue; }
       try {
         const match = this.uniqueMatch(await this.options.committer.findByJobId({ tenantId: job.tenantId, jobId: job.id }), job.proposal);
         if (match) this.success(job.id, match); else this.uncertain(job.id);
       } catch { this.uncertain(job.id); }
+      processed.push(row);
     }
-    return rows.map((row) => jobFrom(this.load(row.id)));
+    return processed.map((row) => jobFrom(this.load(row.id)));
   }
 }

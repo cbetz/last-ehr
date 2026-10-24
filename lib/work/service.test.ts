@@ -244,6 +244,109 @@ describe("durable synthetic work boundary", () => {
     expect(f.committer.conditionalCreate).toHaveBeenCalledTimes(1);
   });
 
+  it("does not read FHIR for an already aborted reconciliation batch", async () => {
+    const f = setup();
+    f.committer.conditionalCreate.mockRejectedValueOnce(new Error("Uncertain save"));
+    const job = await f.service.submit(assistant, input, "aborted-recovery");
+    await f.service.decide(reviewer, job.id, { decision: "approve", proposalHash: job.proposalHash });
+    f.committer.findByJobId.mockClear(); f.committer.conditionalCreate.mockClear();
+    const controller = new AbortController(); controller.abort();
+    expect(await f.service.recover({ limit: 10, signal: controller.signal })).toEqual([]);
+    expect(f.committer.findByJobId).not.toHaveBeenCalled();
+    expect(f.committer.conditionalCreate).not.toHaveBeenCalled();
+    expect((await f.service.get(assistant, job.id)).state).toBe("needs_reconciliation");
+  });
+
+  it("stops between FHIR lookups on abort and returns only the processed work", async () => {
+    const f = setup();
+    const jobs = [];
+    f.committer.conditionalCreate.mockRejectedValue(new Error("Uncertain save"));
+    for (let index = 0; index < 3; index++) {
+      const job = await f.service.submit(assistant, input, `interrupted-batch-${index}`);
+      jobs.push(job);
+      await f.service.decide(reviewer, job.id, { decision: "approve", proposalHash: job.proposalHash });
+      f.advance(1);
+    }
+    f.committer.findByJobId.mockClear(); f.committer.conditionalCreate.mockClear();
+    const controller = new AbortController();
+    f.committer.findByJobId.mockImplementation(async () => { controller.abort(); return []; });
+    const processed = await f.service.recover({ limit: 3, signal: controller.signal });
+    expect(processed.map((job) => job.id)).toEqual([jobs[0].id]);
+    expect(processed[0].state).toBe("needs_reconciliation");
+    expect(f.committer.findByJobId).toHaveBeenCalledTimes(1);
+    expect(f.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
+  it("reconciles successive bounded batches by reading exact saved Tasks without issuing more writes", async () => {
+    const f = setup();
+    const jobs = [];
+    f.committer.conditionalCreate.mockImplementation(async ({ jobId, proposal }) => {
+      f.resources.set(jobId, [recordFor(proposal, `task-${jobId}`)]);
+      throw new Error("Response lost after save");
+    });
+    for (let index = 0; index < 3; index++) {
+      const job = await f.service.submit(assistant, input, `bounded-recovery-${index}`);
+      jobs.push(job);
+      await f.service.decide(reviewer, job.id, { decision: "approve", proposalHash: job.proposalHash });
+      f.advance(1);
+    }
+    expect(f.committer.conditionalCreate).toHaveBeenCalledTimes(3);
+    f.committer.findByJobId.mockClear();
+    const recovered = [];
+    for (let index = 0; index < 3; index++) {
+      const batch = await f.service.recover({ limit: 1 });
+      expect(batch).toHaveLength(1);
+      expect(batch[0].state).toBe("succeeded");
+      recovered.push(batch[0].id);
+    }
+    expect(recovered).toEqual(jobs.map((job) => job.id));
+    expect(await f.service.recover({ limit: 1 })).toEqual([]);
+    expect(f.committer.findByJobId).toHaveBeenCalledTimes(3);
+    expect(f.committer.conditionalCreate).toHaveBeenCalledTimes(3);
+    expect(f.resources.size).toBe(3);
+  });
+
+  it("rejects invalid reconciliation limits before consulting FHIR", async () => {
+    const f = setup();
+    for (const limit of [0, -1, 1001, 1.5, Number.NaN, Number.POSITIVE_INFINITY, null as never, "10" as never]) {
+      await expect(f.service.recover({ limit })).rejects.toMatchObject({ code: "invalid_input" });
+    }
+    expect(f.committer.findByJobId).not.toHaveBeenCalled();
+    expect(f.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a specific work item past an unresolved backlog without reading other jobs", async () => {
+    const f = setup();
+    f.committer.conditionalCreate.mockRejectedValue(new Error("Uncertain save"));
+    const jobs = [];
+    for (let index = 0; index < 3; index++) {
+      const job = await f.service.submit(assistant, input, `targeted-recovery-${index}`);
+      jobs.push(job);
+      await f.service.decide(reviewer, job.id, { decision: "approve", proposalHash: job.proposalHash });
+      f.advance(1);
+    }
+    const target = jobs[2];
+    f.resources.set(target.id, [recordFor(target.proposal)]);
+    f.committer.findByJobId.mockClear(); f.committer.conditionalCreate.mockClear();
+    expect(await f.service.recover({ workId: target.id, limit: 1 })).toMatchObject([{ id: target.id, state: "succeeded", receipt: { id: "task-created" } }]);
+    expect(f.committer.findByJobId).toHaveBeenCalledExactlyOnceWith({ tenantId: assistant.tenantId, jobId: target.id });
+    expect((await f.service.get(assistant, jobs[0].id)).state).toBe("needs_reconciliation");
+    expect((await f.service.get(assistant, jobs[1].id)).state).toBe("needs_reconciliation");
+    expect(await f.service.recover({ workId: target.id })).toEqual([]);
+    expect(await f.service.recover({ workId: "00000000-0000-4000-8000-000000000000" })).toEqual([]);
+    expect(f.committer.findByJobId).toHaveBeenCalledTimes(1);
+    expect(f.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed target IDs instead of interpolating them into recovery queries", async () => {
+    const f = setup();
+    for (const workId of ["", "not-a-uuid", "' OR 1=1 --", "00000000-0000-0000-0000-000000000000", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"]) {
+      await expect(f.service.recover({ workId })).rejects.toMatchObject({ code: "invalid_input" });
+    }
+    expect(f.committer.findByJobId).not.toHaveBeenCalled();
+    expect(f.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
   it("reconciles persisted committing state after restart only with a bound approval", async () => {
     const f = setup();
     const approved = await f.service.submit(assistant, input, "approved");
