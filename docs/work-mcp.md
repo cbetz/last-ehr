@@ -17,8 +17,8 @@ in prompts and Task descriptions. Review happens after the assistant has read
 the synthetic chart; a later approval is not permission for an earlier data
 disclosure.
 
-Watch the [60-second native-client walkthrough](/demo/work-mcp-walkthrough.mp4)
-with [captions](/demo/work-mcp-walkthrough.vtt). It combines recorded client
+Watch the [60-second native-client walkthrough](https://www.lastehr.com/demo/work-mcp-walkthrough.mp4)
+with [captions](https://www.lastehr.com/demo/work-mcp-walkthrough.vtt). It combines recorded client
 reports and an actual reviewer-inbox capture; it is edited, uses synthetic
 data, and labels the automated test reviewer. The
 [acceptance record](./evidence/work-mcp-2026-10-23.md) includes the underlying

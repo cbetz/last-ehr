@@ -1,0 +1,48 @@
+WEBVTT
+
+NOTE Edited evidence walkthrough using recorded native-client reports and an actual reviewer-inbox capture. Synthetic data only. The separate reviewer was an automated test reviewer; this is not a continuous screen recording.
+
+1
+00:00:00.000 --> 00:00:05.000
+Edited evidence walkthrough.
+Synthetic data; automated test reviewer.
+
+2
+00:00:05.000 --> 00:00:12.000
+A real Claude Code client reads the bounded chart
+and submits a draft through Last's MCP connector.
+
+3
+00:00:12.000 --> 00:00:20.000
+The client exits while the draft awaits review.
+No FHIR Task has been saved by this work item.
+
+4
+00:00:20.000 --> 00:00:27.000
+Last's separate reviewer inbox shows the exact draft,
+source version, and proposal hash.
+
+5
+00:00:27.000 --> 00:00:34.000
+An automated test reviewer approves the draft.
+The assistant has no reviewer key or approval tool.
+
+6
+00:00:34.000 --> 00:00:40.000
+Last independently verifies Task/1034, version 1.
+The receipt records a requested follow-up.
+
+7
+00:00:40.000 --> 00:00:48.000
+A fresh Claude Code process reconnects using get_work
+and retrieves the result for the same Work ID.
+
+8
+00:00:48.000 --> 00:00:55.000
+An independent FHIR GET finds exactly one matching Task
+and confirms its fields match the approved draft.
+
+9
+00:00:55.000 --> 00:01:00.000
+The assistant reports the verified save.
+Patient contact has not been performed.

@@ -1,0 +1,73 @@
+{
+  "client": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "mode": "status",
+  "toolsUsed": [
+    "mcp__last-work__get_work"
+  ],
+  "workId": "0eb67b52-99c7-482b-a365-755896c92e7b",
+  "job": {
+    "id": "0eb67b52-99c7-482b-a365-755896c92e7b",
+    "tenantId": "synthetic-work-lab",
+    "requestedBy": "assistant-lab",
+    "reviewerSubject": "reviewer-lab",
+    "state": "succeeded",
+    "createdAt": "2026-10-24T01:07:42.445Z",
+    "updatedAt": "2026-10-24T01:08:14.695Z",
+    "expiresAt": "2026-10-25T01:07:42.445Z",
+    "input": {
+      "patientId": "1000",
+      "source": {
+        "reference": "Observation/1001",
+        "versionId": "1"
+      },
+      "description": "Care-team review requested for synthetic patient Alex Synthetic Worklab (Patient/1000).\n\nObservation: Demonstration HbA1c result (synthetic)\n- Result: 6.4%\n- Effective Date: 2026-01-01\n\nPlease review this HbA1c value and determine whether any clinical follow-up or care-plan adjustment is warranted. This draft is submitted for separate reviewer decision only. No patient contact has been made or should be made by this agent.",
+      "dueDate": "2026-11-01"
+    },
+    "proposal": {
+      "resourceType": "Task",
+      "identifier": [
+        {
+          "system": "https://lastehr.com/work-lab/job",
+          "value": "0eb67b52-99c7-482b-a365-755896c92e7b"
+        }
+      ],
+      "status": "requested",
+      "intent": "order",
+      "for": {
+        "reference": "Patient/1000"
+      },
+      "focus": {
+        "reference": "Observation/1001"
+      },
+      "input": [
+        {
+          "type": {
+            "text": "Reviewed source version"
+          },
+          "valueString": "Observation/1001/_history/1"
+        }
+      ],
+      "description": "Care-team review requested for synthetic patient Alex Synthetic Worklab (Patient/1000).\n\nObservation: Demonstration HbA1c result (synthetic)\n- Result: 6.4%\n- Effective Date: 2026-01-01\n\nPlease review this HbA1c value and determine whether any clinical follow-up or care-plan adjustment is warranted. This draft is submitted for separate reviewer decision only. No patient contact has been made or should be made by this agent.",
+      "restriction": {
+        "period": {
+          "end": "2026-11-01"
+        }
+      }
+    },
+    "proposalHash": "74b57107759419250a7f2bf6596274ab11fcd77dba4c480d8fc76a3a98e24c26",
+    "decision": {
+      "decision": "approve",
+      "subject": "reviewer-lab",
+      "at": "2026-10-24T01:08:14.516Z",
+      "proposalHash": "74b57107759419250a7f2bf6596274ab11fcd77dba4c480d8fc76a3a98e24c26"
+    },
+    "receipt": {
+      "resourceType": "Task",
+      "id": "1034",
+      "versionId": "1",
+      "verifiedAt": "2026-10-24T01:08:14.695Z"
+    }
+  },
+  "message": "Last independently verified Task/1034 in FHIR after reviewer approval. This records a requested follow-up; it does not mean the patient was contacted."
+}
