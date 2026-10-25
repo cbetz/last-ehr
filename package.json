@@ -54,7 +54,7 @@
     "@medplum/core": "5.1.13",
     "@medplum/fhirtypes": "5.1.13",
     "@medplum/react-hooks": "5.1.13",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@neondatabase/serverless": "^1.1.0",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -84,7 +84,7 @@
     "remark-parse": "11.0.0",
     "tailwind-merge": "^3.6.0",
     "unified": "11.0.5",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "overrides": {
     "postcss": "^8.5.10"

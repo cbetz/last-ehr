@@ -268,6 +268,28 @@ describe("hosted assistant-only Work MCP transport", () => {
     expect(instance.handler.sessionCount()).toBe(0);
   });
 
+  it("bounds collection size and nesting before SDK validation, including within an established session", async () => {
+    const instance = await rig();
+    const initialization = initialize(1);
+    const manyCapabilities = { ...initialization, params: { ...initialization.params, capabilities: { experimental: Object.fromEntries(Array.from({ length: 257 }, (_, index) => [`key${index}`, {}])) } } };
+    expect(Buffer.byteLength(JSON.stringify(manyCapabilities))).toBeLessThan(16 * 1024);
+    expect((await raw(instance, { token: "token-a", body: manyCapabilities })).status).toBe(413);
+    expect(instance.handler.sessionCount()).toBe(0);
+    let nested: unknown = {};
+    for (let index = 0; index < 20; index++) nested = { child: nested };
+    expect((await raw(instance, { token: "token-a", body: { ...initialization, params: { ...initialization.params, _meta: nested } } })).status).toBe(413);
+    expect(instance.handler.sessionCount()).toBe(0);
+
+    const { client, transport } = await connect(instance);
+    const args = { description: "invented", extra: Array.from({ length: 257 }, () => 0) };
+    const oversizedStructure = { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "propose_work", arguments: args } };
+    expect(Buffer.byteLength(JSON.stringify(oversizedStructure))).toBeLessThan(16 * 1024);
+    expect((await raw(instance, { token: "token-a", sessionId: transport.sessionId, body: oversizedStructure })).status).toBe(413);
+    expect(instance.readContext).not.toHaveBeenCalled();
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
+    expect((await call(client, "read_work_context", {})).structuredContent?.context).toEqual(context);
+  });
+
   it("never allocates a session when shutdown finishes during token verification", async () => {
     const instance = await rig();
     let resolveIdentity!: (value: { actor: WorkActor; principal: string; expiresAt: number }) => void;
