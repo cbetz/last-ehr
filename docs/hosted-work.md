@@ -8,7 +8,26 @@ invented fixture used by the [local Work Lab](./assistant-work.md).
 
 An **allowlisted synthetic pilot** is running at
 [work.lastehr.com](https://work.lastehr.com), separately from the marketing
-site's Vercel deployment. On October 24, 2026 (October 25 UTC), a scripted
+site's Vercel deployment. On October 25, 2026, **native Grok Bot 0.75.8 drafted
+work from an ordinary request**, a human approved it in Last, and Grok retrieved
+the verified Task receipt. The assistant used a dedicated user-delegated OAuth
+connection with `work:assistant offline_access`.
+
+The initial request failed to find the connector. Naming **Last Work Native**
+and clarifying its connection status allowed the Bot to resume. The operator
+supplied no draft wording, tool arguments, or idempotency key. After the human
+approved the draft, asking “Approved. Did it save?” returned the saved Task
+and version without supplying its ID or hash. Grok did not claim patient
+contact. Independent private-store and FHIR checks found one new job, zero
+matching Tasks before approval, and exactly one matching Task afterward;
+the approved fields, assistant ownership, historical Tasks and runtime matched.
+
+This is native UI observation backed by independent stored-state checks.
+The app did not expose raw tool payloads. An earlier native Bot run used
+operator-specified draft text and tool arguments; that prescribed round trip
+is separate from this model-written draft. Grok chat remains unverified.
+
+On October 24, 2026 (October 25 UTC), a scripted
 MCP SDK client proposed work, a separate reviewer signed in through real
 OIDC and authorized approval, and private FHIR checks found **zero matching Tasks
 before approval and exactly one afterward**. Exact Task readback and the
@@ -29,9 +48,8 @@ matched Last through a fresh SDK read; **the original provider tool success
 status remains unresolved**. The later Grok receipt read passed with retained
 provider classifications. This is qualified API evidence.
 
-This deployment allows one assistant identity and one reviewer; access is
-operator configured. It has no self-serve enrollment. **Grok chat and the
-Grok Bot client remain unverified.** The local
+Access is operator configured for explicitly allowlisted assistant identities
+and one reviewer. The deployment has no self-serve enrollment. The local
 [Claude Code acceptance](./evidence/work-mcp-2026-10-23.md) is a separate
 native-client result with its own tested scope.
 
@@ -185,9 +203,17 @@ reach this service from that computer.
 
 ### Persistent assistant sign-in with Auth0
 
-The proposed native Grok Bot OAuth connection and automatic token renewal
-are **pending verification**. The setup below follows provider documentation;
-it does not establish that the live Bot has completed sign-in or refresh.
+The native test above used the OAuth configuration below. Grok Bot's native
+Authenticate action did not launch a browser, so authorization was completed
+through the same connector in Cursor's web interface. The saved grant named
+the intended distinct Google assistant user, Work audience and only
+`work:assistant offline_access`. The separate reviewer's Google sign-in was
+verified after configuration, with the existing first-party assignments
+preserved.
+
+Auth0 recorded a successful refresh-token exchange. A read-only native call
+after the original one-hour access token expires is still pending, so
+**unattended renewal after access-token expiry is not yet verified**.
 
 Pre-register a dedicated **third-party Native/public** Auth0 client with
 authorization code + PKCE S256, token endpoint authentication `none`, and
@@ -210,7 +236,7 @@ host's secure HTTP MCP configuration:
 ```json
 {
   "mcpServers": {
-    "Last Work": {
+    "Last Work Native": {
       "url": "https://work.lastehr.com/mcp",
       "auth": {
         "CLIENT_ID": "YOUR_PUBLIC_ASSISTANT_CLIENT_ID",
@@ -220,6 +246,10 @@ host's secure HTTP MCP configuration:
   }
 }
 ```
+
+This is the full `mcp.json` shape. Cursor web's **Edit JSON** dialog expects
+only the inner server map: start with `"Last Work Native"` inside the outer
+braces and omit the `mcpServers` wrapper.
 
 Public PKCE uses no `CLIENT_SECRET` or manually copied bearer header. Verify
 the native authorization request actually includes those scopes, the exact
@@ -274,20 +304,24 @@ After deploying the service and identity provider:
    configure the narrowly scoped, short-lived assistant token through the
    host's secure credential UI when that mode is available. Never put it in
    a prompt, command argument, shared Bot template, or screenshot.
-2. Confirm exactly the four advertised Work tools. Ask for a synthetic
-   care-team review draft, with a saved idempotency key and the exact source
-   version returned by `read_work_context`. Copy its top-level `contextReceipt`
-   exactly into `propose_work.contextReceipt`, including when the client opens
-   a different MCP connection for the proposal.
-3. Keep the returned Work ID, close that client conversation/session, and
-   verify that no matching Task exists before approval.
+2. Confirm exactly the four advertised Work tools. Name the connector in an
+   ordinary request, for example: “Using Last Work Native, look at Alex's
+   synthetic chart and draft a follow-up task for me to review.” Let the Bot
+   compose the draft. The tool instructions require it to retain the exact
+   source version, chart-read receipt and submission key; no draft wording or
+   tool arguments need to be supplied in the request.
+3. Keep the returned Work ID and independently verify that the draft is
+   pending and no matching Task exists before approval. If the client cannot
+   find the connector, resolve that connection first; do not submit a second
+   draft to repair a missing or uncertain result.
 4. In the separate human-owned reviewer browser, sign in to Last, inspect
    the exact resource/source/hash, and approve it. Independently query the
    private FHIR backend by its work identifier and compare the saved fields.
-5. Reconnect the external client and use `get_work` with the same Work ID.
-   It must return `succeeded` and the exact verified Task receipt without
-   resubmitting a draft. Repeat with a different proposal and decline it;
-   no matching Task should be created.
+5. Back in the same Bot conversation, ask “Approved. Did it save?” Compare its
+   answer with Last's verified receipt. To test a new client session separately,
+   reconnect and retrieve that same Work ID with `get_work`; it must return
+   `succeeded` and the exact receipt without resubmitting. A separate declined
+   proposal must leave no matching Task.
 
 Every HTTP MCP request revalidates the token. A session is bound to its
 authenticated issuer/client/subject identity and capped by its initial token
@@ -321,12 +355,15 @@ This receipt is proof of a chart read, not reviewer approval or a FHIR save.
 The same four tools and separate human review remain in place; no model
 provider key is needed by Last for this mechanism.
 
-Record the exact client/version, source revision, deployment, actual tool
-calls, separate review method, before/after FHIR assertions, and reconnect
-receipt. Claim Grok Bot compatibility only after this actual-client sequence
-passes. The qualified Grok API run above does not verify that Bot connection.
+Record the exact client/version, source revision, deployment, visible native
+activity, separate review method, before/after FHIR assertions and receipt.
+Distinguish observed UI text from raw tool payloads when the client does not
+expose them. Record any connector-discovery clarification or setup fallback;
+do not describe that run as an uninterrupted single-request flow. The native
+test above verifies its observed scope; the qualified Grok API run does not
+verify a Bot connection, reconnect or post-expiry renewal.
 The checkout's automated HTTP/OIDC fixtures use simulated identities and an
-automated reviewer; they are separate from both public pilot records.
+automated reviewer; they are separate from these live pilot observations.
 
 All prompts, chart data, Task descriptions, and demonstrations remain wholly
 invented. This service does not establish clinical correctness, real-chart
