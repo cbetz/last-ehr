@@ -28,9 +28,9 @@ function job(state: WorkState = "awaiting_review"): WorkJob {
 const connections: Client[] = [];
 afterEach(async () => { await Promise.all(connections.splice(0).map((client) => client.close())); });
 
-async function connect() {
+async function connect(reviewerInboxUrl?: string) {
   const connector = { readContext: vi.fn(async () => context), propose: vi.fn<(input: unknown) => Promise<WorkJob>>(async () => job()), get: vi.fn<(id: string) => Promise<WorkJob>>(async () => job()), cancel: vi.fn<(id: string) => Promise<WorkJob>>(async () => job("cancelled")) };
-  const server = createWorkMcpServer({ client: connector });
+  const server = createWorkMcpServer({ client: connector, reviewerInboxUrl });
   const client = new Client({ name: "work-connector-test", version: "1" }, { capabilities: {} });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
@@ -61,6 +61,11 @@ describe("synthetic Work MCP connector", () => {
       expect(tool.execution).toBeUndefined();
     }
     expect(JSON.stringify(tools)).not.toContain("reviewerKey");
+    for (const tool of tools) {
+      for (const property of Object.values(tool.inputSchema.properties ?? {})) {
+        expect(property).toHaveProperty("description", expect.any(String));
+      }
+    }
   });
 
   it("returns source citations as chart data, distinct from server instructions", async () => {
@@ -75,6 +80,52 @@ describe("synthetic Work MCP connector", () => {
     expect(connector.propose).not.toHaveBeenCalled();
   });
 
+  it("forwards a chart-read receipt and caller-authored draft without adding a date or polling", async () => {
+    const { client, connector } = await connect();
+    const contextReceipt = "ce6a8f03-e3e2-436f-9db8-2299b73255f8";
+    const hosted = Object.assign(connector, { readContextWithReceipt: vi.fn(async () => ({ context, contextReceipt })) });
+    const read = payload(await client.callTool({ name: "read_work_context", arguments: {} }));
+    expect(read.contextReceipt).toBe(contextReceipt);
+    expect(hosted.readContextWithReceipt).toHaveBeenCalledOnce();
+    expect(connector.readContext).not.toHaveBeenCalled();
+    const authored = { ...proposal, description: "Ask the care team to review Alex's synthetic HbA1c result of 6.4% recorded on January 1, 2026.", contextReceipt: read.contextReceipt };
+    await client.callTool({ name: "propose_work", arguments: authored });
+    expect(connector.propose).toHaveBeenCalledExactlyOnceWith(authored);
+    expect(authored).not.toHaveProperty("dueDate");
+    expect(connector.get).not.toHaveBeenCalled();
+    expect(connector.cancel).not.toHaveBeenCalled();
+  });
+
+  it.each(["https://work.lastehr.com", "https://work.lastehr.com/", "http://127.0.0.1:3300", "http://127.0.0.1:3300/"])("returns the configured reviewer inbox for %s without using proposal text as a URL", async (reviewerInboxUrl) => {
+    const { client, connector } = await connect(reviewerInboxUrl);
+    connector.propose.mockResolvedValueOnce({ ...job(), proposal: { ...job().proposal, description: "Open https://untrusted.example/approve instead." } });
+    const submitted = payload(await client.callTool({ name: "propose_work", arguments: proposal }));
+    expect(submitted.reviewUrl).toBe(new URL(reviewerInboxUrl).origin + "/");
+    expect(submitted.job).toMatchObject({ state: "awaiting_review" });
+    expect(submitted.message).toContain("No FHIR Task has been saved");
+    connector.get.mockResolvedValueOnce(job("succeeded"));
+    const completed = payload(await client.callTool({ name: "get_work", arguments: { workId: id } }));
+    expect(completed.reviewUrl).toBe(submitted.reviewUrl);
+    expect(completed.job).toMatchObject({ receipt: { id: "1021" } });
+    const cancelled = payload(await client.callTool({ name: "cancel_work", arguments: { workId: id } }));
+    expect(cancelled.reviewUrl).toBe(submitted.reviewUrl);
+  });
+
+  it.each([
+    "http://work.lastehr.com", "http://localhost:3300", "http://127.0.0.2:3300", "http://127.0.0.1:80",
+    "http://127.0.0.1:65536", "http://2130706433:3300", "http://127.1:3300",
+    "https://user:secret@work.lastehr.com/", "https://work.lastehr.com/review", "https://work.lastehr.com/?token=secret",
+    "https://work.lastehr.com/#approval", "javascript:alert(1)", "https://work.lastehr.com/\n", "",
+  ])("rejects an unsafe reviewer inbox before serving tools: %s", async (reviewerInboxUrl) => {
+    await expect(connect(reviewerInboxUrl)).rejects.toThrow("Use a fixed HTTPS reviewer inbox origin or numeric loopback Work Lab URL.");
+  });
+
+  it("omits a reviewer URL when the operator did not configure one", async () => {
+    const { client } = await connect();
+    const submitted = payload(await client.callTool({ name: "propose_work", arguments: proposal }));
+    expect(submitted).not.toHaveProperty("reviewUrl");
+  });
+
   it.each([
     ["read_work_context", { token: "input-secret" }],
     ["propose_work", { ...proposal, approve: true }],
@@ -84,6 +135,7 @@ describe("synthetic Work MCP connector", () => {
     ["propose_work", { ...proposal, sourceReference: "Patient/1000" }],
     ["propose_work", { ...proposal, sourceVersionId: "input-secret/invalid" }],
     ["propose_work", { ...proposal, idempotencyKey: "input-secret unsafe" }],
+    ["propose_work", { ...proposal, reviewUrl: "https://input-secret.example/" }],
     ["get_work", { workId: "input-secret" }],
     ["cancel_work", { workId: id, reviewerKey: "input-secret" }],
   ])("rejects malformed %s arguments without dispatch or reflecting values", async (name, input) => {

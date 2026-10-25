@@ -173,11 +173,18 @@ read; the assistant does not supply a patient ID to `propose_work`.
 This interface needs ordinary stdio MCP tools, without a host elicitation
 capability; review takes place in Last's separate browser inbox.
 
-Ask the external assistant:
+Ask the external assistant in ordinary language:
 
-> Read the allowed synthetic chart with Last's work tools. Draft a follow-up
-> Task for the care team to review the selected result. Submit it for separate
-> review, then return its Work ID and stop. Do not claim that it was saved.
+> In Last, look at Alex's synthetic chart and draft a follow-up task for me
+> to review.
+
+The server instructions tell the assistant to write an administrative draft,
+copy the source version and any chart-read receipt, and retain one submission
+key for the request. They guide the model; they do not validate the clinical
+meaning of its text. Inspect the actual draft before approving it in Last.
+The hosted connector returns a `reviewUrl` for the separate reviewer inbox.
+The assistant should show that link and retain the Work ID for a later
+"Did it save?" request, without asking the user to manage tool arguments.
 
 `propose_work` takes `description`, `sourceReference`, `sourceVersionId`,
 `idempotencyKey`, and optional `dueDate` and `contextReceipt`. Read context

@@ -296,7 +296,10 @@ export function createHostedWorkMcpHandler(options: HostedWorkMcpOptions): Hoste
       } else {
         if (req.method !== "POST" || !isJSONRPCRequest(body) || !isInitializeRequest(body) || !InitializeRequestSchema.safeParse(body).success) { rpcError(res, 400, "A session initialization request is required."); return; }
         if (active.size >= limits.maxSessions || [...active].filter((item) => item.principal === principal).length >= limits.maxSessionsPerPrincipal) { rpcError(res, 503, "Session capacity is unavailable.", { "retry-after": "30" }); return; }
-        const server = createWorkMcpServer({ client: directConnector(options, actor, () => { if (!pending || stale(pending)) throw new WorkConnectorError("unauthorized"); }, receipts, () => ({ principal, actor, expiresAt: pending.expiresAt })) });
+        const server = createWorkMcpServer({
+          client: directConnector(options, actor, () => { if (!pending || stale(pending)) throw new WorkConnectorError("unauthorized"); }, receipts, () => ({ principal, actor, expiresAt: pending.expiresAt })),
+          reviewerInboxUrl: publicUrl.origin,
+        });
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: randomUUID, enableJsonResponse: true,
           onsessioninitialized: (id) => {

@@ -155,6 +155,8 @@ describe("hosted assistant-only Work MCP transport", () => {
     expect(chart.structuredContent?.context).toEqual(context);
     const submitted = await call(client, "propose_work", input);
     const job = submitted.structuredContent?.job as WorkJob;
+    expect(submitted.structuredContent?.reviewUrl).toBe(`${instance.url.origin}/`);
+    expect(job).not.toHaveProperty("reviewUrl");
     expect(job.state).toBe("awaiting_review");
     expect(job.input.patientId).toBe("synthetic-patient");
     expect(instance.readContext).toHaveBeenCalledTimes(2);
@@ -164,6 +166,7 @@ describe("hosted assistant-only Work MCP transport", () => {
     expect(completed.state).toBe("succeeded");
     const result = await call(client, "get_work", { workId: job.id });
     expect(result.structuredContent?.job).toEqual(completed);
+    expect(result.structuredContent?.reviewUrl).toBe(`${instance.url.origin}/`);
     expect(result.structuredContent?.message).toContain("independently verified Task/synthetic-task-1");
     expect(instance.records).toHaveLength(1);
     expect(instance.records[0].resource).toEqual({ ...job.proposal, id: "synthetic-task-1", meta: { versionId: "1" } });
