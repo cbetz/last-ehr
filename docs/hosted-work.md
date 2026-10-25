@@ -189,31 +189,69 @@ The proposed native Grok Bot OAuth connection and automatic token renewal
 are **pending verification**. The setup below follows provider documentation;
 it does not establish that the live Bot has completed sign-in or refresh.
 
-Pre-register a separate Auth0 assistant client. Prefer a Native/public client
-using authorization code + PKCE S256, token endpoint authentication `none`,
-and the `authorization_code` and `refresh_token` grants. Register the exact
-cloud callback `https://www.cursor.com/agents/mcp/oauth/callback`. Cursor staff
-identifies this as the Grok Bot callback; `http://localhost:8787/callback` is
-the local IDE flow. Use the actual static `CLIENT_ID` in the secure HTTP MCP
-configuration, without a client secret for a public client. This route does
-not require Dynamic Client Registration or a change to Last's reviewer client.
-[Cursor OAuth configuration](https://cursor.com/docs/mcp),
-[Grok Bot callback clarification](https://forum.cursor.com/t/grok-bot-cloud-mcp-oauth-leaves-env-asana-client-id-unsubstituted/168404),
-[Auth0 Native clients](https://auth0.com/docs/get-started/auth0-overview/create-applications/native-apps)
+Pre-register a dedicated **third-party Native/public** Auth0 client with
+authorization code + PKCE S256, token endpoint authentication `none`, and
+only the `authorization_code` and `refresh_token` grants. Cursor operates the
+OAuth client and callback; creating its registration yourself does not make
+that runtime a first-party Last application. Ownership is fixed at creation.
+Auth0's strict third-party mode requires consent and currently excludes
+OIDC scopes and ID tokens, so request `work:assistant offline_access` without
+`openid`, `profile`, or `email`. Last verifies the access token's subject;
+the separate reviewer keeps its existing OIDC flow.
+[Application ownership](https://auth0.com/docs/get-started/applications/first-party-and-third-party-applications),
+[Strict third-party controls](https://auth0.com/docs/get-started/applications/third-party-applications/security-controls)
 
-Enable Auth0's **Resource Parameter Compatibility Profile** so the MCP
-`resource` value becomes the token audience. For this deployment it must be
-`https://work.lastehr.com/mcp`. Enable **Allow Offline Access** on that API,
-authorize only `work:assistant` for the assistant client, and request
-`openid work:assistant offline_access` explicitly through the host's scope
-configuration. Cursor documents `auth.scopes` for static OAuth configuration;
-verify the actual native authorization request includes those scopes and
-the expected resource and callback. Configure rotating refresh tokens with
-explicit inactivity and maximum lifetimes. Grok Bot documents that connected
-app tokens remain on Cursor's backend, outside the Bot's computer and model.
-[Auth0 resource compatibility](https://auth0.com/ai/docs/mcp/guides/resource-param-compatibility-profile),
-[Refresh token requirements](https://auth0.com/docs/secure/tokens/refresh-tokens/get-refresh-tokens),
-[Refresh token rotation](https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation),
+Register only `https://www.cursor.com/agents/mcp/oauth/callback` for this
+cloud connection. Cursor staff identifies it as the Grok Bot callback;
+`http://localhost:8787/callback` is the local IDE flow. This pre-registered
+route needs no Dynamic Client Registration. Use the actual client ID in the
+host's secure HTTP MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "Last Work": {
+      "url": "https://work.lastehr.com/mcp",
+      "auth": {
+        "CLIENT_ID": "YOUR_PUBLIC_ASSISTANT_CLIENT_ID",
+        "scopes": ["work:assistant", "offline_access"]
+      }
+    }
+  }
+}
+```
+
+Public PKCE uses no `CLIENT_SECRET` or manually copied bearer header. Verify
+the native authorization request actually includes those scopes, the exact
+callback, and `resource=https://work.lastehr.com/mcp`.
+[Cursor OAuth configuration](https://cursor.com/docs/mcp),
+[Grok Bot callback clarification](https://forum.cursor.com/t/grok-bot-cloud-mcp-oauth-leaves-env-asana-client-id-unsubstituted/168404)
+
+Check that Auth0's **Resource Parameter Compatibility Profile** and **Include
+Issuer in Authorization Responses** are enabled; leave existing enabled
+values unchanged. On the Work API, enable **Allow Offline Access**, set
+**User-Delegated Access** to **Per-app authorization**, and grant only the
+new client `work:assistant` with subject type `user`. Keep the existing
+client-access policy, M2M grant, reviewer configuration, and first-party
+consent setting. Third-party consent remains mandatory.
+[Resource compatibility](https://auth0.com/ai/docs/mcp/guides/resource-param-compatibility-profile),
+[Per-application API grants](https://auth0.com/docs/get-started/applications/application-access-to-apis-client-grants)
+
+Google must be a domain-level connection for this login. In the existing
+Google social connection's Settings, enable **Promote Connection to Domain
+Level** and save. This changes the shared connection, making Google login
+available to all third-party clients in the tenant; it does not grant API
+access. Preserve its Google credentials, scopes, and first-party application
+assignments. Check those assignments before and after saving, including that
+the reviewer remains enabled, and verify reviewer sign-in still works.
+[Domain-level connections](https://auth0.com/docs/authenticate/identity-providers/promote-connections-to-domain-level)
+
+Configure rotating, expiring refresh tokens with a **604800-second maximum
+(seven days)** and **86400-second idle lifetime (one day)**, with both infinite
+lifetime options disabled. Retain the one-hour access-token lifetime. Grok
+Bot documents that connected-app tokens remain on Cursor's backend, outside
+the Bot's computer and model.
+[Refresh expiration](https://auth0.com/docs/secure/tokens/refresh-tokens/configure-refresh-token-expiration),
 [Grok Bot token custody](https://cursor.com/docs/grok-bot/work#connect-apps)
 
 Sign in with a distinct Google assistant user, then allowlist its exact
