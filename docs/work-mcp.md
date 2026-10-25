@@ -180,12 +180,28 @@ Ask the external assistant:
 > review, then return its Work ID and stop. Do not claim that it was saved.
 
 `propose_work` takes `description`, `sourceReference`, `sourceVersionId`,
-`idempotencyKey`, and optional `dueDate`. Read context first in the same MCP
-connection and copy the source reference and version exactly. `dueDate` is a
-valid calendar date in `YYYY-MM-DD` form. Descriptions are limited to 2,000
-characters. The idempotency key is 1–128 letters, digits, `.`, `_`, `:`, or
-`-`. Reuse the same key only for an identical proposal retry; changed content
-with the same key conflicts. Use a fresh key for separate work.
+`idempotencyKey`, and optional `dueDate` and `contextReceipt`. Read context
+first and copy the source reference and version exactly. The local stdio
+connector uses a read from the same connection. When a chart read returns a
+top-level `contextReceipt`, copy it exactly into the proposal as well.
+`dueDate` is a valid calendar date in `YYYY-MM-DD` form. Descriptions are
+limited to 2,000 characters. The idempotency key is 1–128 letters, digits,
+`.`, `_`, `:`, or `-`. Reuse the same key only for an identical proposal retry;
+changed content with the same key conflicts. Use a fresh key for separate work,
+never to replace an uncertain submission.
+
+The [hosted HTTP service](./hosted-work.md#carry-a-chart-read-across-connections)
+returns an opaque `contextReceipt` so the same verified principal, tenant,
+and assistant subject can carry chart-read proof to a different connection.
+Only the latest read for that identity remains valid, for at most five minutes
+and no later than the originating token's expiry. Receipts live in memory and
+are invalidated by restart or shutdown. A new connection must supply the
+receipt; it cannot implicitly reuse another connection's read. Clients that
+omit the field can still use their own connection's last receipt. Read again
+after expiry or a failed or changed chart refresh. Each proposal freshly
+checks the patient, source reference, and version. A chart-read receipt does
+not approve work, change the separate human review, or require another tool
+or provider key.
 
 In the separate reviewer browser, sign in at `http://127.0.0.1:3300/` with the
 reviewer key. Inspect the exact Task, source version, and proposal hash, then

@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { WorkConnectorError } from "./connector-client";
 import { workContextSchema, type WorkAssistantContext } from "./context";
+import { createWorkContextReceiptStore, type WorkContextReceiptIdentity, type WorkContextReceiptStore } from "./context-receipts";
 import { createWorkMcpServer } from "./mcp";
 import { WorkError, type DurableWorkService, type WorkActor } from "./service";
 
@@ -49,6 +50,7 @@ const proposalSchema = z.object({
   sourceReference: z.string().regex(/^Observation\/[A-Za-z0-9.-]{1,64}$/),
   sourceVersionId: z.string().regex(/^[A-Za-z0-9.-]{1,64}$/),
   idempotencyKey: z.string().regex(/^[A-Za-z0-9._:-]{1,128}$/),
+  contextReceipt: z.string().uuid().optional(),
 }).strict();
 
 type Session = {
@@ -143,8 +145,8 @@ function readBody(req: IncomingMessage, limits: HostedWorkMcpLimits): Promise<{ 
   });
 }
 
-function directConnector(options: HostedWorkMcpOptions, actor: WorkActor, ensureActive: () => void) {
-  let context: WorkAssistantContext | undefined;
+function directConnector(options: HostedWorkMcpOptions, actor: WorkActor, ensureActive: () => void, receipts: WorkContextReceiptStore, identity: () => WorkContextReceiptIdentity) {
+  let contextReceipt: string | undefined;
   const read = async () => {
     ensureActive();
     const parsed = workContextSchema.safeParse(await options.readContext());
@@ -160,19 +162,41 @@ function directConnector(options: HostedWorkMcpOptions, actor: WorkActor, ensure
       throw new WorkConnectorError("request_failed");
     }
   };
+  const readContextWithReceipt = () => mapped(async () => {
+    contextReceipt = undefined;
+    const ticket = receipts.begin(identity());
+    try {
+      const result = receipts.complete(ticket, await read());
+      contextReceipt = result.contextReceipt;
+      return result;
+    } catch (error) {
+      receipts.invalidate(ticket);
+      throw error;
+    }
+  });
   return {
-    readContext: () => mapped(async () => { context = undefined; context = await read(); return structuredClone(context); }),
+    readContext: async () => (await readContextWithReceipt()).context,
+    readContextWithReceipt,
     propose: (input: unknown) => mapped(async () => {
       const parsed = proposalSchema.safeParse(input);
       if (!parsed.success) throw new WorkConnectorError("invalid_input");
-      if (!context) throw new WorkConnectorError("context_required");
       const value = parsed.data;
-      if (value.sourceReference !== context.observation.reference || value.sourceVersionId !== context.observation.versionId) throw new WorkConnectorError("source_mismatch");
-      const previous = context;
-      context = undefined;
-      const current = await read();
-      if (current.patient.reference !== previous.patient.reference || current.observation.reference !== previous.observation.reference || current.observation.versionId !== previous.observation.versionId) throw new WorkConnectorError("source_mismatch");
-      context = current;
+      const receipt = value.contextReceipt ?? contextReceipt;
+      if (!receipt) throw new WorkConnectorError("context_required");
+      const previous = receipts.get(identity(), receipt);
+      if (value.sourceReference !== previous.observation.reference || value.sourceVersionId !== previous.observation.versionId) throw new WorkConnectorError("source_mismatch");
+      let current: WorkAssistantContext;
+      try {
+        current = await read();
+        // A newer read, failed refresh, or expiry during this await must not
+        // restore older evidence or permit a stale draft to reach submit.
+        receipts.get(identity(), receipt);
+        if (current.patient.reference !== previous.patient.reference || current.observation.reference !== previous.observation.reference || current.observation.versionId !== previous.observation.versionId) throw new WorkConnectorError("source_mismatch");
+      } catch (error) {
+        receipts.invalidateReceipt(identity(), receipt);
+        if (contextReceipt === receipt) contextReceipt = undefined;
+        throw error;
+      }
       ensureActive();
       return options.service.submit(actor, { patientId: current.patient.reference.slice("Patient/".length), source: { reference: value.sourceReference, versionId: value.sourceVersionId }, description: value.description, ...(value.dueDate ? { dueDate: value.dueDate } : {}) }, value.idempotencyKey);
     }),
@@ -192,6 +216,7 @@ export function createHostedWorkMcpHandler(options: HostedWorkMcpOptions): Hoste
   const metadataUrl = new URL(paths.metadata, publicUrl.origin).href;
   const metadata = JSON.stringify({ resource: publicUrl.href, authorization_servers: [options.issuer], scopes_supported: ["work:assistant"], bearer_methods_supported: ["header"], resource_documentation: "https://www.lastehr.com/docs/hosted-work" });
   const sessions = new Map<string, Session>();
+  const receipts = createWorkContextReceiptStore({ now, maxEntries: limits.maxSessions });
   // Reservations enter this set before the first await during initialization.
   // Pending initialization counts against both hard capacity limits.
   const active = new Set<Session>();
@@ -271,7 +296,7 @@ export function createHostedWorkMcpHandler(options: HostedWorkMcpOptions): Hoste
       } else {
         if (req.method !== "POST" || !isJSONRPCRequest(body) || !isInitializeRequest(body) || !InitializeRequestSchema.safeParse(body).success) { rpcError(res, 400, "A session initialization request is required."); return; }
         if (active.size >= limits.maxSessions || [...active].filter((item) => item.principal === principal).length >= limits.maxSessionsPerPrincipal) { rpcError(res, 503, "Session capacity is unavailable.", { "retry-after": "30" }); return; }
-        const server = createWorkMcpServer({ client: directConnector(options, actor, () => { if (!pending || stale(pending)) throw new WorkConnectorError("unauthorized"); }) });
+        const server = createWorkMcpServer({ client: directConnector(options, actor, () => { if (!pending || stale(pending)) throw new WorkConnectorError("unauthorized"); }, receipts, () => ({ principal, actor, expiresAt: pending.expiresAt })) });
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: randomUUID, enableJsonResponse: true,
           onsessioninitialized: (id) => {
@@ -295,5 +320,5 @@ export function createHostedWorkMcpHandler(options: HostedWorkMcpOptions): Hoste
       rpcError(res, 500, "The MCP request could not be completed.");
     }
   }
-  return { paths, listener, sessionCount: () => active.size, close: async () => { closed = true; await Promise.all([...active].map(closeSession)); } };
+  return { paths, listener, sessionCount: () => active.size, close: async () => { closed = true; receipts.close(); await Promise.all([...active].map(closeSession)); } };
 }
