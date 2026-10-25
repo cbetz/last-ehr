@@ -10,17 +10,30 @@ An **allowlisted synthetic pilot** is running at
 [work.lastehr.com](https://work.lastehr.com), separately from the marketing
 site's Vercel deployment. On October 24, 2026 (October 25 UTC), a scripted
 MCP SDK client proposed work, a separate reviewer signed in through real
-OIDC and authorized approval, and private FHIR checks found **zero Tasks
+OIDC and authorized approval, and private FHIR checks found **zero matching Tasks
 before approval and exactly one afterward**. Exact Task readback and the
 same receipt survived a Work service restart on the same image. The
 [public verification record](/evidence/hosted-work-2026-10-24.json) pins the
 deployment revision and observed timestamps.
 
+A separate [qualified Grok 4.7 API run](/evidence/grok-work-2026-10-24.json)
+used xAI's Responses API and Last's remote MCP tools. A human approved the
+exact synthetic proposal in Last; a fresh Grok API request retrieved its
+verified Task receipt. Independent private FHIR reads found zero matching
+Tasks before approval and one exact Task afterward. The earlier Task/1002
+remained unchanged.
+
+The first response parser marked both proposal-phase calls as failed and did
+not retain their raw provider status/error fields. The retained payloads
+matched Last through a fresh SDK read; **the original provider tool success
+status remains unresolved**. The later Grok receipt read passed with retained
+provider classifications. This is qualified API evidence.
+
 This deployment allows one assistant identity and one reviewer; access is
-operator configured. It has no self-serve enrollment. **Public Grok Bot or
-model-driven acceptance remains unverified.** The separate local
-[Claude Code acceptance](./evidence/work-mcp-2026-10-23.md) remains the verified
-model-driven external-client result.
+operator configured. It has no self-serve enrollment. **Grok chat and the
+Grok Bot client remain unverified.** The local
+[Claude Code acceptance](./evidence/work-mcp-2026-10-23.md) is a separate
+native-client result with its own tested scope.
 
 ## What is different from the local connector
 
@@ -199,12 +212,10 @@ changed drafts conflict rather than create replacement work.
 
 Record the exact client/version, source revision, deployment, actual tool
 calls, separate review method, before/after FHIR assertions, and reconnect
-receipt. Until that actual run is recorded, describe this as **the hosted
-foundation for Grok**, not verified Grok Bot compatibility. The checkout's
-automated HTTP/OIDC fixtures use simulated identities and an automated
-reviewer. The separate public pilot record above documents deployed OIDC
-sign-in and a human-authorized reviewer decision, with a scripted SDK client
-and no model call.
+receipt. Claim Grok Bot compatibility only after this actual-client sequence
+passes. The qualified Grok API run above does not verify that Bot connection.
+The checkout's automated HTTP/OIDC fixtures use simulated identities and an
+automated reviewer; they are separate from both public pilot records.
 
 All prompts, chart data, Task descriptions, and demonstrations remain wholly
 invented. This service does not establish clinical correctness, real-chart
