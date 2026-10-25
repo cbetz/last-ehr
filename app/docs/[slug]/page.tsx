@@ -98,7 +98,13 @@ export default async function DocsArticlePage({ params }: DocsPageProps) {
     ],
   };
   const localAction =
-    doc.slug === "evals"
+    doc.slug === "grok-bot"
+      ? {
+          href: "/docs/hosted-work",
+          label: "Deploy Work",
+          detail: "Set up the synthetic HTTPS Work service and separate reviewer before connecting Grok Bot.",
+        }
+      : doc.slug === "evals"
       ? {
           href: "/docs/evals#run-the-reference-evaluation",
           label: "Run Safety Eval",

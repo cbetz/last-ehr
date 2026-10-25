@@ -88,6 +88,12 @@ const docCollections = [
         icon: Rocket,
       },
       {
+        title: "Grok Bot with Last EHR",
+        description: "Connect Grok to synthetic Work, review a draft in Last, and inspect the recorded result.",
+        href: "/docs/grok-bot",
+        icon: Braces,
+      },
+      {
         title: "Support status",
         description: "Supported, local-evaluation-only, and unverified configurations.",
         href: "/docs/support",
