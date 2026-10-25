@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "qualified-native-grok-synthetic-work",
+  "observedOn": "2026-10-25",
+  "client": {
+    "name": "Grok Bot",
+    "version": "0.75.8"
+  },
+  "workId": "fe594605-3b21-4820-9696-99606a969b79",
+  "approvedProposalHash": "ffaecd0c8c9a1d13706de73ccf5565f49c2712593f1b2db3abda45464b43f135",
+  "humanApprovalAt": "2026-10-25T19:22:31.072Z",
+  "receipt": {
+    "resourceType": "Task",
+    "id": "1053",
+    "versionId": "1",
+    "verifiedAt": "2026-10-25T19:22:31.786Z"
+  },
+  "matchingTasksBefore": 0,
+  "matchingTasksAfter": 1,
+  "historicalTasksUnchanged": true,
+  "operatorVerification": "read-only private store and FHIR inspection",
+  "nativeEvidence": "observed conversation plus independent stored-state correlation; raw tool payloads were not exposed",
+  "nativeDisplayedProposalHash": null,
+  "requestNeededConnectorClarification": true,
+  "operatorSuppliedDraftWording": false,
+  "operatorSuppliedToolArguments": false,
+  "statusQuestionSuppliedWorkOrTaskId": false,
+  "oauth": {
+    "authorizedThrough": "Cursor web, then used by native Grok Bot",
+    "refreshExchangeObserved": true,
+    "nativeReadAfterAccessTokenExpiryVerified": false
+  },
+  "media": {
+    "url": "https://www.lastehr.com/demo/grok-work.mp4",
+    "sha256": "7761a26f17c2da1f438297ca2c928951f4b588e6ee3a49a1f67ceb6a8ccaca40",
+    "durationSeconds": 43,
+    "editedFromActualScreenshots": true,
+    "humanApprovalClick": "occurred between captures; not recorded or recreated"
+  },
+  "syntheticOnly": true,
+  "patientContactPerformed": false
+}

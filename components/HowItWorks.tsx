@@ -17,9 +17,9 @@ export function HowItWorks() {
             You review the change before it saves.
           </h2>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">
-            Write tools pause for human approval in both the web app and
-            compatible MCP clients. A request from the model is a proposal;
-            approval is a separate step.
+            A request from the model is a proposal; approval is a separate
+            step. Review in the web app, in a compatible chart MCP client,
+            or in Last’s separate inbox for Assistant Work.
           </p>
         </div>
         <ol className="mt-9 grid divide-y divide-border border-y border-border md:grid-cols-3 md:divide-x md:divide-y-0">
@@ -34,8 +34,9 @@ export function HowItWorks() {
         <div className="mt-6 flex flex-wrap items-start justify-between gap-5">
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
             Current writes create notes, observations, and tasks. They do not
-            edit or delete existing records. Agent-created resources carry the
-            FHIR AIAST label.
+            edit or delete existing records. Web app and chart MCP writes carry
+            the FHIR AIAST label. Assistant Work records the approval and a
+            verified save receipt for its follow-up Task.
           </p>
           <Link href="/docs/approval-gates" className="inline-flex items-center gap-2 text-sm font-semibold hover:text-primary">
             How approval works

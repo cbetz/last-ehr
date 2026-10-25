@@ -1,0 +1,19 @@
+WEBVTT
+
+00:00.000 --> 00:06.000
+Grok Bot receives a request to read Alex’s synthetic chart and draft a follow-up. The connector name was clarified before this request.
+
+00:06.000 --> 00:16.000
+Grok drafts an administrative task asking a clinician to review the synthetic HbA1c result. The draft is waiting for human review; no Task has been saved.
+
+00:16.000 --> 00:25.000
+Last shows the exact proposal in a separate review inbox. A human reviews and approves it between these screenshots.
+
+00:25.000 --> 00:29.000
+Last saves and verifies Task 1053, version 1.
+
+00:29.000 --> 00:39.000
+Back in Grok: “Approved. Did it save?” Grok checks the receipt and confirms Task 1053, version 1. A saved follow-up does not mean anyone has contacted Alex.
+
+00:39.000 --> 00:43.000
+Edited walkthrough from actual screenshots. Synthetic data only. No patient contact.

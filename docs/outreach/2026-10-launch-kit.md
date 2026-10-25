@@ -1,8 +1,82 @@
 # October 2026 distribution kit
 
-Prepared October 22, 2026; recording added October 23. These are drafts for Chris to review and send. No posts, messages, demo proposals, or invitations have been submitted.
+Prepared October 22, 2026; updated October 25 with the native Grok Bot announcement. These are drafts for Chris to review and send. No outreach posts, messages, event proposals, or invitations have been sent.
 
 The first objective is five developer evaluations of one working release. Lead with bounded chart reads, explicit review of each proposed write, and independent checks of what persisted. Other projects already offer FHIR MCP access and review interfaces; do not claim to be the first.
+
+## Native Grok Bot announcement — October 25 (draft)
+
+**UNSENT — updated October 25, 2026, America/New_York.** These current drafts
+explain Last EHR and the external assistant's role. They cover native Grok Bot
+writing a synthetic administrative draft, a separate human approving the
+exact resource in Last, and Grok retrieving the verified Task receipt.
+The initial connector lookup required a name clarification, as disclosed in
+the thread and LinkedIn draft. OAuth use was observed; native access after
+the original token expires remains unverified.
+
+Use with the [43-second edited walkthrough](https://www.lastehr.com/demo/grok-work.mp4),
+[focused Grok Bot setup guide](https://www.lastehr.com/docs/grok-bot), and
+[qualified verification record](https://www.lastehr.com/demo/grok-work.proof.json).
+The walkthrough is edited from actual screenshots, not a continuous screen
+recording. The hosted pilot requires operator enrollment; the guide describes
+the self-hosted synthetic setup. These drafts have not been posted or sent.
+
+### Single X post — unsent
+
+I'm building Last EHR: open-source tools for FHIR charts. I connected Grok Bot via MCP. It drafted a synthetic follow-up; I approved it; Last verified the saved Task. Grok retrieved the receipt.
+
+Edited walkthrough from actual screenshots.
+https://www.lastehr.com
+
+### Three-post X thread — unsent
+
+#### Post 1
+
+1/3 I'm building Last EHR: open-source tools that let assistants read FHIR charts and propose updates for human review.
+
+Here I connected the Grok Bot desktop app through MCP. It wrote a follow-up draft from a plain-language request using an invented chart.
+
+#### Post 2
+
+2/3 Grok first needed me to clarify the connector's name. Then it drafted the task. I reviewed and approved it in Last; Last saved it to the FHIR backend and verified the exact result.
+
+“Approved. Did it save?” Grok checked and returned the receipt.
+
+#### Post 3
+
+3/3 Try the self-hosted setup below. The hosted pilot is operator-configured, with no public self-service enrollment.
+
+Synthetic data. Edited walkthrough from actual screenshots.
+
+Code: https://github.com/cbetz/last-ehr
+Setup: https://www.lastehr.com/docs/grok-bot
+
+### LinkedIn post — unsent
+
+I'm building Last EHR, an open-source project that gives assistants tools for working with patient charts. It works with FHIR (Fast Healthcare Interoperability Resources), a standard for exchanging healthcare data. A person reviews proposed updates before they're saved to the FHIR backend.
+
+In this demo, the assistant is the Grok Bot desktop app, connected through MCP (Model Context Protocol). Last provides the bounded chart access, review inbox and verified save receipt.
+
+I asked Grok to look at an invented chart and draft a follow-up task. It couldn't find “Last” at first, so I clarified the connector's name. Then it read the synthetic chart and wrote an administrative task asking a clinician to review the result. I hadn't supplied the draft wording or tool arguments.
+
+I reviewed the exact resource in Last and approved it. Last saved the Task and independently checked that the saved fields matched what I'd approved.
+
+Back in Grok, I asked, “Approved. Did it save?” It checked the result and returned Task 1053, version 1. Independent checks found zero matching Tasks before approval and exactly one afterward.
+
+All patient data here is invented. A saved Task records a follow-up request; no one was contacted. The video is an edited walkthrough from actual screenshots.
+
+You can try the self-hosted synthetic setup using the guide below. The hosted Grok Work pilot is operator-configured and has no public self-service enrollment.
+
+Project: https://www.lastehr.com
+Code: https://github.com/cbetz/last-ehr
+Setup: https://www.lastehr.com/docs/grok-bot
+
+## Historical pinned variants
+
+The sections below retain their original dates, source pins, and evidence
+limits. Older statements that Grok Bot is unverified apply to those older
+baselines, not the qualified October 25 native result above. Do not replace
+an older test's limits with the newer test's outcome.
 
 ## External assistant Work MCP follow-up (draft)
 

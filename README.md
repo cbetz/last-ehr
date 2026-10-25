@@ -57,6 +57,7 @@ evaluation), or start with the zero-key local synthetic walkthrough.
 | Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
 | Have an assistant draft synthetic work, wait for separate review, and verify the saved FHIR Task | `npm run work:demo -- --agent --model-env .env.local` — see the [Assistant Work Lab](./docs/assistant-work.md); omit the flags for a provider-free manual client |
 | Connect an external MCP assistant to durable synthetic work and a separate reviewer inbox | Start the Work Lab, then `npm run --silent work:mcp -- --print-config` — see the [Work MCP connector](./docs/work-mcp.md) |
+| Connect native Grok Bot to synthetic work and inspect the recorded approval-and-save result | See [Grok Bot with Last EHR](./docs/grok-bot.md): self-host setup, allowlisted pilot access, and the qualified walkthrough |
 | Deploy a dedicated synthetic Work service for remote assistant testing | See [Hosted Synthetic Work](./docs/hosted-work.md): authenticated HTTP MCP, OIDC reviewer sign-in, private FHIR, and persistent SQLite; operator deployment required |
 | Prove the synthetic web-agent workflow locally | `npm run eval` |
 | Inspect the complete flow locally with no account or model key | `npm run demo:local` |

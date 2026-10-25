@@ -160,6 +160,18 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["MCP", "assistant", "work", "durable", "review", "synthetic", "Task"],
   },
   {
+    slug: "grok-bot",
+    file: "docs/grok-bot.md",
+    title: "Grok Bot with Last EHR",
+    description:
+      "Connect native Grok Bot to synthetic Work MCP, review a draft in Last, and inspect the recorded human-approved Task result. Self-hosting and the allowlisted pilot have separate setup requirements.",
+    group: "Build & integrate",
+    order: 29,
+    audience: "Grok Bot users, assistant integrators, and synthetic-demo operators",
+    lastModified: "2026-10-25",
+    keywords: ["Grok Bot", "Last EHR", "assistant", "MCP", "OAuth", "synthetic", "human review", "Task"],
+  },
+  {
     slug: "hosted-work",
     file: "docs/hosted-work.md",
     title: "Hosted Synthetic Work",
