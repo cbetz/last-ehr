@@ -39,6 +39,7 @@ const reference = z.string().regex(/^Observation\/[A-Za-z0-9\-.]{1,64}$/);
 const proposalInput = z.object({
   description, dueDate: date.optional(), sourceReference: reference,
   sourceVersionId: fhirId, idempotencyKey: z.string().regex(/^[A-Za-z0-9._:-]{1,128}$/),
+  contextReceipt: z.string().uuid().optional(),
 }).strict();
 const inputSchema = z.object({
   patientId: fhirId, source: z.object({ reference, versionId: fhirId }).strict(),

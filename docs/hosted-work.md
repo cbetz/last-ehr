@@ -192,7 +192,9 @@ After deploying the service and identity provider:
    a prompt, command argument, shared Bot template, or screenshot.
 2. Confirm exactly the four advertised Work tools. Ask for a synthetic
    care-team review draft, with a saved idempotency key and the exact source
-   version returned by `read_work_context`.
+   version returned by `read_work_context`. Copy its top-level `contextReceipt`
+   exactly into `propose_work.contextReceipt`, including when the client opens
+   a different MCP connection for the proposal.
 3. Keep the returned Work ID, close that client conversation/session, and
    verify that no matching Task exists before approval.
 4. In the separate human-owned reviewer browser, sign in to Last, inspect
@@ -208,7 +210,32 @@ authenticated issuer/client/subject identity and capped by its initial token
 expiry, idle timeout, and an hour-long maximum. A renewed token may require
 a new MCP session. New sessions can retrieve a saved Work ID without another
 chart read. After an uncertain submission, keep the original idempotency key;
-changed drafts conflict rather than create replacement work.
+retry only the exact proposal content. Changed drafts conflict rather than
+create replacement work.
+
+### Carry a chart read across connections
+
+Hosted `read_work_context` returns a top-level `contextReceipt` alongside
+`context`. This random, opaque value proves a bounded chart read for the
+verified principal, tenant, and assistant subject. Send that exact value in
+the optional `propose_work.contextReceipt` field to carry the read across
+independent connections authenticated as that same identity. A new connection
+without the receipt cannot use another connection's implicit chart read.
+Existing clients that omit the field can still use their own connection's
+last read receipt.
+
+Only the latest read for an identity remains valid. Receipts expire after
+five minutes or the originating token's expiry, whichever comes first. They
+are held only in memory; a service restart or shutdown invalidates them.
+After an expired receipt or a failed or changed chart refresh, read the chart
+again. Every proposal still freshly checks the patient, source reference, and
+source version before submission. If a proposal's outcome is uncertain, keep
+its original idempotency key and exact content while checking the existing
+work; do not submit a replacement under a new key.
+
+This receipt is proof of a chart read, not reviewer approval or a FHIR save.
+The same four tools and separate human review remain in place; no model
+provider key is needed by Last for this mechanism.
 
 Record the exact client/version, source revision, deployment, actual tool
 calls, separate review method, before/after FHIR assertions, and reconnect

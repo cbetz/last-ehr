@@ -92,6 +92,27 @@ async function call(client: Client, name: string, args: Record<string, unknown>)
   return response;
 }
 
+async function readReceipt(client: Client): Promise<string> {
+  const result = await call(client, "read_work_context", {});
+  expect(result.isError).not.toBe(true);
+  expect(result.structuredContent?.context).toEqual(context);
+  expect(result.structuredContent?.contextReceipt).toEqual(expect.any(String));
+  expect((result.structuredContent?.contextReceipt as string).length).toBeGreaterThan(0);
+  expect(result.structuredContent?.context).not.toHaveProperty("contextReceipt");
+  return result.structuredContent!.contextReceipt as string;
+}
+
+async function closeSession(instance: Awaited<ReturnType<typeof rig>>, connection: Awaited<ReturnType<typeof connect>>, token = "token-a") {
+  expect((await raw(instance, { token, method: "DELETE", sessionId: connection.transport.sessionId })).status).toBe(200);
+  await connection.client.close();
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((accept) => { resolve = accept; });
+  return { promise, resolve };
+}
+
 function raw(instance: Awaited<ReturnType<typeof rig>>, options: { token?: string; method?: string; sessionId?: string; body?: unknown; headers?: Record<string, string>; query?: string } = {}) {
   return fetch(`${instance.url}${options.query ?? ""}`, {
     method: options.method ?? "POST", redirect: "error", signal: AbortSignal.timeout(3_000),
@@ -174,6 +195,199 @@ describe("hosted assistant-only Work MCP transport", () => {
     expect(foreignDelete.status).toBe(404);
     expect((await call(a.client, "get_work", { workId: job.id })).structuredContent?.job).toEqual(job);
     expect(instance.handler.sessionCount()).toBe(2);
+  });
+
+  it("carries an explicit chart-read receipt across closed HTTP sessions without saving before separate review", async () => {
+    const instance = await rig();
+    const first = await connect(instance);
+    const contextReceipt = await readReceipt(first.client);
+    await closeSession(instance, first);
+    expect(instance.handler.sessionCount()).toBe(0);
+
+    const second = await connect(instance);
+    const input = proposal();
+    const missing = await call(second.client, "propose_work", input);
+    expect(missing.isError).toBe(true);
+    expect(missing.structuredContent?.error).toBe("context_required");
+    const submitted = await call(second.client, "propose_work", { ...input, contextReceipt });
+    expect(submitted.isError).not.toBe(true);
+    const job = submitted.structuredContent?.job as WorkJob;
+    expect(job).toMatchObject({ state: "awaiting_review", input: { patientId: "synthetic-patient", source: { reference: input.sourceReference, versionId: input.sourceVersionId } } });
+    expect(await instance.service.list(reviewer)).toEqual([job]);
+    expect(instance.records).toHaveLength(0);
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
+
+    const completed = await instance.service.decide(reviewer, job.id, { decision: "approve", proposalHash: job.proposalHash });
+    expect(completed).toMatchObject({ state: "succeeded", receipt: { resourceType: "Task", id: "synthetic-task-1", versionId: "1" } });
+    expect(instance.committer.conditionalCreate).toHaveBeenCalledTimes(1);
+    expect(instance.records).toHaveLength(1);
+  });
+
+  it.each([
+    ["another assistant", { ...actors["token-b"] }, "issuer/client/assistant-b"],
+    ["another verified client principal", { ...actors["token-a"] }, "issuer/another-client/assistant-a"],
+    ["another subject under the same principal", { ...actors["token-a"], subject: "assistant-other" }, "issuer/client/assistant-a"],
+    ["another tenant under the same principal and subject", { ...actors["token-a"], tenantId: "other-tenant" }, "issuer/client/assistant-a"],
+  ] as const)("rejects a chart receipt used by %s without invalidating its owner's receipt", async (_label, actor, principal) => {
+    const instance = await rig();
+    const owner = await connect(instance);
+    const contextReceipt = await readReceipt(owner.client);
+    const originalVerifier = instance.verifyAssistant.getMockImplementation()!;
+    instance.verifyAssistant.mockImplementation(async (authorization) => authorization === "Bearer token-other"
+      ? { actor: { ...actor }, principal, expiresAt: instance.initialExpiry }
+      : originalVerifier(authorization));
+    const foreign = await connect(instance, "token-other");
+    const rejected = await call(foreign.client, "propose_work", { ...proposal(), contextReceipt });
+    expect(rejected.isError).toBe(true);
+    expect(rejected.structuredContent).not.toHaveProperty("job");
+    expect(instance.readContext).toHaveBeenCalledTimes(1);
+    expect(await instance.service.list(reviewer)).toHaveLength(0);
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
+
+    const retained = await call(owner.client, "propose_work", { ...proposal(), contextReceipt });
+    expect(retained.isError).not.toBe(true);
+    expect((retained.structuredContent?.job as WorkJob).state).toBe("awaiting_review");
+    expect(instance.records).toHaveLength(0);
+  });
+
+  it("rejects a forged receipt even after that identity has read the chart in another session", async () => {
+    const instance = await rig();
+    const first = await connect(instance);
+    await readReceipt(first.client);
+    const second = await connect(instance);
+    for (const client of [first.client, second.client]) {
+      const rejected = await call(client, "propose_work", { ...proposal(), contextReceipt: randomUUID() });
+      expect(rejected.isError).toBe(true);
+      expect(rejected.structuredContent?.error).toBe("context_required");
+    }
+    expect(instance.readContext).toHaveBeenCalledTimes(1);
+    expect(await instance.service.list(reviewer)).toHaveLength(0);
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["the five-minute read window", "token-a-fresh", 5 * 60_000 + 1],
+    ["the original reader's token expiry", "token-a", 60_001],
+  ] as const)("rejects a receipt after %s even with fresh authorization", async (_label, readerToken, elapsed) => {
+    const instance = await rig();
+    const first = await connect(instance, readerToken);
+    const contextReceipt = await readReceipt(first.client);
+    await closeSession(instance, first, readerToken);
+    instance.advance(elapsed);
+    const second = await connect(instance, "token-a-fresh");
+    const rejected = await call(second.client, "propose_work", { ...proposal(), contextReceipt });
+    expect(rejected.isError).toBe(true);
+    expect(rejected.structuredContent?.error).toBe("context_required");
+    expect(instance.readContext).toHaveBeenCalledTimes(1);
+    expect(await instance.service.list(reviewer)).toHaveLength(0);
+    expect(instance.records).toHaveLength(0);
+  });
+
+  it.each([
+    ["patient", { ...context, patient: { ...context.patient, reference: "Patient/other-patient" } }],
+    ["observation reference", { ...context, observation: { ...context.observation, reference: "Observation/other-result" } }],
+    ["observation version", { ...context, observation: { ...context.observation, versionId: "2" } }],
+  ] as const)("invalidates a receipt across sessions when a fresh submit read changes the %s", async (_label, changedContext) => {
+    const instance = await rig();
+    const first = await connect(instance);
+    const contextReceipt = await readReceipt(first.client);
+    const second = await connect(instance);
+    const input = { ...proposal(), contextReceipt };
+    instance.readContext.mockResolvedValueOnce(changedContext);
+    const changed = await call(second.client, "propose_work", input);
+    expect(changed.isError).toBe(true);
+    expect(changed.structuredContent?.error).toBe("source_mismatch");
+    const third = await connect(instance);
+    const invalidated = await call(third.client, "propose_work", input);
+    expect(invalidated.isError).toBe(true);
+    expect(invalidated.structuredContent?.error).toBe("context_required");
+    expect(await instance.service.list(reviewer)).toHaveLength(0);
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
+  it.each(["read_work_context", "propose_work"] as const)("invalidates earlier cross-session receipts after a failed %s refresh", async (operation) => {
+    const instance = await rig();
+    const first = await connect(instance);
+    const contextReceipt = await readReceipt(first.client);
+    const second = await connect(instance);
+    const input = { ...proposal(), contextReceipt };
+    instance.readContext.mockRejectedValueOnce(new Error("private-chart-refresh-diagnostic"));
+    const failed = await call(second.client, operation, operation === "propose_work" ? input : {});
+    expect(failed.isError).toBe(true);
+    expect(JSON.stringify(failed)).not.toContain("private-chart-refresh");
+    expect(failed.structuredContent).not.toHaveProperty("contextReceipt");
+    const third = await connect(instance);
+    const invalidated = await call(third.client, "propose_work", input);
+    expect(invalidated.isError).toBe(true);
+    expect(invalidated.structuredContent?.error).toBe("context_required");
+    expect(await instance.service.list(reviewer)).toHaveLength(0);
+    expect(instance.records).toHaveLength(0);
+  });
+
+  it("does not let a delayed older chart read restore evidence after a newer failed refresh", async () => {
+    const instance = await rig();
+    const first = await connect(instance);
+    const second = await connect(instance);
+    const started = deferred<void>();
+    const result = deferred<WorkAssistantContext>();
+    instance.readContext.mockImplementationOnce(async () => { started.resolve(); return result.promise; });
+    const olderRead = call(first.client, "read_work_context", {});
+    await started.promise;
+    instance.readContext.mockRejectedValueOnce(new Error("private-newer-read-diagnostic"));
+    const newerRead = await call(second.client, "read_work_context", {});
+    expect(newerRead.isError).toBe(true);
+    result.resolve(structuredClone(context));
+    const staleResult = await olderRead;
+    expect(staleResult.isError).toBe(true);
+    expect(staleResult.structuredContent).not.toHaveProperty("contextReceipt");
+    expect((await call(first.client, "propose_work", proposal())).structuredContent?.error).toBe("context_required");
+    const third = await connect(instance);
+    expect((await call(third.client, "propose_work", proposal())).structuredContent?.error).toBe("context_required");
+    expect(await instance.service.list(reviewer)).toHaveLength(0);
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
+  it("rechecks a receipt's original token deadline after a delayed submit read", async () => {
+    const instance = await rig();
+    const first = await connect(instance);
+    const contextReceipt = await readReceipt(first.client);
+    await closeSession(instance, first);
+    const second = await connect(instance, "token-a-fresh");
+    const started = deferred<void>();
+    const result = deferred<WorkAssistantContext>();
+    instance.readContext.mockImplementationOnce(async () => { started.resolve(); return result.promise; });
+    const pending = call(second.client, "propose_work", { ...proposal(), contextReceipt });
+    await started.promise;
+    instance.advance(60_001);
+    result.resolve(structuredClone(context));
+    const rejected = await pending;
+    expect(rejected.isError).toBe(true);
+    expect(rejected.structuredContent).not.toHaveProperty("job");
+    expect(await instance.service.list(reviewer)).toHaveLength(0);
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
+  });
+
+  it("returns one durable draft when the same receipt and proposal key are retried from a new session", async () => {
+    const instance = await rig();
+    const first = await connect(instance);
+    const contextReceipt = await readReceipt(first.client);
+    await closeSession(instance, first);
+    const second = await connect(instance);
+    const input = { ...proposal(), contextReceipt };
+    const original = await call(second.client, "propose_work", input);
+    expect(original.isError).not.toBe(true);
+    const job = original.structuredContent?.job as WorkJob;
+    await closeSession(instance, second);
+    const third = await connect(instance);
+    const retried = await call(third.client, "propose_work", input);
+    expect(retried.isError).not.toBe(true);
+    expect(retried.structuredContent?.job).toEqual(job);
+    const changed = await call(third.client, "propose_work", { ...input, description: "Different proposed contents under the original key." });
+    expect(changed.isError).toBe(true);
+    expect(changed.structuredContent?.error).toBe("conflict");
+    expect(await instance.service.list(reviewer)).toEqual([job]);
+    expect(instance.records).toHaveLength(0);
+    expect(instance.committer.conditionalCreate).not.toHaveBeenCalled();
   });
 
   it("supports assistant cancellation and reviewer denial with no persisted Task", async () => {
