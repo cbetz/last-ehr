@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "title": "Public hosted synthetic Work pilot verification",
+  "verificationKind": "scripted-sdk-with-separate-human-review",
+  "observedAtUtc": "2026-10-25T00:10:41.726Z",
+  "observedLocalDate": "2026-10-24",
+  "localTimeZone": "America/New_York",
+  "deployment": {
+    "sourceCommit": "8bcbe76ef179af3ffb4ee282c189ac882f2383da",
+    "publicOrigin": "https://work.lastehr.com",
+    "mcpResource": "https://work.lastehr.com/mcp",
+    "hosting": "OVHcloud VPS",
+    "transport": "MCP Streamable HTTP",
+    "workImageId": "sha256:e7cec8ea5a8d4d9e027aafd0a319fa21481fd8dec5c2969ec5f7798b3896dde9"
+  },
+  "scope": {
+    "syntheticOnly": true,
+    "workspaceCount": 1,
+    "allowlistedAssistantCount": 1,
+    "configuredReviewerCount": 1,
+    "selfServeOpenAccess": false,
+    "actualGrokBotAcceptance": false,
+    "modelCallPerformed": false
+  },
+  "client": {
+    "name": "lastehr-operator-sdk-public-acceptance",
+    "mcpSdkVersion": "1.32.2",
+    "kind": "Scripted operator MCP SDK client",
+    "advertisedTools": [
+      "read_work_context",
+      "propose_work",
+      "get_work",
+      "cancel_work"
+    ],
+    "assistantApprovalOrDirectSaveTool": false
+  },
+  "endpointChecks": {
+    "observedAtUtc": "2026-10-25T00:07:39.786Z",
+    "httpsHealthStatus": 200,
+    "mode": "synthetic-only",
+    "httpRedirectsToHttps": true,
+    "anonymousMcpStatus": 401,
+    "anonymousMcpResourceMetadataChallenge": true,
+    "anonymousReviewerStatus": 401,
+    "configuredResourceAndIssuerMatched": true,
+    "reviewerAuthorizationCodePkceRedirectVerified": true,
+    "secureLoginCookieVerified": true
+  },
+  "dnsChecks": {
+    "observedAtUtc": "2026-10-25T00:08:03.024375Z",
+    "allEightAuthoritativesServeExpectedWorkRecord": true,
+    "apexRecordUnchanged": true,
+    "wwwRecordUnchanged": true
+  },
+  "reviewer": {
+    "method": "Separate human-authorized decision in Last’s reviewer browser after real OIDC sign-in.",
+    "browserSignInObservedAtUtc": "2026-10-25T00:08:22.253Z",
+    "decision": "approve",
+    "decisionAtUtc": "2026-10-25T00:09:31.702Z",
+    "decisionBoundToExactProposalHash": true
+  },
+  "work": {
+    "workId": "015d66c8-5ada-49d5-add0-339eedb3750c",
+    "proposalHash": "8cd3733345b749521a434b9ebf83be71e62276c829353de28720d454f0ca66ea",
+    "pendingObservedAtUtc": "2026-10-25T00:08:03.591Z",
+    "source": {
+      "patientReference": "Patient/1000",
+      "observationReference": "Observation/1001",
+      "observationVersionId": "1"
+    },
+    "exactApprovedProposal": {
+      "description": "Review the invented HbA1c result (6.4%) and arrange a synthetic follow-up. This demonstration Task records a request only; it does not contact a patient.",
+      "focus": {
+        "reference": "Observation/1001"
+      },
+      "for": {
+        "reference": "Patient/1000"
+      },
+      "identifier": [
+        {
+          "system": "https://lastehr.com/work-lab/job",
+          "value": "015d66c8-5ada-49d5-add0-339eedb3750c"
+        }
+      ],
+      "input": [
+        {
+          "type": {
+            "text": "Reviewed source version"
+          },
+          "valueString": "Observation/1001/_history/1"
+        }
+      ],
+      "intent": "order",
+      "resourceType": "Task",
+      "status": "requested"
+    }
+  },
+  "fhirAssertions": {
+    "method": "Read-only operator SSH, exact-identifier search and direct Task GET on the private HAPI network.",
+    "identifierSystem": "https://lastehr.com/work-lab/job",
+    "before": {
+      "observedAtUtc": "2026-10-25T00:08:52.460Z",
+      "matchingTaskCount": 0,
+      "durableState": "awaiting_review",
+      "decisionPresent": false,
+      "receiptPresent": false
+    },
+    "after": {
+      "observedAtUtc": "2026-10-25T00:09:48.359Z",
+      "matchingTaskCount": 1,
+      "durableState": "succeeded",
+      "searchResultMatchedDirectReadback": true,
+      "readbackMatchedEveryApprovedField": true,
+      "serverAddedFieldsExcludedFromProposalComparison": [
+        "id",
+        "meta"
+      ],
+      "task": {
+        "resourceType": "Task",
+        "id": "1002",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2026-10-25T00:09:32.521+00:00"
+        },
+        "identifier": [
+          {
+            "system": "https://lastehr.com/work-lab/job",
+            "value": "015d66c8-5ada-49d5-add0-339eedb3750c"
+          }
+        ],
+        "status": "requested",
+        "intent": "order",
+        "description": "Review the invented HbA1c result (6.4%) and arrange a synthetic follow-up. This demonstration Task records a request only; it does not contact a patient.",
+        "focus": {
+          "reference": "Observation/1001"
+        },
+        "for": {
+          "reference": "Patient/1000"
+        },
+        "input": [
+          {
+            "type": {
+              "text": "Reviewed source version"
+            },
+            "valueString": "Observation/1001/_history/1"
+          }
+        ]
+      }
+    }
+  },
+  "receipt": {
+    "id": "1002",
+    "resourceType": "Task",
+    "verifiedAt": "2026-10-25T00:09:32.593Z",
+    "versionId": "1"
+  },
+  "restart": {
+    "serviceRestarted": "Work only",
+    "workStartedBeforeUtc": "2026-10-25T00:02:36.93626899Z",
+    "workStartedAfterUtc": "2026-10-25T00:10:29.704681387Z",
+    "observedAtUtc": "2026-10-25T00:10:41.726Z",
+    "matchingTaskCount": 1,
+    "sameWorkId": true,
+    "sameProposalHash": true,
+    "sameDurableJob": true,
+    "sameExactTaskReadback": true,
+    "sameReceipt": true,
+    "sameWorkImageId": true,
+    "freshSdkConnectionRetrievedSameReceipt": true,
+    "sdkReceiptObservedAtUtc": "2026-10-25T00:10:35.919Z"
+  },
+  "notVerified": [
+    "Actual Grok Bot or other model-driven client acceptance on this public endpoint.",
+    "Automatic assistant token renewal or unattended operation.",
+    "Public-pilot decline/cancellation scenarios.",
+    "Backup restoration or disaster recovery.",
+    "Clinical use, patient contact, real-chart authorization, or HIPAA readiness."
+  ],
+  "evidenceNotes": [
+    "This is a projected operator verification record, not an independently signed attestation.",
+    "All chart and Task data are invented. A saved Task records a follow-up request; it does not contact a patient or complete care.",
+    "Credentials, identity-provider tenant/client/user identifiers, principal hashes, private configuration, and raw operator logs are omitted."
+  ]
+}
