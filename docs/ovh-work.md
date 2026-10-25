@@ -3,8 +3,12 @@
 This runbook deploys the [hosted Work service](./hosted-work.md) at
 `https://work.lastehr.com`, with Auth0 assistant credentials and a separate
 reviewer login. It covers one synthetic workspace, one reviewer, and one
-server. Following this guide does not mean the endpoint is already live or
-that a real Grok Bot session has passed acceptance.
+server. The allowlisted pilot passed a public scripted-SDK flow with separate
+human-authorized review on October 24, 2026: zero matching Tasks before
+approval, one exact saved Task afterward, and the same receipt after a Work
+restart. See the [verification record](/evidence/hosted-work-2026-10-24.json).
+Grok Bot acceptance remains unverified; enrollment remains operator configured.
+The steps below describe how to reproduce and operate the deployment.
 
 ## 1. Order the server
 

@@ -6,11 +6,21 @@ reviewer sign-in. It is a dedicated Node process with a persistent SQLite
 volume and a private HAPI FHIR stack. It reads and writes only the exact
 invented fixture used by the [local Work Lab](./assistant-work.md).
 
-This is an **operator-deployed synthetic pilot**. It is not launched by the
-marketing site's Vercel deployment, and this guide does not identify an
-already-running public Work endpoint. A passing MCP SDK test is not Grok Bot
-acceptance. The local [Claude Code acceptance](./evidence/work-mcp-2026-10-23.md)
-remains the verified external-client result.
+An **allowlisted synthetic pilot** is running at
+[work.lastehr.com](https://work.lastehr.com), separately from the marketing
+site's Vercel deployment. On October 24, 2026 (October 25 UTC), a scripted
+MCP SDK client proposed work, a separate reviewer signed in through real
+OIDC and authorized approval, and private FHIR checks found **zero Tasks
+before approval and exactly one afterward**. Exact Task readback and the
+same receipt survived a Work service restart on the same image. The
+[public verification record](/evidence/hosted-work-2026-10-24.json) pins the
+deployment revision and observed timestamps.
+
+This deployment allows one assistant identity and one reviewer; access is
+operator configured. It has no self-serve enrollment. **Public Grok Bot or
+model-driven acceptance remains unverified.** The separate local
+[Claude Code acceptance](./evidence/work-mcp-2026-10-23.md) remains the verified
+model-driven external-client result.
 
 ## What is different from the local connector
 
@@ -190,9 +200,11 @@ changed drafts conflict rather than create replacement work.
 Record the exact client/version, source revision, deployment, actual tool
 calls, separate review method, before/after FHIR assertions, and reconnect
 receipt. Until that actual run is recorded, describe this as **the hosted
-foundation for Grok**, not verified Grok Bot compatibility. The checked-in
-HTTP/OIDC fixtures and scripted SDK clients use simulated identities and are
-not evidence of a genuine human review or a real Grok session.
+foundation for Grok**, not verified Grok Bot compatibility. The checkout's
+automated HTTP/OIDC fixtures use simulated identities and an automated
+reviewer. The separate public pilot record above documents deployed OIDC
+sign-in and a human-authorized reviewer decision, with a scripted SDK client
+and no model call.
 
 All prompts, chart data, Task descriptions, and demonstrations remain wholly
 invented. This service does not establish clinical correctness, real-chart
