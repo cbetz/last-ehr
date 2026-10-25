@@ -183,6 +183,52 @@ execution computer is cloud hosted. A localhost URL on your laptop will not
 reach this service from that computer.
 [Custom MCP plugins](https://docs.x.ai/grok-bot/team-bots)
 
+### Persistent assistant sign-in with Auth0
+
+The proposed native Grok Bot OAuth connection and automatic token renewal
+are **pending verification**. The setup below follows provider documentation;
+it does not establish that the live Bot has completed sign-in or refresh.
+
+Pre-register a separate Auth0 assistant client. Prefer a Native/public client
+using authorization code + PKCE S256, token endpoint authentication `none`,
+and the `authorization_code` and `refresh_token` grants. Register the exact
+cloud callback `https://www.cursor.com/agents/mcp/oauth/callback`. Cursor staff
+identifies this as the Grok Bot callback; `http://localhost:8787/callback` is
+the local IDE flow. Use the actual static `CLIENT_ID` in the secure HTTP MCP
+configuration, without a client secret for a public client. This route does
+not require Dynamic Client Registration or a change to Last's reviewer client.
+[Cursor OAuth configuration](https://cursor.com/docs/mcp),
+[Grok Bot callback clarification](https://forum.cursor.com/t/grok-bot-cloud-mcp-oauth-leaves-env-asana-client-id-unsubstituted/168404),
+[Auth0 Native clients](https://auth0.com/docs/get-started/auth0-overview/create-applications/native-apps)
+
+Enable Auth0's **Resource Parameter Compatibility Profile** so the MCP
+`resource` value becomes the token audience. For this deployment it must be
+`https://work.lastehr.com/mcp`. Enable **Allow Offline Access** on that API,
+authorize only `work:assistant` for the assistant client, and request
+`openid work:assistant offline_access` explicitly through the host's scope
+configuration. Cursor documents `auth.scopes` for static OAuth configuration;
+verify the actual native authorization request includes those scopes and
+the expected resource and callback. Configure rotating refresh tokens with
+explicit inactivity and maximum lifetimes. Grok Bot documents that connected
+app tokens remain on Cursor's backend, outside the Bot's computer and model.
+[Auth0 resource compatibility](https://auth0.com/ai/docs/mcp/guides/resource-param-compatibility-profile),
+[Refresh token requirements](https://auth0.com/docs/secure/tokens/refresh-tokens/get-refresh-tokens),
+[Refresh token rotation](https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation),
+[Grok Bot token custody](https://cursor.com/docs/grok-bot/work#connect-apps)
+
+Sign in with a distinct Google assistant user, then allowlist its exact
+verified Auth0 client ID and `sub` in `assistantIdentities`. A separate client
+ID does not make the reviewer's raw `sub` eligible: Last rejects that subject
+for every assistant client. The new client/user pair owns new work separately;
+it cannot retrieve or cancel jobs owned by the earlier M2M assistant identity.
+
+Verify renewal with a read-only native call after the original access token
+expires. Last caps each MCP session at its initial token expiry, so the host
+must reconnect with the refreshed token and retrieve a Work ID owned by the
+same client/user pair. Do not resubmit a proposal to test renewal. Record the
+actual native sign-in, granted scope, renewed access, and reconnect result
+before claiming persistent Grok Bot OAuth support.
+
 After deploying the service and identity provider:
 
 1. Add its `https://YOUR_WORK_ORIGIN/mcp` URL as a Remote HTTPS custom MCP

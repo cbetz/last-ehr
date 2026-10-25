@@ -77,6 +77,39 @@ describe("hosted Work assistant identities", () => {
     expect(first.expiresAt).toBeGreaterThan(Date.now());
   });
 
+  it("accepts an azp-only delegated user and preserves its actor across token renewal", async () => {
+    const delegated = { clientId: "native-public-client", subject: "google-oauth2|synthetic-assistant-user" };
+    const { auth, fetcher } = harness({ ...config, assistantIdentities: [...config.assistantIdentities, delegated] });
+    const claims = { client_id: undefined, azp: delegated.clientId, sub: delegated.subject };
+    const first = await auth.verifyAssistant(`Bearer ${await jwt(claims)}`);
+    const renewed = await auth.verifyAssistant(`Bearer ${await jwt({ ...claims, exp: Math.floor(Date.now() / 1000) + 1200 })}`);
+    const serviceIdentity = await auth.verifyAssistant(`Bearer ${await jwt({})}`);
+
+    expect(first.actor).toEqual({ tenantId: config.tenantId, role: "assistant", subject: expect.stringMatching(/^assistant:[a-f0-9]{64}$/) });
+    expect(renewed.actor).toEqual(first.actor);
+    expect(renewed.principal).toBe(first.principal);
+    expect(renewed.expiresAt).toBeGreaterThan(first.expiresAt);
+    expect(first.actor.subject).not.toBe(serviceIdentity.actor.subject);
+    expect(first.actor.subject).not.toBe(auth.reviewerActor.subject);
+    expect(JSON.stringify(first)).not.toContain(delegated.subject);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("requires the delegated client's exact user and rejects the reviewer even if allowlisted", async () => {
+    const delegated = { clientId: "native-public-client", subject: "google-oauth2|synthetic-assistant-user" };
+    const { auth } = harness({
+      ...config,
+      assistantIdentities: [delegated, { clientId: delegated.clientId, subject: config.reviewer.subject }],
+    });
+    for (const claims of [
+      { azp: delegated.clientId, sub: "google-oauth2|unlisted-user" },
+      { azp: "another-public-client", sub: delegated.subject },
+      { azp: delegated.clientId, sub: config.reviewer.subject },
+    ]) {
+      await expect(auth.verifyAssistant(`Bearer ${await jwt({ client_id: undefined, ...claims })}`)).rejects.toMatchObject({ code: "unauthorized" });
+    }
+  });
+
   it("requires exact allowlisted client and subject and work:assistant scope", async () => {
     const { auth } = harness();
     for (const claims of [{ client_id: "unregistered" }, { sub: "assistant-two" }, { scope: "chart.read" }, { scope: "" }, { sub: "" }, { sub: undefined }, { exp: undefined }]) {
