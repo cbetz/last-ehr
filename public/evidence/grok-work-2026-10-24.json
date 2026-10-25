@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "title": "Grok API synthetic Work run with separate human review",
+  "verificationKind": "grok-api-with-separate-human-review",
+  "evidenceStatus": "qualified-provider-tool-status-unresolved",
+  "observedAtUtc": "2026-10-25T01:10:30.600Z",
+  "observedLocalDate": "2026-10-24",
+  "localTimeZone": "America/New_York",
+  "deployment": {
+    "sourceCommit": "8bcbe76ef179af3ffb4ee282c189ac882f2383da",
+    "publicOrigin": "https://work.lastehr.com",
+    "mcpResource": "https://work.lastehr.com/mcp",
+    "hosting": "OVHcloud VPS",
+    "transport": "MCP Streamable HTTP",
+    "workImageId": "sha256:e7cec8ea5a8d4d9e027aafd0a319fa21481fd8dec5c2969ec5f7798b3896dde9"
+  },
+  "scope": {
+    "syntheticOnly": true,
+    "workspaceCount": 1,
+    "allowlistedAssistantCount": 1,
+    "configuredReviewerCount": 1,
+    "selfServeOpenAccess": false,
+    "actualGrokBotInterfaceVerified": false,
+    "grokApiRequestsPerformed": 2,
+    "operatorSuppliedExactDraftArguments": true,
+    "assistantApprovalOrDirectSaveTool": false
+  },
+  "client": {
+    "provider": "xAI",
+    "api": "Responses API",
+    "model": "grok-4.7",
+    "apiEndpoint": "https://api.x.ai/v1/responses"
+  },
+  "proposalQualification": {
+    "pendingModelVerified": false,
+    "pendingPayloadRecovered": true,
+    "providerToolStatusUnresolved": true,
+    "originalCallFailedFlags": [
+      true,
+      true
+    ],
+    "originalResponseHash": "c91214f956fd952f3f024b6fdf34d39a17514f2c6834d445ff4c26de41e8506a",
+    "payloadRecoveredAtUtc": "2026-10-25T00:40:44.237Z",
+    "freshSdkPendingEqualityVerified": true,
+    "caveat": "The original proposal response retained valid tool payloads but discarded raw provider tool error/status fields after classifying both calls as failed. Those original flags remain unchanged. Payload and independent SDK equality were recovered; original provider tool success status remains unresolved."
+  },
+  "phases": [
+    {
+      "phase": "propose",
+      "model": "grok-4.7",
+      "status": "completed",
+      "tools": [
+        "read_work_context",
+        "propose_work"
+      ],
+      "originalCallFailedFlags": [
+        true,
+        true
+      ],
+      "providerToolClassifications": [
+        {
+          "status": "not-retained",
+          "error": "not-retained"
+        },
+        {
+          "status": "not-retained",
+          "error": "not-retained"
+        }
+      ],
+      "usage": {
+        "input_tokens": 8568,
+        "output_tokens": 713,
+        "total_tokens": 9281,
+        "cost_in_usd_ticks": 179580000,
+        "reasoning_tokens": 464
+      },
+      "costUsd": 0.017958
+    },
+    {
+      "phase": "resume",
+      "model": "grok-4.7",
+      "status": "completed",
+      "tools": [
+        "get_work"
+      ],
+      "originalCallFailedFlags": [
+        false
+      ],
+      "providerToolClassifications": [
+        {
+          "status": "completed",
+          "error": "empty"
+        }
+      ],
+      "usage": {
+        "input_tokens": 5009,
+        "output_tokens": 427,
+        "total_tokens": 5436,
+        "cost_in_usd_ticks": 95080000,
+        "reasoning_tokens": 246
+      },
+      "costUsd": 0.009508
+    }
+  ],
+  "totalProviderReportedCostUsd": 0.027466,
+  "reviewer": {
+    "method": "Human decision in Last reviewer browser, separate from assistant credentials.",
+    "decision": "approve",
+    "decisionAtUtc": "2026-10-25T01:08:54.237Z",
+    "decisionBoundToExactProposalHash": true
+  },
+  "work": {
+    "workId": "145d0b79-9f1a-4e8d-bbe4-8ff44fce92be",
+    "proposalHash": "ca23c855f7864191ce5a06c8e35927d51af4903ef69e71863f09facf760d0473",
+    "pendingCreatedAtUtc": "2026-10-25T00:37:35.813Z",
+    "source": {
+      "patientReference": "Patient/1000",
+      "observationReference": "Observation/1001",
+      "observationVersionId": "1"
+    },
+    "exactApprovedProposal": {
+      "description": "Review the invented HbA1c result (6.4%) and arrange a synthetic follow-up. This demonstration Task records a request only; it does not contact a patient.",
+      "focus": {
+        "reference": "Observation/1001"
+      },
+      "for": {
+        "reference": "Patient/1000"
+      },
+      "identifier": [
+        {
+          "system": "https://lastehr.com/work-lab/job",
+          "value": "145d0b79-9f1a-4e8d-bbe4-8ff44fce92be"
+        }
+      ],
+      "input": [
+        {
+          "type": {
+            "text": "Reviewed source version"
+          },
+          "valueString": "Observation/1001/_history/1"
+        }
+      ],
+      "intent": "order",
+      "resourceType": "Task",
+      "status": "requested"
+    }
+  },
+  "fhirAssertions": {
+    "method": "Read-only operator SSH, exact-identifier search and direct Task GET on the private HAPI network.",
+    "identifierSystem": "https://lastehr.com/work-lab/job",
+    "countsApplyOnlyToThisWorkId": true,
+    "before": {
+      "observedAtUtc": "2026-10-25T00:39:38.728Z",
+      "matchingTaskCount": 0,
+      "durableState": "awaiting_review",
+      "decisionPresent": false,
+      "receiptPresent": false
+    },
+    "after": {
+      "observedAtUtc": "2026-10-25T01:10:04.324Z",
+      "matchingTaskCount": 1,
+      "durableState": "succeeded",
+      "searchResultMatchedDirectReadback": true,
+      "readbackMatchedEveryApprovedField": true,
+      "serverAddedFieldsExcludedFromProposalComparison": [
+        "id",
+        "meta"
+      ],
+      "task": {
+        "resourceType": "Task",
+        "id": "1051",
+        "meta": {
+          "versionId": "1",
+          "lastUpdated": "2026-10-25T01:08:55.347+00:00"
+        },
+        "identifier": [
+          {
+            "system": "https://lastehr.com/work-lab/job",
+            "value": "145d0b79-9f1a-4e8d-bbe4-8ff44fce92be"
+          }
+        ],
+        "status": "requested",
+        "intent": "order",
+        "description": "Review the invented HbA1c result (6.4%) and arrange a synthetic follow-up. This demonstration Task records a request only; it does not contact a patient.",
+        "focus": {
+          "reference": "Observation/1001"
+        },
+        "for": {
+          "reference": "Patient/1000"
+        },
+        "input": [
+          {
+            "type": {
+              "text": "Reviewed source version"
+            },
+            "valueString": "Observation/1001/_history/1"
+          }
+        ]
+      }
+    },
+    "existingTask1002Unchanged": {
+      "fullResourceCompared": true,
+      "versionId": "1"
+    }
+  },
+  "receipt": {
+    "id": "1051",
+    "resourceType": "Task",
+    "verifiedAt": "2026-10-25T01:08:55.515Z",
+    "versionId": "1"
+  },
+  "freshGrokReceiptReadVerified": true,
+  "freshSdkReconnectVerified": true,
+  "restartVerificationPerformedForThisWorkItem": false,
+  "notVerified": [
+    "Original proposal-phase provider tool success status; raw error/status fields were discarded by the first parser.",
+    "Grok Bot native interface or Meta Muse compatibility.",
+    "Automatic assistant token renewal or unattended operation.",
+    "Public-pilot decline/cancellation scenarios.",
+    "Restart persistence for this Grok work item, backup restoration, or disaster recovery.",
+    "Clinical use, patient contact, real-chart authorization, or HIPAA readiness."
+  ],
+  "evidenceNotes": [
+    "This is a projected operator verification record, not an independently signed attestation.",
+    "The retained proposal payloads, fresh SDK reads, separate human decision, fresh Grok read, and independent private FHIR reads were compared. The proposal transport-status caveat remains unresolved.",
+    "Exactly two paid model requests were sent. The proposal was not replayed after the parser discrepancy.",
+    "All chart and Task data are invented. A saved Task requests follow-up; it does not contact a patient or complete care.",
+    "Provider token settings and local timeouts are not hard dollar or individual tool-call caps.",
+    "Credentials, identity-provider tenant/client/user identifiers, principal hashes, private configuration, provider response IDs, and raw logs are omitted."
+  ]
+}

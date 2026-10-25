@@ -7,7 +7,14 @@ server. The allowlisted pilot passed a public scripted-SDK flow with separate
 human-authorized review on October 24, 2026: zero matching Tasks before
 approval, one exact saved Task afterward, and the same receipt after a Work
 restart. See the [verification record](/evidence/hosted-work-2026-10-24.json).
-Grok Bot acceptance remains unverified; enrollment remains operator configured.
+
+In a separate [qualified Grok 4.7 API run](/evidence/grok-work-2026-10-24.json),
+a human approved the synthetic draft and a fresh Grok request retrieved its
+Task receipt. Independent FHIR reads found zero matching Tasks before approval
+and one afterward. The original proposal tool status remains unresolved:
+the first parser discarded raw provider status/error fields, while the
+retained payloads matched Last through a fresh SDK read. This API result does
+not verify Grok chat or the Grok Bot client. Enrollment remains operator configured.
 The steps below describe how to reproduce and operate the deployment.
 
 ## 1. Order the server
@@ -292,8 +299,9 @@ approved description, patient, source reference/version, identifier, and
 receipt ID/version. Repeat with declined work and require zero matching
 Tasks. Restart Work and retrieve the approved result again without a new
 write. Record deployment SHA, real client/version, tool calls, review method
-and before/after assertions. Until this passes, share the verified Claude
-workflow and describe Grok as the next integration being tested.
+and before/after assertions. Claim Grok Bot compatibility only after this
+actual-client sequence passes. Keep that acceptance separate from the
+qualified Grok API run above.
 
 ## 8. Preserve state and test recovery
 

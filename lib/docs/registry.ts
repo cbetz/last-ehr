@@ -164,11 +164,11 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     file: "docs/hosted-work.md",
     title: "Hosted Synthetic Work",
     description:
-      "Deploy the synthetic Work service with authenticated HTTP MCP, separate OIDC reviewer sign-in, and persistent work state. Actual Grok acceptance remains a separate check.",
+      "Deploy authenticated HTTP MCP with separate OIDC review and qualified Grok API evidence. Original proposal status is unresolved; Grok Bot is unverified.",
     group: "Operate & maintain",
     order: 26,
     audience: "Synthetic pilot operators and external assistant integrators",
-    lastModified: "2026-10-23",
+    lastModified: "2026-10-24",
     keywords: ["Work", "MCP", "Grok", "OAuth", "OIDC", "synthetic", "Docker"],
   },
   {
