@@ -16,6 +16,21 @@ issues, pull requests, logs, or reproduction steps. If a report requires data,
 use synthetic records (e.g. a [Synthea](https://github.com/synthetichealth/synthea)
 bundle).
 
+## Credentials
+
+Keep credentials in local environment files or the deployment's secret store.
+Only the empty `.env.example` template belongs in Git. Environment files,
+private key files, and local npm credentials are excluded from Git and Docker
+build contexts; those exclusions do not remove files already tracked by Git.
+
+The `Secret scan` GitHub Actions workflow checks all fetched Git history with
+Gitleaks on pull requests and pushes to `main`. It redacts findings and does
+not verify credentials against their providers. GitHub secret scanning and
+push protection provide an additional check on the upstream repository.
+Scanners cannot recognize every credential: inspect changes before committing.
+If a credential is exposed, revoke or rotate it with its provider before
+cleaning up the affected files and history.
+
 ## Scope & posture
 
 - **This alpha is synthetic-only.** The repository does not establish a

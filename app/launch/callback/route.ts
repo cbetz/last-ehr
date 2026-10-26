@@ -27,8 +27,8 @@ export async function GET(req: Request) {
   const state = url.searchParams.get("state");
   const oauthError = url.searchParams.get("error");
   if (oauthError) {
-    console.error("SMART authorize error:", oauthError);
-    return new Response(`Launch was not authorized (${oauthError}).`, {
+    console.error("SMART authorization failed.");
+    return new Response("Launch was not authorized.", {
       status: 400,
     });
   }
@@ -71,12 +71,15 @@ export async function GET(req: Request) {
       }),
     });
     if (!res.ok) {
-      console.error("SMART token exchange failed:", res.status, await res.text());
+      // OAuth diagnostics can echo credentials or the submitted code/verifier.
+      // Keep only the HTTP status in logs; never consume or print that body.
+      console.error("SMART token exchange failed:", { status: res.status });
+      void res.body?.cancel().catch(() => {});
       return new Response("Token exchange failed.", { status: 502 });
     }
     token = (await res.json()) as TokenResponse;
-  } catch (err) {
-    console.error("SMART token exchange error:", err);
+  } catch {
+    console.error("SMART token exchange error.");
     return new Response("Token exchange failed.", { status: 502 });
   }
 
