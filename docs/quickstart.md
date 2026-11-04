@@ -1,6 +1,12 @@
 # Quickstart
 
-The fastest way to understand Last EHR is the hosted demo:
+The published package path is the [README start](../README.md#start-here):
+`npx -y @lastehr/mcp init`, then this repository's local HAPI stack. That
+release's no-account backend is `FHIR_BACKEND=hapi` with `FHIR_BASE_URL` or
+`HAPI_BASE_URL`. Local-lab failures are in
+[Troubleshooting the local lab](#troubleshooting-the-local-lab).
+
+The hosted demo is a separate browser walkthrough:
 
 <https://www.lastehr.com/demo>
 
@@ -151,6 +157,25 @@ configuration is baked in at build time, so it always runs the scripted
 walkthrough and cannot run the real-model setup described in this section; see
 [Pull and run from GHCR](./deployment.md#pull-and-run-from-ghcr), which also
 covers what to do if no public image has been published yet.
+
+## Troubleshooting the local lab
+
+`npm run demo:local` and `npm run mcp:demo` need Node 22.18+ (or 24.2+) and a
+running Docker daemon. They do not need `.env.local`, a Medplum account, or a
+model key. `demo:local` sets the local HAPI and scripted-walkthrough variables
+for its own processes.
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `Docker does not appear to be running. Start Docker Desktop (or your Docker daemon) and re-run this command.` | `docker` is on `PATH`, and `docker info` failed. The daemon is stopped or unreachable. | Start Docker Desktop or the Docker daemon, then re-run the same command. |
+| `Could not start docker: spawn docker ENOENT` | The `docker` binary is not on `PATH`. | Install Docker, then re-run the command. |
+| Compose reports that `127.0.0.1:8080` is already allocated, or `address already in use` | Port 8080 is taken. `docker-compose.yml` binds HAPI to `127.0.0.1:8080`. | Stop the other listener, or run `npm run demo:local:down` if a previous stack holds the port, then re-run. |
+| `waiting for FHIR server at http://localhost:8080/fhir ...` and then `FHIR server at http://localhost:8080/fhir not ready after 5 minutes.` | The first HAPI boot initializes its database. That wait is five minutes (`npm run fhir:wait`). | Leave the containers up and run `npm run fhir:wait`. If it times out again, read `docker compose logs hapi`, then `npm run demo:local:down` and re-run. |
+| An old chart, a half-started stack, or compose errors about an existing container | A previous local stack is still present. | `npm run demo:local:down`, then `npm run demo:local` or `npm run mcp:demo`. |
+| `npm warn EBADENGINE` with `required: { node: '^22.18.0 \|\| >=24.2.0' }` | Node is outside `package.json` `engines`. `.nvmrc` is `22.18.0`. Without `engine-strict`, npm warns and still installs. | Install Node 22.18+ or 24.2+, then run `npm install` again. |
+| `Seeding needs write access to your Medplum project.` | `npm run seed` ran without `FHIR_BACKEND=hapi` and without Medplum credentials. `demo:local` sets the HAPI URL itself; a bare `npm run seed` does not. | With the stack up: `FHIR_BACKEND=hapi FHIR_BASE_URL=http://localhost:8080/fhir npm run seed`. Or use `npm run demo:local`. |
+| `FHIR_BACKEND=hapi requires HAPI_BASE_URL or FHIR_BASE_URL (for example http://localhost:8080/fhir).` | HAPI mode is on and the base URL is unset. | `export FHIR_BASE_URL=http://localhost:8080/fhir` (or `HAPI_BASE_URL`) and re-run. |
+| `Set MEDPLUM_ACCESS_TOKEN or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET before starting Last EHR MCP.` | `@lastehr/mcp` started in the default Medplum mode with no credential. | For this stack, set `FHIR_BACKEND=hapi` and `FHIR_BASE_URL=http://localhost:8080/fhir` instead of a Medplum token. |
 
 ## Medplum-backed demo
 

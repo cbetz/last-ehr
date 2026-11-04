@@ -51,6 +51,9 @@ and does not broaden that package's support boundary.
 
 From a local checkout with Node 22.18+ and Docker running:
 
+If the stack fails to come up, see
+[Troubleshooting the local lab](./quickstart.md#troubleshooting-the-local-lab).
+
 ```bash
 npm install
 npm run mcp:demo -- --client claude-code

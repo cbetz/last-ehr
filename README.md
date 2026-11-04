@@ -6,6 +6,126 @@
 [![npm: @lastehr/agent-write-conformance](https://img.shields.io/npm/v/%40lastehr%2Fagent-write-conformance?label=%40lastehr%2Fagent-write-conformance)](https://www.npmjs.com/package/@lastehr/agent-write-conformance)
 [![Official MCP Registry](https://img.shields.io/badge/Official%20MCP%20Registry-active-2563eb)](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr)
 
+**Status: early / alpha.** Use synthetic data only. License: [Apache-2.0](./LICENSE).
+
+## Start here
+
+The first step is the published package. It does not create an account.
+
+```bash
+npx -y @lastehr/mcp init
+```
+
+npm `latest` is `@lastehr/mcp@0.4.1`. The JSON this command prints must list
+`@lastehr/mcp@0.4.1` in `args`. If it names another version, stop and run
+`npx -y @lastehr/mcp@0.4.1 init` instead. This page describes that release.
+`init` in 0.4.1 accepts `--client json` (the default), `claude-code`, or
+`cursor`. It prints a client configuration and exits. It does not start a
+server, register the client, or contact a FHIR endpoint, and it has no flag
+that selects a hosted demo.
+
+Default output:
+
+```json
+{
+  "mcpServers": {
+    "lastehr": {
+      "command": "npx",
+      "args": ["-y", "@lastehr/mcp@0.4.1"],
+      "env": {
+        "MEDPLUM_ACCESS_TOKEN": "<replace-with-a-least-privilege-token>"
+      }
+    }
+  }
+}
+```
+
+`--client cursor` adds `"type": "stdio"`. `--client claude-code` prints
+`claude mcp add lastehr -- npx -y @lastehr/mcp@0.4.1` plus comments. The
+generated command is pinned to the version that ran `init`.
+
+### No-account synthetic backend
+
+The no-account backend 0.4.1 accepts is this repository's local HAPI stack.
+Set `FHIR_BACKEND=hapi` and `FHIR_BASE_URL` or `HAPI_BASE_URL`. No Medplum
+token. The stack has no auth, Compose binds it to loopback, and it is for
+synthetic records only.
+
+Node 22.18+ (or 24.2+) and a running Docker daemon:
+
+```bash
+git clone https://github.com/cbetz/last-ehr.git
+cd last-ehr
+npm install
+npm run demo:local
+```
+
+`demo:local` starts HAPI and Postgres, seeds synthetic patients, and opens
+the fixed walkthrough at <http://localhost:3000/demo>. It does not create or
+read `.env.local`. The first image pull can take several minutes. Press
+Ctrl-C to stop Next.js. `npm run demo:local:down` removes the stack.
+
+In the configuration `init` printed, replace the `env` block with:
+
+```json
+"env": {
+  "FHIR_BACKEND": "hapi",
+  "FHIR_BASE_URL": "http://localhost:8080/fhir"
+}
+```
+
+Keep the rest, including `"type": "stdio"` when `--client cursor` printed it.
+Save it where the client reads MCP config (for Cursor,
+`~/.cursor/mcp.json` or `.cursor/mcp.json`). With `FHIR_BACKEND=hapi`, 0.4.1
+does not read `MEDPLUM_*`.
+
+The Claude Code line does not carry those variables. Export them in the shell
+that launches Claude Code:
+
+```bash
+export FHIR_BACKEND=hapi
+export FHIR_BASE_URL=http://localhost:8080/fhir
+```
+
+After HAPI is up, this check prints no patient records:
+
+```bash
+FHIR_BACKEND=hapi FHIR_BASE_URL=http://localhost:8080/fhir npx -y @lastehr/mcp doctor --connect
+```
+
+In 0.4.1, `doctor --connect` checks FHIR R4 metadata and a count-only Patient
+search. It does not check other resource permissions, writes, or a client's
+approval UI.
+
+`npm run mcp:demo` is a separate checkout-only lab, outside the published
+`@lastehr/mcp@0.4.1` package. It exposes `search_patients` and
+`show_patient_info` for four fixture patients. See the
+[MCP guide](./docs/mcp.md).
+
+Local stack failures: [Troubleshooting the local lab](./docs/quickstart.md#troubleshooting-the-local-lab).
+
+## Other ways in
+
+These are optional. The published MCP package and the local synthetic stack
+above are the first path.
+
+| Goal | Start here |
+| --- | --- |
+| Test an MCP (stdio) implementation of the write protocol | `npx @lastehr/agent-write-conformance` — [conformance guide](./docs/conformance.md) |
+| Have an assistant draft synthetic work, then review it separately | `npm run work:demo` — [Assistant Work Lab](./docs/assistant-work.md). Add `--agent --model-env .env.local` only when a model key is already configured. |
+| Connect an external MCP assistant to durable synthetic work | [Work MCP connector](./docs/work-mcp.md): `npm run --silent work:mcp -- --print-config` |
+| Deploy the web app | [Quickstart](#quickstart): Vercel, with your own Medplum project and model key |
+| Run the web app locally | [Quickstart](#quickstart): Medplum, or `npm run demo:local` for the fixed synthetic walkthrough |
+| Open the hosted synthetic demo | <https://www.lastehr.com/demo> — no sign-up. Ask `Find patients named Smith`, then `Record a heart rate of 72 bpm for Maria Garcia`, and inspect the approval card before anything is saved. |
+| Read the protocol | [Approval-Gated Agent Writes on FHIR, v0.1 draft](./docs/agent-write-protocol.md) |
+| See the FHIR read surface | [FHIR coverage](./docs/fhir-coverage.md) |
+| Inspect two read-only tools on four fixture patients | `npm run mcp:demo -- --client claude-code` from a checkout. Not the published package. |
+| Connect native Grok Bot to synthetic work | [Grok Bot with Last EHR](./docs/grok-bot.md) |
+| Deploy a dedicated synthetic Work service | [Hosted Synthetic Work](./docs/hosted-work.md) |
+| Run the synthetic safety-mechanics check | `npm run eval` — [evaluation guide](./docs/evals.md). This checks proposal, approval, denial, and cleanup mechanics. |
+
+## What it is
+
 **Read the chart broadly. Write only what a human approved.** Last EHR is the
 agent layer for a headless FHIR EHR. It does three things, and the write
 protocol is only one of them.
@@ -44,54 +164,6 @@ evaluation), or start with the zero-key local synthetic walkthrough.
 **[Try the live demo](https://www.lastehr.com/demo)**: no sign-up, synthetic data, and every write goes through the approval gate.
 
 ![Last EHR demo: the agent finds a patient, then records an observation to the chart after the user approves the write](.github/demo.gif)
-
-## Start here
-
-| Goal | Start here |
-| --- | --- |
-| See the approval loop now | [Try the live synthetic-data demo](https://www.lastehr.com/demo): no sign-up. |
-| Read the protocol | [Approval-Gated Agent Writes on FHIR, v0.1 draft](./docs/agent-write-protocol.md) |
-| See exactly what the agent can reach in FHIR | [FHIR coverage](./docs/fhir-coverage.md): counted against US Core, ceiling included |
-| Test an MCP (stdio) implementation of the protocol | `npx @lastehr/agent-write-conformance` — see the [conformance guide](./docs/conformance.md) |
-| Give an MCP client bounded chart tools — read-only by default, opt-in approved writes (Medplum, or the local HAPI stack) | `npx -y @lastehr/mcp init --client claude-code` |
-| Try fixture MCP locally without FHIR credentials or a provider API key | `npm run mcp:demo -- --client claude-code` |
-| Have an assistant draft synthetic work, wait for separate review, and verify the saved FHIR Task | `npm run work:demo -- --agent --model-env .env.local` — see the [Assistant Work Lab](./docs/assistant-work.md); omit the flags for a provider-free manual client |
-| Connect an external MCP assistant to durable synthetic work and a separate reviewer inbox | Start the Work Lab, then `npm run --silent work:mcp -- --print-config` — see the [Work MCP connector](./docs/work-mcp.md) |
-| Connect native Grok Bot to synthetic work and inspect the recorded approval-and-save result | See [Grok Bot with Last EHR](./docs/grok-bot.md): self-host setup, allowlisted pilot access, and the qualified walkthrough |
-| Deploy a dedicated synthetic Work service for remote assistant testing | See [Hosted Synthetic Work](./docs/hosted-work.md): authenticated HTTP MCP, OIDC reviewer sign-in, private FHIR, and persistent SQLite; operator deployment required |
-| Prove the synthetic web-agent workflow locally | `npm run eval` |
-| Inspect the complete flow locally with no account or model key | `npm run demo:local` |
-
-### 30-second synthetic-data walkthrough
-
-1. Open the [live demo](https://www.lastehr.com/demo).
-2. Ask: `Find patients named Smith`.
-3. Ask: `Record a heart rate of 72 bpm for Maria Garcia`.
-4. Inspect the proposed write, then approve it. The data is synthetic and the
-   approval card shows exactly what will be saved.
-
-For MCP, `@lastehr/mcp` is deliberately a separate surface that is
-**read-only by default** (`search_patients`, `show_patient_info`,
-`read_chart_section`, and `read_document` — the same bounded chart reads the
-web agent gets), with one opt-in: elicitation-gated write proposals a human
-approves per action.
-Configure a least-privilege Medplum token before connecting it to a real
-project; full setup is in the
-[MCP guide](./docs/mcp.md) and the [Official MCP Registry listing](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr).
-
-Want to inspect the read surface before configuring Medplum? From a
-checkout, `npm run mcp:demo` starts the included local HAPI stack, resets the
-four synthetic fixture charts, and prints a Claude Code/Cursor configuration.
-That checkout-only **MCP Local Lab** needs no FHIR/Medplum credentials or
-model-provider API key of its own and is restricted to fixture patients. Your
-MCP client still uses its normal account and may send those synthetic results
-to its model provider. It is not the published package, generic HAPI support,
-or a path for PHI.
-
-For a deterministic safety-mechanics check, `npm run eval` creates a separate
-synthetic target, proves the proposal/approval and denial paths, verifies chart
-association, cleans up, and writes a scrubbed report. It is not a clinical,
-authorization, or compliance certification; see the [evaluation guide](./docs/evals.md).
 
 ## What it does
 
@@ -140,9 +212,14 @@ On the public demo, writes are also tagged with your session, so you only ever s
 
 ## Quickstart
 
-**Fastest**: try the hosted demo at [lastehr.com/demo](https://www.lastehr.com/demo). No account, no keys, synthetic data.
+The published MCP package and the no-account local HAPI stack are in
+[Start here](#start-here). The paths in this section are the hosted demo, a
+Vercel deploy, and a local web app. Longer local-lab notes, including
+failures, are in [docs/quickstart.md](./docs/quickstart.md).
 
-**One-click deploy** with your own keys:
+**Hosted synthetic demo** (browser, no install): [lastehr.com/demo](https://www.lastehr.com/demo). Synthetic data, no account.
+
+**Deploy with Vercel** and your own keys:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fcbetz%2Flast-ehr&env=OPENAI_API_KEY,MEDPLUM_CLIENT_ID,MEDPLUM_CLIENT_SECRET,NEXT_PUBLIC_QUICKSTART&envDescription=A%20model%20key%20plus%20Medplum%20ClientApplication%20credentials%20for%20the%20no-sign-in%20quickstart&envLink=https%3A%2F%2Fgithub.com%2Fcbetz%2Flast-ehr%2Fblob%2Fmain%2F.env.example)
 
@@ -206,7 +283,7 @@ For the longer version, see [docs/quickstart.md](./docs/quickstart.md).
 
 - [Approval-Gated Agent Writes on FHIR](./docs/agent-write-protocol.md): the v0.1 draft protocol — Proposal, Decision, Commit, Audit, and the policy rules.
 - [Protocol conformance suite](./docs/conformance.md): test an implementing MCP stdio server with a scripted reviewer and independent FHIR verification.
-- [Quickstart](./docs/quickstart.md): hosted demo, Medplum local run, and local HAPI evaluation.
+- [Quickstart](./docs/quickstart.md): hosted demo, Medplum local run, local HAPI evaluation, and [local-lab troubleshooting](./docs/quickstart.md#troubleshooting-the-local-lab).
 - [Support matrix](./docs/support.md): exactly which backends and interfaces work today.
 - [Architecture](./docs/architecture.md): the chat route, tools, backend adapters, and data boundary.
 - [Backend adapters](./docs/adapters.md): the adapter contract, harnesses, checklist, and contribution path.
@@ -237,6 +314,9 @@ token is bounded by the granted SMART scopes and your AccessPolicy, and writes
 still stop at the approval card.
 
 ## Use chart tools over MCP
+
+The no-account setup for published `@lastehr/mcp@0.4.1` is [Start here](#start-here).
+This section is the same package with a Medplum credential.
 
 [`@lastehr/mcp`](./packages/mcp) is a small, standalone MCP server for
 Medplum (or the local HAPI stack). It gives Claude Code, Cursor, and other

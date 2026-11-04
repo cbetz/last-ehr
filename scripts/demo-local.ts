@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 
+import { assertDockerDaemonRunning } from "./docker-preflight";
+
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 
 // These values deliberately override any .env.local configuration inherited
@@ -108,6 +110,8 @@ async function main(): Promise<void> {
   if (args.length > 0 && !prepareOnly) {
     throw new Error("Usage: npm run demo:local [-- --prepare]");
   }
+
+  await assertDockerDaemonRunning();
 
   console.log("Starting the local HAPI FHIR stack…");
   await run("docker", ["compose", "up", "-d"]);
