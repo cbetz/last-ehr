@@ -263,9 +263,9 @@ registered on the app.
 Registration is out of band, on fhir.epic.com: Backend Systems, OAuth 2.0,
 and a public key or JWKS URL. Use the **non-production** client id against
 this sandbox. The client id is not a secret. The private key is. This repo
-does not contain one. Epic says a new public key can take up to 60 minutes
-to sync to the sandbox. Sandbox client-to-user mapping is automatic;
-customer non-production is not, and was not tested.
+does not contain a private key. Epic says a new public key can take up to
+60 minutes to sync to the sandbox. Sandbox client-to-user mapping is
+automatic; customer non-production is not, and was not tested.
 
 **Standalone launch is not implemented.** Epic's same documentation says
 the app redirects the user to the authorize endpoint, Epic shows a login
@@ -331,6 +331,23 @@ or any delete. None of those creates were performed.
 - No claim that either sandbox is US Core compliant, production-ready, or
   appropriate for real patient data. Epic's own sandbox statement is
   marked experimental. Oracle's open host is a shared synthetic sandbox.
+
+## Maintainers' sandbox conformance keys
+
+These are the maintainers' sandbox conformance keys. Public halves only.
+Private keys are never committed. Anyone running the adapters must register
+their own keys with the sandbox. These documents do not authenticate any
+other deployment.
+
+| Sandbox | Public JWKS | `kid` |
+| --- | --- | --- |
+| Epic | <https://lastehr.com/.well-known/jwks/epic-sandbox.json> | `lastehr-epic-1` |
+| Oracle Health | <https://lastehr.com/.well-known/jwks/oracle-sandbox.json> | `lastehr-oracle-1` |
+
+The files are `public/.well-known/jwks/epic-sandbox.json` and
+`public/.well-known/jwks/oracle-sandbox.json`. The apex host redirects to
+`www.lastehr.com` and keeps the path. Register the `www` URL if the sandbox
+does not follow redirects.
 
 ## Next step for a real write path
 

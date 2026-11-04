@@ -37,7 +37,19 @@ const nextConfig = {
         value: "camera=(), microphone=(), geolocation=()",
       },
     ];
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // The static file server would append a charset. Sandbox JWKS
+      // clients should see application/json exactly.
+      {
+        source: "/.well-known/jwks/epic-sandbox.json",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+      {
+        source: "/.well-known/jwks/oracle-sandbox.json",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+    ];
   },
 };
 
