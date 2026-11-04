@@ -2,6 +2,8 @@ import { spawn } from "node:child_process";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { assertDockerDaemonRunning } from "./docker-preflight";
+
 import {
   isMcpDemoClient,
   renderMcpDemoInit,
@@ -78,6 +80,8 @@ async function main(): Promise<void> {
 
   const prepareOnly = args.length === 1 && args[0] === "--prepare";
   const client = prepareOnly ? undefined : parseClient(args);
+
+  await assertDockerDaemonRunning();
 
   await run(npm, ["run", "demo:local:prepare"]);
 
