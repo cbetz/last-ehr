@@ -182,6 +182,12 @@ export async function createSeedBackend({
     };
   }
 
+  if (kind === "oracle-health" || kind === "epic") {
+    throw new Error(
+      `FHIR_BACKEND=${kind} is an experimental sandbox adapter and cannot be seeded. The seed deletes and recreates charts. See docs/adapters/epic-cerner.md.`,
+    );
+  }
+
   if (kind !== "medplum") {
     throw new Error(
       `Unknown FHIR_BACKEND "${kind}". Supported values: medplum, hapi, firely, aidbox, oystehr.`,

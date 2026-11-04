@@ -112,6 +112,26 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
     keywords: ["adapter", "Aidbox", "Firely", "Oystehr", "contract"],
   },
   {
+    slug: "epic-cerner",
+    file: "docs/adapters/epic-cerner.md",
+    title: "Epic and Oracle Health sandbox adapters",
+    description:
+      "Experimental, flag-gated read of the public Epic and Oracle Health FHIR sandboxes. Synthetic data only.",
+    group: "Build & integrate",
+    order: 15,
+    audience: "Backend contributors",
+    lastModified: "2026-11-04",
+    keywords: [
+      "Epic",
+      "Oracle Health",
+      "Cerner",
+      "sandbox",
+      "SMART",
+      "dry-run",
+      "experimental",
+    ],
+  },
+  {
     slug: "mcp",
     file: "docs/mcp.md",
     title: "FHIR MCP Server",

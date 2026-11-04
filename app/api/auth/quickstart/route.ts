@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { MedplumClient } from "@medplum/core";
 
+import { hasFhirBackendConfig } from "@/lib/fhir/backend";
 import {
   KNOWN_FHIR_BACKENDS,
   parseDemoBackends,
@@ -119,9 +120,17 @@ export async function POST(req: Request) {
   // without credentials) instead of minting a placeholder session whose
   // every chat request would 500 at the factory's unknown-backend throw.
   const defaultBackend = process.env.FHIR_BACKEND || "medplum";
+  // Experimental sandbox adapters are not in KNOWN_FHIR_BACKENDS. They get
+  // a placeholder session only when the flag is on and their own config is
+  // complete (hasFhirBackendConfig is false otherwise), so an unset flag
+  // still fails loudly instead of minting a session that cannot chat.
+  const experimentalPlaceholder =
+    (defaultBackend === "oracle-health" || defaultBackend === "epic") &&
+    hasFhirBackendConfig(defaultBackend);
   const placeholderSufficient =
     defaultBackend !== "medplum" &&
-    (KNOWN_FHIR_BACKENDS as readonly string[]).includes(defaultBackend) &&
+    ((KNOWN_FHIR_BACKENDS as readonly string[]).includes(defaultBackend) ||
+      experimentalPlaceholder) &&
     !parseDemoBackends(process.env.NEXT_PUBLIC_DEMO_BACKENDS).some(
       (b) => b.id === "medplum",
     );

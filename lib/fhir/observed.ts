@@ -68,6 +68,11 @@ export class ObservedFhirBackend implements FhirBackend {
     private readonly sessionId?: string,
   ) {}
 
+  /** So a dry-run inner backend still stages instead of POSTing. */
+  get writeDisposition(): FhirBackend["writeDisposition"] {
+    return this.inner.writeDisposition;
+  }
+
   private path(
     resourceType: string,
     params?: Record<string, string>,

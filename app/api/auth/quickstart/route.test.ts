@@ -156,6 +156,20 @@ describe("quickstart route, non-medplum defaults", () => {
     expect(names).toContain("demo_session_id");
   });
 
+  it("mints a placeholder for the experimental Oracle adapter only when the flag is on", async () => {
+    vi.stubEnv("FHIR_BACKEND", "oracle-health");
+    vi.stubEnv("MEDPLUM_CLIENT_ID", "");
+    vi.stubEnv("MEDPLUM_CLIENT_SECRET", "");
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "");
+    const refused = await POST(request());
+    expect(refused.status).toBe(404);
+    expect(cookieSets).toHaveLength(0);
+
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "1");
+    const allowed = await POST(request());
+    expect(allowed.status).toBe(204);
+  });
+
   it("keeps failing loudly for a typo'd FHIR_BACKEND instead of minting a session that cannot chat", async () => {
     vi.stubEnv("FHIR_BACKEND", "hapi-typo");
     vi.stubEnv("MEDPLUM_CLIENT_ID", "");

@@ -7,8 +7,10 @@ vi.mock("@medplum/core", () => ({
 }));
 
 import { AidboxBackend } from "@/lib/fhir/aidbox";
+import { EpicBackend } from "@/lib/fhir/epic";
 import { FirelyBackend } from "@/lib/fhir/firely";
 import { HapiBackend } from "@/lib/fhir/hapi";
+import { OracleHealthBackend } from "@/lib/fhir/oracle-health";
 import { OystehrBackend } from "@/lib/fhir/oystehr";
 import { createFhirBackend, hasFhirBackendConfig } from "@/lib/fhir/backend";
 import { MedplumBackend } from "@/lib/fhir/medplum";
@@ -133,6 +135,26 @@ describe("createFhirBackend", () => {
     vi.stubEnv("FHIR_BACKEND", "not-a-backend");
     expect(() => createFhirBackend("tok")).toThrow("Unknown FHIR_BACKEND");
   });
+
+  it("keeps the experimental sandbox adapters off unless the flag is set", () => {
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "");
+    vi.stubEnv("FHIR_BACKEND", "oracle-health");
+    expect(() => createFhirBackend("tok")).toThrow(
+      "LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS",
+    );
+
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "1");
+    expect(createFhirBackend("tok")).toBeInstanceOf(OracleHealthBackend);
+
+    vi.stubEnv("FHIR_BACKEND", "epic");
+    vi.stubEnv("EPIC_CLIENT_ID", "");
+    vi.stubEnv("EPIC_PRIVATE_KEY", "");
+    vi.stubEnv("EPIC_ACCESS_TOKEN", "");
+    expect(() => createFhirBackend("tok")).toThrow("EPIC_CLIENT_ID");
+
+    vi.stubEnv("EPIC_ACCESS_TOKEN", "pre-minted");
+    expect(createFhirBackend("tok")).toBeInstanceOf(EpicBackend);
+  });
 });
 
 describe("hasFhirBackendConfig", () => {
@@ -148,11 +170,17 @@ describe("hasFhirBackendConfig", () => {
     vi.stubEnv("AIDBOX_CLIENT_SECRET", "");
     vi.stubEnv("OYSTEHR_CLIENT_ID", "");
     vi.stubEnv("OYSTEHR_CLIENT_SECRET", "");
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "");
+    vi.stubEnv("EPIC_ACCESS_TOKEN", "");
+    vi.stubEnv("EPIC_CLIENT_ID", "");
+    vi.stubEnv("EPIC_PRIVATE_KEY", "");
     expect(hasFhirBackendConfig("hapi")).toBe(false);
     expect(hasFhirBackendConfig("medplum")).toBe(false);
     expect(hasFhirBackendConfig("firely")).toBe(false);
     expect(hasFhirBackendConfig("aidbox")).toBe(false);
     expect(hasFhirBackendConfig("oystehr")).toBe(false);
+    expect(hasFhirBackendConfig("oracle-health")).toBe(false);
+    expect(hasFhirBackendConfig("epic")).toBe(false);
     expect(hasFhirBackendConfig("not-a-backend")).toBe(false);
 
     vi.stubEnv("HAPI_BASE_URL", "http://localhost:8080/fhir");
@@ -176,6 +204,13 @@ describe("hasFhirBackendConfig", () => {
     vi.stubEnv("OYSTEHR_CLIENT_ID", "m2m");
     vi.stubEnv("OYSTEHR_CLIENT_SECRET", "secret");
     expect(hasFhirBackendConfig("oystehr")).toBe(true);
+
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "1");
+    expect(hasFhirBackendConfig("oracle-health")).toBe(true);
+    expect(hasFhirBackendConfig("epic")).toBe(false);
+    vi.stubEnv("EPIC_CLIENT_ID", "non-prod");
+    vi.stubEnv("EPIC_PRIVATE_KEY", "not-a-real-key");
+    expect(hasFhirBackendConfig("epic")).toBe(true);
   });
 
   it("counts the shared FHIR_BASE_URL only for the deployment's own default", () => {

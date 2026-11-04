@@ -46,6 +46,10 @@ export class ScriptedDemoBackend implements FhirBackend {
     private readonly sessionId?: string,
   ) {}
 
+  get writeDisposition(): FhirBackend["writeDisposition"] {
+    return this.backend.writeDisposition;
+  }
+
   search<K extends ResourceType>(
     resourceType: K,
     params?: Record<string, string>,

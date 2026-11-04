@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { buildSystemPrompt, buildTools } from "@/lib/ai/tools";
 import { WritePolicyDeniedError } from "@/lib/ai/write-policy";
 import type { FhirBackend } from "@/lib/fhir/backend";
+import { DRY_RUN_OUTCOME, listStagedWrites } from "@/lib/fhir/dry-run-write";
 
 // buildTools takes the backend as a plain object, so tests inject a fake
 // directly; no module mocking required. Adapter behavior (client construction,
@@ -389,6 +390,42 @@ describe("agent FHIR tools", () => {
     );
     expect(allOff).toContain("Writing to the chart is disabled");
     expect(allOff).not.toContain("confirmation card");
+  });
+
+  it("stages an approved observation instead of writing when the backend is dry-run", async () => {
+    const dryRun = {
+      ...backend,
+      writeDisposition: "dry-run" as const,
+    };
+    const tools = buildTools(dryRun);
+    const result = (await (
+      tools.record_observation.execute as (
+        input: unknown,
+        opts: unknown,
+      ) => Promise<unknown>
+    )(
+      { patientId: "p2", label: "Heart rate", value: 72, unit: "bpm" },
+      {},
+    )) as {
+      persisted?: boolean;
+      dryRun?: boolean;
+      diff?: string;
+      outcome?: string;
+      id?: string;
+    };
+
+    expect(createResource).not.toHaveBeenCalled();
+    expect(result.persisted).toBe(false);
+    expect(result.dryRun).toBe(true);
+    expect(result.id).toBeUndefined();
+    expect(result.outcome).toBe(DRY_RUN_OUTCOME);
+    expect(result.diff).toContain("not written");
+    expect(result.diff).toContain("Heart rate");
+    expect(listStagedWrites(dryRun)).toHaveLength(1);
+    expect(buildSystemPrompt(new Set(), { dryRunWrites: true })).toContain(
+      "Nothing is written to the FHIR server",
+    );
+    expect(buildSystemPrompt()).not.toContain("Dry-run writes");
   });
 
   it("create_task writes an approval-gated Task with session tag, AIAST label, and due date", async () => {

@@ -3,6 +3,16 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- Experimental sandbox adapters, off unless
+  `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`: a read-only Oracle Health open
+  sandbox (`FHIR_BACKEND=oracle-health`) whose approved writes are staged
+  and diffed instead of POSTed, and an Epic sandbox auth scaffold
+  (`FHIR_BACKEND=epic`) that reads a client id and private key from the
+  environment. Neither is demo-eligible or a supported configuration.
+  See [docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md).
+
 ## 0.4.1 — 2026-10-23
 
 - MCP `init` pins generated JSON, Cursor, and Claude Code commands to the

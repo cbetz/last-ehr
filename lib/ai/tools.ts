@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import type { FhirBackend } from "@/lib/fhir/backend";
 import {
+  commitApprovedWrite,
+  dryRunToolResult,
+} from "@/lib/fhir/dry-run-write";
+import {
   createChartReader,
   toPatientSummary,
 } from "@/packages/mcp/src/chart-read";
@@ -51,6 +55,8 @@ const writeSectionFooter = (enabled: readonly WriteToolName[]): string =>
 const WRITES_DISABLED_SECTION =
   "Writing to the chart is disabled in this deployment. If the user asks to save something, explain that writes are turned off here; never pretend a write happened.";
 
+const DRY_RUN_WRITES_SECTION = `Dry-run writes: this server does not accept chart writes. Approval still reviews the proposal. After approval the resource is staged in memory and a diff is shown. Nothing is written to the FHIR server. Never tell the user a note, observation, or task was saved.`;
+
 /**
  * The write section reflects which write tools this deployment offers, so
  * the model is never told to call a tool that was unregistered by
@@ -58,6 +64,7 @@ const WRITES_DISABLED_SECTION =
  */
 export function buildSystemPrompt(
   writeToolsDisabled: ReadonlySet<string> = new Set(),
+  options: { dryRunWrites?: boolean } = {},
 ): string {
   const enabledWrites = (
     Object.keys(WRITE_TOOL_PROMPT_LINES) as WriteToolName[]
@@ -69,6 +76,7 @@ export function buildSystemPrompt(
           WRITE_SECTION_HEADER,
           ...enabledWrites.map((name) => WRITE_TOOL_PROMPT_LINES[name]),
           writeSectionFooter(enabledWrites),
+          ...(options.dryRunWrites ? [DRY_RUN_WRITES_SECTION] : []),
         ].join("\n");
   return `You are an EHR assistant working over a FHIR backend.
 
@@ -390,17 +398,21 @@ export function buildTools(
           resourceType: "Communication",
           patientId,
         });
-        const created = await backend.createResource({
-          resourceType: "Communication",
-          status: "completed",
+        const resource = {
+          resourceType: "Communication" as const,
+          status: "completed" as const,
           subject: { reference: `Patient/${patientId}` },
           sent: new Date().toISOString(),
           payload: [{ contentString: text }],
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
-        });
-        await emitWriteProvenance("Communication", created.id);
+        };
+        const committed = await commitApprovedWrite(backend, resource);
+        if (!committed.persisted) {
+          return dryRunToolResult(committed, text);
+        }
+        await emitWriteProvenance("Communication", committed.resource.id);
         return {
-          id: created.id,
+          id: committed.resource.id,
           resourceType: "Communication",
           summary: text,
         };
@@ -450,9 +462,10 @@ export function buildTools(
         // copied the typed unit into Quantity.code, asserting that "bpm"
         // was UCUM when the UCUM code is "/min".
         const coded = codeObservation(label, unit);
-        const created = await backend.createResource({
-          resourceType: "Observation",
-          status: "final",
+        const summary = `${label}: ${value} ${unit}`;
+        const resource = {
+          resourceType: "Observation" as const,
+          status: "final" as const,
           code: coded.code,
           ...(coded.category ? { category: coded.category } : {}),
           subject: { reference: `Patient/${patientId}` },
@@ -463,12 +476,16 @@ export function buildTools(
             ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
           },
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
-        });
-        await emitWriteProvenance("Observation", created.id);
+        };
+        const committed = await commitApprovedWrite(backend, resource);
+        if (!committed.persisted) {
+          return dryRunToolResult(committed, summary);
+        }
+        await emitWriteProvenance("Observation", committed.resource.id);
         return {
-          id: created.id,
+          id: committed.resource.id,
           resourceType: "Observation",
-          summary: `${label}: ${value} ${unit}`,
+          summary,
         };
       },
     }),
@@ -525,9 +542,10 @@ export function buildTools(
           );
         }
         const coded = codeObservation(unit ? unit : "", unit);
-        const created = await backend.createResource({
-          resourceType: "Observation",
-          status: "final",
+        const summary = `${describeObservation(original)} superseded by ${value} ${unit}`;
+        const resource = {
+          resourceType: "Observation" as const,
+          status: "final" as const,
           // The superseding entry re-states the SAME measurement, so its
           // code and category come from the original rather than from the
           // model — superseding one measurement with a different kind of
@@ -560,13 +578,17 @@ export function buildTools(
             },
           ],
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
-        });
-        await emitWriteProvenance("Observation", created.id);
+        };
+        const committed = await commitApprovedWrite(backend, resource);
+        if (!committed.persisted) {
+          return dryRunToolResult(committed, summary, { supersedes });
+        }
+        await emitWriteProvenance("Observation", committed.resource.id);
         return {
-          id: created.id,
+          id: committed.resource.id,
           resourceType: "Observation",
           supersedes,
-          summary: `${describeObservation(original)} superseded by ${value} ${unit}`,
+          summary,
           // The model paraphrases this, so the limit is stated here and not
           // only on the card.
           outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
@@ -601,10 +623,11 @@ export function buildTools(
           resourceType: "Task",
           patientId,
         });
-        const created = await backend.createResource({
-          resourceType: "Task",
-          status: "requested",
-          intent: "order",
+        const summary = dueDate ? `${description} (due ${dueDate})` : description;
+        const resource = {
+          resourceType: "Task" as const,
+          status: "requested" as const,
+          intent: "order" as const,
           description,
           for: { reference: `Patient/${patientId}` },
           authoredOn: new Date().toISOString(),
@@ -612,12 +635,16 @@ export function buildTools(
             ? { restriction: { period: { end: `${dueDate}T23:59:59Z` } } }
             : {}),
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
-        });
-        await emitWriteProvenance("Task", created.id);
+        };
+        const committed = await commitApprovedWrite(backend, resource);
+        if (!committed.persisted) {
+          return dryRunToolResult(committed, summary);
+        }
+        await emitWriteProvenance("Task", committed.resource.id);
         return {
-          id: created.id,
+          id: committed.resource.id,
           resourceType: "Task",
-          summary: dueDate ? `${description} (due ${dueDate})` : description,
+          summary,
         };
       },
     }),

@@ -6,6 +6,12 @@ below are for synthetic evaluation only. The next valuable adapters are
 FHIR R4 backends with a clear auth story (OpenEMR is a documented no-go
 for now — see issue #123).
 
+An experimental spike for the public Epic sandbox and the Oracle Health
+open sandbox lives in [adapters/epic-cerner.md](./adapters/epic-cerner.md).
+Those adapters are off unless `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`, are
+not demo-eligible, and are not a supported configuration. The Oracle open
+sandbox is read-only; approved writes are staged and diffed, not POSTed.
+
 ## Start with the executable starter
 
 For a standard FHIR R4 REST backend, begin with
