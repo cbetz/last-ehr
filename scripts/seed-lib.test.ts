@@ -149,6 +149,14 @@ describe("createSeedBackend", () => {
     expect(target).toBe("http://localhost:8080/fhir");
   });
 
+  it("refuses to seed the experimental sandbox adapters", async () => {
+    vi.stubEnv("FHIR_BACKEND", "oracle-health");
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "1");
+    await expect(
+      createSeedBackend({ confirmSyntheticTarget: true }),
+    ).rejects.toThrow(/cannot be seeded/);
+  });
+
   it("fails closed on adapter targets without the synthetic confirmation", async () => {
     // The seed deletes and recreates matching charts, so firely/aidbox
     // mirror the safety eval's --confirm-synthetic posture.

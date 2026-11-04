@@ -243,6 +243,16 @@ Add a note to Maria Garcia's chart that she reports feeling well with no complai
 
 The write prompts should stop at the approval card before anything is saved.
 
+## Experimental Epic and Oracle Health sandboxes
+
+`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` turns on two sandbox adapters that are
+not part of the supported matrix: `FHIR_BACKEND=oracle-health` (the public
+Oracle Health open sandbox, read-only, dry-run writes) and
+`FHIR_BACKEND=epic` (SMART Backend Services scaffold; needs a client id and
+private key you do not commit). Details, including what was checked against
+the live sandboxes and what was not, are in
+[adapters/epic-cerner.md](./adapters/epic-cerner.md).
+
 ## Other synthetic-evaluation backends
 
 Beyond Medplum and the local HAPI stack, three more adapters are verified

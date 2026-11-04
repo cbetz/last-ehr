@@ -19,6 +19,7 @@ import {
 } from "@/components/chat";
 import { PatientCard } from "@/components/chat/patient";
 import { ConfirmWrite } from "@/components/chat/confirm-write";
+import { ApprovedWriteNotice } from "@/components/demo/approved-write-notice";
 import {
   codeObservation,
   OBSERVATION_REPLACES_EXTENSION,
@@ -737,9 +738,11 @@ export function DemoChat() {
                         }
                         if (part.state === "output-available") {
                           return (
-                            <BotMessage key={part.toolCallId}>
-                              ✓ Note saved to the chart.
-                            </BotMessage>
+                            <ApprovedWriteNotice
+                              key={part.toolCallId}
+                              persistedMessage="Note saved to the chart."
+                              output={part.output}
+                            />
                           );
                         }
                         if (part.state === "output-error") {
@@ -805,9 +808,11 @@ export function DemoChat() {
                         }
                         if (part.state === "output-available") {
                           return (
-                            <BotMessage key={part.toolCallId}>
-                              ✓ Observation recorded.
-                            </BotMessage>
+                            <ApprovedWriteNotice
+                              key={part.toolCallId}
+                              persistedMessage="Observation recorded."
+                              output={part.output}
+                            />
                           );
                         }
                         if (part.state === "output-error") {
@@ -896,10 +901,11 @@ export function DemoChat() {
                         }
                         if (part.state === "output-available") {
                           return (
-                            <BotMessage key={part.toolCallId}>
-                              ✓ Superseding observation saved. The earlier
-                              entry remains on the chart.
-                            </BotMessage>
+                            <ApprovedWriteNotice
+                              key={part.toolCallId}
+                              persistedMessage="Superseding observation saved. The earlier entry remains on the chart."
+                              output={part.output}
+                            />
                           );
                         }
                         if (part.state === "output-error") {
@@ -976,9 +982,11 @@ export function DemoChat() {
                         }
                         if (part.state === "output-available") {
                           return (
-                            <BotMessage key={part.toolCallId}>
-                              ✓ Task created.
-                            </BotMessage>
+                            <ApprovedWriteNotice
+                              key={part.toolCallId}
+                              persistedMessage="Task created."
+                              output={part.output}
+                            />
                           );
                         }
                         if (part.state === "output-error") {

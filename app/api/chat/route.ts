@@ -178,7 +178,9 @@ export async function POST(req: Request) {
     );
     disabledWriteTools = new Set(WRITE_TOOL_NAMES);
   }
-  const system = buildSystemPrompt(disabledWriteTools);
+  const system = buildSystemPrompt(disabledWriteTools, {
+    dryRunWrites: backend.writeDisposition === "dry-run",
+  });
   const writeToolsDisabled = [...disabledWriteTools];
 
   if (!devOutput) {

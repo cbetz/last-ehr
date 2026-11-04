@@ -10,6 +10,9 @@ import { HapiBackend } from "./hapi";
 import { FirelyBackend } from "./firely";
 import { AidboxBackend } from "./aidbox";
 import { OystehrBackend } from "./oystehr";
+import { EpicBackend } from "./epic";
+import { experimentalFhirAdaptersEnabled } from "./experimental";
+import { OracleHealthBackend } from "./oracle-health";
 
 // The FHIR surface the agent tools require of a backend. Built-in
 // implementations are Medplum (./medplum.ts) and the local HAPI FHIR
@@ -44,6 +47,11 @@ export interface FhirBackend {
    * never wired into an agent tool.
    */
   deleteResource(resourceType: ResourceType, id: string): Promise<void>;
+  /**
+   * `dry-run` means an approved write is staged and diffed, not POSTed.
+   * Omitted means the write is persisted with `createResource`.
+   */
+  readonly writeDisposition?: "persist" | "dry-run";
 }
 
 /**
@@ -83,6 +91,17 @@ export function hasFhirBackendConfig(name: string): boolean {
       // defaults to the official hosted endpoint.
       return Boolean(
         process.env.OYSTEHR_CLIENT_ID && process.env.OYSTEHR_CLIENT_SECRET,
+      );
+    case "oracle-health":
+      // The open sandbox URL is built in. The flag is the whole gate.
+      return experimentalFhirAdaptersEnabled();
+    case "epic":
+      return (
+        experimentalFhirAdaptersEnabled() &&
+        Boolean(
+          process.env.EPIC_ACCESS_TOKEN ||
+            (process.env.EPIC_CLIENT_ID && process.env.EPIC_PRIVATE_KEY),
+        )
       );
     default:
       return false;
@@ -154,6 +173,39 @@ export function createFhirBackend(
       clientSecret,
       baseUrl: process.env.OYSTEHR_BASE_URL || undefined,
       projectId: process.env.OYSTEHR_PROJECT_ID || undefined,
+    });
+  }
+  if (backend === "oracle-health" || backend === "epic") {
+    if (!experimentalFhirAdaptersEnabled()) {
+      throw new Error(
+        `FHIR_BACKEND=${backend} is an experimental sandbox adapter and stays off unless LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1. Supported values: medplum, hapi, firely, aidbox, oystehr.`,
+      );
+    }
+  }
+  if (backend === "oracle-health") {
+    // No shared FHIR_BASE_URL fallback: that variable belongs to whichever
+    // backend the deployment already points at.
+    return new OracleHealthBackend({
+      baseUrl: process.env.ORACLE_HEALTH_BASE_URL || undefined,
+    });
+  }
+  if (backend === "epic") {
+    const accessToken = process.env.EPIC_ACCESS_TOKEN || undefined;
+    const clientId = process.env.EPIC_CLIENT_ID || undefined;
+    const privateKeyPem = process.env.EPIC_PRIVATE_KEY || undefined;
+    if (!accessToken && !(clientId && privateKeyPem)) {
+      throw new Error(
+        "FHIR_BACKEND=epic requires EPIC_ACCESS_TOKEN, or EPIC_CLIENT_ID and EPIC_PRIVATE_KEY (PKCS#8 PEM for SMART Backend Services). No secret is built in. See docs/adapters/epic-cerner.md.",
+      );
+    }
+    return new EpicBackend({
+      accessToken,
+      clientId,
+      privateKeyPem,
+      privateKeyId: process.env.EPIC_PRIVATE_KEY_ID || undefined,
+      scopes: process.env.EPIC_SCOPES || undefined,
+      baseUrl: process.env.EPIC_BASE_URL || undefined,
+      tokenUrl: process.env.EPIC_TOKEN_URL || undefined,
     });
   }
   if (backend !== "medplum") {

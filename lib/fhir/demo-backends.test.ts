@@ -27,7 +27,7 @@ describe("parseDemoBackends", () => {
     // with the isolation clause.
     expect(
       parseDemoBackends(
-        "medplum|Medplum,firely|Firely,aidbox|Aidbox,oystehr|Oystehr,openemr",
+        "medplum|Medplum,firely|Firely,aidbox|Aidbox,oystehr|Oystehr,openemr,oracle-health|Oracle,epic|Epic",
       ),
     ).toEqual([
       { id: "medplum", label: "Medplum" },

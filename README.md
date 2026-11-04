@@ -181,7 +181,10 @@ Server** (`FHIR_BACKEND=firely`), **Aidbox** (`FHIR_BACKEND=aidbox`), and
 adapters: each passed both contract harnesses and the
 [FHIR Agent Safety Eval](./docs/evals.md) against a disposable synthetic
 target. Other FHIR R4 backends need an adapter before they are
-supported. See the full [support matrix](./docs/support.md) for the web,
+supported. An experimental, flag-gated spike for the public Epic sandbox and
+the Oracle Health open sandbox is documented in
+[docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md); it is not a
+supported path. See the full [support matrix](./docs/support.md) for the web,
 SMART, MCP, auth, and evaluation boundaries before choosing a path.
 
 Self-hosted demos can offer a **backend picker** (swap the EHR under the
@@ -196,7 +199,7 @@ the eligibility rules and `npm run check:backends` for preflight.
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with five built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, Aidbox, and Oystehr for synthetic evaluation ([docs/support.md](./docs/support.md)). The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with five built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, Aidbox, and Oystehr for synthetic evaluation ([docs/support.md](./docs/support.md)). Epic and Oracle Health sandbox adapters exist behind `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS` and are not part of that supported set. The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
 
 ```mermaid
 flowchart LR
