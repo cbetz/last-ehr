@@ -3,6 +3,27 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.5.1 — prepared, not published
+
+`@lastehr/mcp` `0.5.1` corrects the sandbox write bodies from the `0.5.0`
+live run ([#219](https://github.com/cbetz/last-ehr/pull/219)). This version
+bump is not on npm, and there is no git tag. Publication stays on the
+[release process](./docs/releasing-mcp.md). Draft notes:
+[docs/releases/mcp-0.5.1.md](./docs/releases/mcp-0.5.1.md).
+
+- Epic posts `valueQuantity.unit` as the UCUM code. A heart rate typed as
+  `bpm` is sent as `/min`. The Epic sandbox write was re-verified live.
+- Oracle oral temperature posts display unit `degC` with code `Cel`, the
+  encounter when `LASTEHR_ENCOUNTER` is set, and a legal-authenticator
+  performer (`event-performerFunction` code `LA`). `meta.tag` is omitted
+  unless `LASTEHR_INCLUDE_META_TAG=1`.
+- `doctor` searches `Patient` by `_id` from `LASTEHR_PATIENT_ID`. An
+  unparameterized search that returns HTTP 400 does not fail the check.
+- `scripts/sandbox-proof` prints OperationOutcome diagnostics on HTTP 400.
+- The Oracle live write is pending. Cerner's sandbox resource store is
+  returning HTTP 500s.
+- Not a clinical, regulatory, or compliance claim.
+
 ## 0.5.0 — prepared, not published
 
 `@lastehr/mcp` can drive the Epic and Oracle Health sandboxes. This version

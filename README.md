@@ -35,7 +35,7 @@ The card shows flowsheet code `8` and LOINC `8867-4` before anything is
 saved. Oracle uses `FHIR_BACKEND=oracle-health`, `LASTEHR_SCOPES`, and an
 oral temperature (`8331-1`) with `LASTEHR_PERFORMER`.
 
-The same sandboxes are wired into `@lastehr/mcp` `0.5.0` in this checkout.
+The same sandboxes are wired into `@lastehr/mcp` `0.5.1` in this checkout.
 That version is prepared and not published; npm `latest` below is still
 the last published package. From a checkout:
 
