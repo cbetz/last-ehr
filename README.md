@@ -35,6 +35,22 @@ The card shows flowsheet code `8` and LOINC `8867-4` before anything is
 saved. Oracle uses `FHIR_BACKEND=oracle-health`, `LASTEHR_SCOPES`, and an
 oral temperature (`8331-1`) with `LASTEHR_PERFORMER`.
 
+The same sandboxes are wired into `@lastehr/mcp` `0.5.0` in this checkout.
+That version is prepared and not published; npm `latest` below is still
+the last published package. From a checkout:
+
+```bash
+npx tsx packages/mcp/src/cli.ts init --backend epic
+npx tsx scripts/sandbox-proof
+```
+
+`init --backend epic` or `oracle` prints placeholder env
+(`LASTEHR_BACKEND`, `LASTEHR_CLIENT_ID`, `LASTEHR_PRIVATE_KEY_PATH`,
+`LASTEHR_KEY_ID`, `LASTEHR_JWKS_URL`, and `LASTEHR_ENCOUNTER` or
+`LASTEHR_PERFORMER` plus `LASTEHR_SCOPES` for Oracle) and the setup steps.
+`doctor` checks the key, JWKS kid, token exchange, granted scopes, and
+search scope without printing secrets.
+
 ## Start here
 
 The first step is the published package. It does not create an account.

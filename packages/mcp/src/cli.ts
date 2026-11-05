@@ -6,7 +6,8 @@ import { pathToFileURL } from "node:url";
 
 import { McpConfigurationError, loadMcpConfig } from "./config.js";
 import { runDoctor } from "./doctor.js";
-import { isMcpClient, renderInit, type McpClient } from "./init.js";
+import { isMcpClient, renderInit, sandboxGuide, type McpClient } from "./init.js";
+import { isSandboxBackend, type SandboxBackend } from "./sandbox-config.js";
 import { MCP_SERVER_VERSION, startMcpServer } from "./server.js";
 
 function hasExplicitMedplumAuth(env: NodeJS.ProcessEnv) {
@@ -37,7 +38,7 @@ function help() {
     "",
     "Usage:",
     "  npx -y @lastehr/mcp                 Start the stdio MCP server",
-    "  npx -y @lastehr/mcp init [--client json|claude-code|cursor]",
+    "  npx -y @lastehr/mcp init [--client json|claude-code|cursor] [--backend epic|oracle|smart]",
     "  npx -y @lastehr/mcp doctor          Validate local configuration",
     "  npx -y @lastehr/mcp doctor --connect  Probe stdio FHIR metadata and count-only Patient search",
     "  npx -y @lastehr/mcp --version       Print the package version",
@@ -45,23 +46,33 @@ function help() {
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
     "Remote: LASTEHR_MCP_TRANSPORT=http with LASTEHR_MCP_RESOURCE, _OAUTH_ISSUER,",
     "_OAUTH_JWKS_URI, _EXCHANGE_CLIENT_ID, _TOKEN_ENDPOINT (see docs/remote-mcp.md).",
+    "Sandboxes: LASTEHR_BACKEND=epic|oracle|smart and LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1.",
     "Local stack: FHIR_BACKEND=hapi with HAPI_BASE_URL or FHIR_BASE_URL",
     "(no credentials; the local no-auth evaluation stack, synthetic data only).",
   ].join("\n");
 }
 
-function initClient(args: string[]): McpClient {
-  if (args.length === 0) {
-    return "json";
+function initArgs(args: string[]): { client: McpClient; backend: "medplum" | SandboxBackend } {
+  let client: McpClient = "json";
+  let backend: "medplum" | SandboxBackend = "medplum";
+  for (let index = 0; index < args.length; index += 1) {
+    const flag = args[index];
+    const value = args[index + 1];
+    if (flag === "--client" && value && isMcpClient(value)) {
+      client = value;
+      index += 1;
+      continue;
+    }
+    if (flag === "--backend" && value && (value === "medplum" || isSandboxBackend(value))) {
+      backend = value;
+      index += 1;
+      continue;
+    }
+    throw new McpConfigurationError(
+      "init accepts --client json|claude-code|cursor and --backend medplum|epic|oracle|smart.",
+    );
   }
-
-  if (args.length === 2 && args[0] === "--client" && isMcpClient(args[1])) {
-    return args[1];
-  }
-
-  throw new McpConfigurationError(
-    "init accepts --client json, claude-code, or cursor.",
-  );
+  return { client, backend };
 }
 
 export async function runCli(
@@ -81,7 +92,11 @@ export async function runCli(
   }
 
   if (command === "init") {
-    process.stdout.write(renderInit(initClient(args.slice(1))));
+    const parsed = initArgs(args.slice(1));
+    process.stdout.write(renderInit(parsed.client, parsed.backend));
+    if (parsed.backend !== "medplum") {
+      process.stderr.write(`${sandboxGuide(parsed.backend)}\n`);
+    }
     return;
   }
 

@@ -1,6 +1,8 @@
+import { readSandboxConfig, type SandboxConfig } from "./sandbox-config.js";
+
 export type McpWritePolicy = "read-only" | "proposal";
 
-export type McpBackend = "medplum" | "hapi";
+export type McpBackend = "medplum" | "hapi" | "epic" | "oracle" | "smart";
 
 /**
  * "stdio" (default) is one operator on one machine, using their own credential
@@ -61,6 +63,11 @@ export type McpRuntimeConfig = {
   transport: McpTransport;
   /** Present only when transport is "http". */
   http?: McpHttpConfig;
+  /**
+   * Set for LASTEHR_BACKEND=epic|oracle|smart. Holds the private key in
+   * memory the same way accessToken does. Doctor and logs must not print it.
+   */
+  sandbox?: SandboxConfig;
 };
 
 export class McpConfigurationError extends Error {
@@ -187,7 +194,34 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     );
   }
 
-  const backend = value(env, "FHIR_BACKEND") ?? "medplum";
+  const explicitBackend = value(env, "FHIR_BACKEND");
+  const sandbox = readSandboxConfig(env);
+  if (sandbox.state === "error") {
+    throw new McpConfigurationError(sandbox.message);
+  }
+  if (sandbox.state === "ready") {
+    if (explicitBackend) {
+      throw new McpConfigurationError(
+        "Set LASTEHR_BACKEND or FHIR_BACKEND, not both.",
+      );
+    }
+    if (transport === "http") {
+      throw new McpConfigurationError(
+        "LASTEHR_MCP_TRANSPORT=http cannot be combined with LASTEHR_BACKEND. A sandbox private key is one operator's credential, not a per-caller token.",
+      );
+    }
+    return {
+      backend: sandbox.config.backend,
+      baseUrl: sandbox.config.baseUrl,
+      writePolicy,
+      writeProvenance,
+      disabledWriteTools,
+      transport,
+      sandbox: sandbox.config,
+    };
+  }
+
+  const backend = explicitBackend ?? "medplum";
   if (backend !== "medplum" && backend !== "hapi") {
     throw new McpConfigurationError(
       `Unknown FHIR_BACKEND "${backend}" for @lastehr/mcp. Supported values: medplum (default), hapi.`,

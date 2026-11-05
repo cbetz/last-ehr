@@ -3,6 +3,29 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.5.0 — prepared, not published
+
+`@lastehr/mcp` can drive the Epic and Oracle Health sandboxes. This version
+bump is the release candidate. It is not on npm, and there is no git tag.
+Publication stays on the [release process](./docs/releasing-mcp.md). Draft
+notes: [docs/releases/mcp-0.5.0.md](./docs/releases/mcp-0.5.0.md).
+
+- `LASTEHR_BACKEND=epic|oracle|smart` selects a SMART Backend Services
+  client (`private_key_jwt`, RS384). `npx @lastehr/mcp init --backend epic|oracle`
+  prints placeholder env and the setup steps. `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`
+  is still required: those sandboxes do not support delete, so an approved
+  write persists.
+- Vendor profiles run before the MCP approval prompt. Epic requires an
+  encounter and flowsheet code `8` beside LOINC `8867-4`. Oracle requires a
+  legal-authenticator performer and allowlists `8331-1` (`8867-4` is refused).
+  After approval the created Observation is read back and the diff is returned.
+- `npx @lastehr/mcp doctor` checks that the key loads, the JWKS kid matches
+  when `LASTEHR_JWKS_URL` is set, the token exchange succeeds, and whether
+  search is allowed. It does not print keys or tokens.
+- `scripts/sandbox-proof` performs one approval-gated Observation write and
+  prints a short transcript. Credentials come from the environment only.
+- Not a clinical, regulatory, or compliance claim.
+
 ## Unreleased
 
 - Epic and Oracle Health sandbox adapters, still off unless

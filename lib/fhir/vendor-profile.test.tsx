@@ -6,10 +6,17 @@ import { ConfirmWrite } from "@/components/chat/confirm-write";
 import type { Observation } from "@medplum/fhirtypes";
 
 import {
+  applyVendorProfile as mcpApply,
+  EPIC_FLOWSHEET_MAPPINGS as mcpMappings,
+  ORACLE_VITAL_ALLOWLIST as mcpAllowlist,
+} from "../../packages/mcp/src/sandbox-profile";
+import {
   applyVendorProfile,
   buildObservationApproval,
+  EPIC_FLOWSHEET_MAPPINGS,
   EPIC_FLOWSHEET_SYSTEM,
   EPIC_VENDOR_PROFILE,
+  ORACLE_VITAL_ALLOWLIST,
   ORACLE_VENDOR_PROFILE,
   publicVendorWriteContext,
   VendorWriteError,
@@ -25,6 +32,9 @@ const oracleCreate = JSON.parse(
 describe("Epic vendor profile", () => {
   it("keeps a recorded successful pulse body stable", () => {
     expect(applyVendorProfile(EPIC_VENDOR_PROFILE, epicCreate)).toEqual(epicCreate);
+    expect(mcpMappings).toEqual(EPIC_FLOWSHEET_MAPPINGS);
+    expect(mcpAllowlist).toEqual(ORACLE_VITAL_ALLOWLIST);
+    expect(mcpApply(EPIC_VENDOR_PROFILE, epicCreate)).toEqual(epicCreate);
   });
 
   it("adds flowsheet code 8 beside LOINC 8867-4 and requires an encounter", () => {

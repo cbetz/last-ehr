@@ -1,8 +1,24 @@
-import type { Communication, Observation, Resource, Task } from "@medplum/fhirtypes";
+import type {
+  Communication,
+  ExtractResource,
+  Observation,
+  Resource,
+  ResourceType,
+  Task,
+} from "@medplum/fhirtypes";
 import { z } from "zod";
 
 import type { ApprovalRequest, RequestApproval } from "./approval.js";
 import type { FhirReadClient, McpReadTool } from "./read-tools.js";
+import { diffSentVsPersisted } from "./read-back.js";
+import {
+  applyVendorProfile,
+  EPIC_VENDOR_PROFILE,
+  ORACLE_VENDOR_PROFILE,
+  vendorBlocksTool,
+  VendorWriteError,
+  type VendorProfile,
+} from "./sandbox-profile.js";
 import {
   codeObservation,
   OBSERVATION_REPLACES_EXTENSION,
@@ -18,6 +34,10 @@ import {
 
 export interface FhirWriteClient extends FhirReadClient {
   createResource<T extends Resource>(resource: T): Promise<T & { id: string }>;
+  readResource?<K extends ResourceType>(
+    resourceType: K,
+    id: string,
+  ): Promise<ExtractResource<K>>;
 }
 
 /** Tag every approved MCP write for discoverability and audit queries. */
@@ -83,6 +103,14 @@ export type WriteToolOptions = {
    * upstream in loadMcpConfig.
    */
   disabledTools?: readonly string[];
+  /**
+   * Epic or Oracle profile. Shapes an Observation before the approval
+   * prompt and refuses the other write tools. Unset for Medplum, HAPI,
+   * and LASTEHR_BACKEND=smart.
+   */
+  vendor?: VendorProfile;
+  encounter?: string;
+  performer?: string;
 };
 
 // Mirrors lib/ai/tools.ts input caps (note ≤1000, label ≤120, value within
@@ -157,6 +185,22 @@ const recordObservationSchema = z.object({
     .lte(100_000)
     .describe("The numeric value."),
   unit: z.string().min(1).max(20).describe("The unit, e.g. bpm."),
+  encounter: z
+    .string()
+    .min(1)
+    .max(160)
+    .optional()
+    .describe(
+      "Encounter id or Encounter/{id}. Required on the Epic sandbox. Omit when LASTEHR_ENCOUNTER is set.",
+    ),
+  performer: z
+    .string()
+    .min(1)
+    .max(160)
+    .optional()
+    .describe(
+      "Practitioner id or Practitioner/{id}. Required on the Oracle Health sandbox; filed as legal authenticator.",
+    ),
 });
 
 const DENIED_RESULT = {
@@ -205,10 +249,24 @@ export const WRITE_TOOL_NAMES = [
 export function writeToolOptionsFromConfig(config: {
   writeProvenance: boolean;
   disabledWriteTools: string[];
+  sandbox?: {
+    profile?: "epic" | "oracle";
+    encounter?: string;
+    performer?: string;
+  };
 }): WriteToolOptions {
+  const profile =
+    config.sandbox?.profile === "epic"
+      ? EPIC_VENDOR_PROFILE
+      : config.sandbox?.profile === "oracle"
+        ? ORACLE_VENDOR_PROFILE
+        : undefined;
   return {
     emitProvenance: config.writeProvenance,
     disabledTools: config.disabledWriteTools,
+    vendor: profile,
+    encounter: config.sandbox?.encounter,
+    performer: config.sandbox?.performer,
   };
 }
 
@@ -231,6 +289,34 @@ export function createWriteTools(
   }
 
   const decide = (request: ApprovalRequest) => requestApproval(request);
+
+  const vendorOnlyObservation = (): { saved: false; outcome: string } | undefined => {
+    const blocked = vendorBlocksTool(options.vendor, "other");
+    return blocked ? { saved: false, outcome: blocked } : undefined;
+  };
+
+  const readBackAfterCreate = async (
+    sent: Resource,
+    created: Resource & { id: string },
+  ): Promise<{ matched: boolean; diff: string } | undefined> => {
+    if (!client.readResource || !created.resourceType) return undefined;
+    try {
+      const persisted = await client.readResource(created.resourceType, created.id);
+      return diffSentVsPersisted(
+        sent,
+        persisted,
+        options.vendor?.readBack ?? {
+          ignoreAddedCodings: false,
+          ignoreValueQuantityExtensions: false,
+        },
+      );
+    } catch {
+      return {
+        matched: false,
+        diff: "Read-back failed. The create was already accepted. The persisted resource was not compared.",
+      };
+    }
+  };
 
   // Affirmative-permit: only an explicit deny:false allows. A throwing or
   // malformed policy denies — a tightening layer fails closed, never open.
@@ -312,6 +398,8 @@ export function createWriteTools(
         // approve a write that cannot commit.
         const policyBefore = await checkWritePolicy(proposal);
         if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
+        const noteBlocked = vendorOnlyObservation();
+        if (noteBlocked) return noteBlocked;
         const decision = await decide({
           title: "Add this note to the chart?",
           // Free text is JSON-quoted so an embedded newline cannot forge a
@@ -354,7 +442,7 @@ export function createWriteTools(
         "Propose recording a vital sign or lab value on a patient's chart. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve.",
       inputSchema: recordObservationSchema,
       async execute(input: unknown) {
-        const { patientId, label, value, unit } =
+        const { patientId, label, value, unit, encounter, performer } =
           recordObservationSchema.parse(input);
         const proposal = {
           toolName: "record_observation",
@@ -363,6 +451,39 @@ export function createWriteTools(
         };
         const policyBefore = await checkWritePolicy(proposal);
         if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
+        // Same pinned coding table as the web binding (see ./vitals.ts).
+        // The vendor profile runs BEFORE the approval prompt so the
+        // reviewer sees the encounter, performer, and codings that will post.
+        // effectiveDateTime is stamped after approval, at the moment of the save.
+        const coded = codeObservation(label, unit);
+        let resource: Observation = {
+          resourceType: "Observation",
+          status: "final",
+          code: coded.code,
+          ...(coded.category ? { category: coded.category } : {}),
+          subject: { reference: `Patient/${patientId}` },
+          valueQuantity: {
+            value,
+            unit,
+            ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
+          },
+          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
+        };
+        try {
+          resource = applyVendorProfile(options.vendor, resource, {
+            encounter: encounter ?? options.encounter,
+            performer: performer ?? options.performer,
+          });
+        } catch (error) {
+          if (error instanceof VendorWriteError) {
+            return { saved: false, outcome: error.message };
+          }
+          throw error;
+        }
+        const codingSummary = (resource.code?.coding ?? [])
+          .map((coding) => `${coding.code ?? ""}`)
+          .filter(Boolean)
+          .join(", ");
         const decision = await decide({
           title: "Record this observation?",
           summary: [
@@ -370,6 +491,14 @@ export function createWriteTools(
             `Resource: Observation`,
             `Label: ${JSON.stringify(label)}`,
             `Value: ${value} ${JSON.stringify(unit)}`,
+            ...(codingSummary ? [`Codes: ${codingSummary}`] : []),
+            ...(resource.encounter?.reference
+              ? [`Encounter: ${resource.encounter.reference}`]
+              : []),
+            ...(resource.performer?.[0]?.reference
+              ? [`Performer: ${resource.performer[0].reference} (legal authenticator)`]
+              : []),
+            "Effective time is set when this is approved.",
           ].join("\n"),
         });
         if (decision !== "approved") {
@@ -379,30 +508,16 @@ export function createWriteTools(
         if (policyAtCommit.deny) {
           return policyDeniedResult(policyAtCommit.reason);
         }
-        // Built AFTER the approval; see the note on add_note above.
-        // Same pinned coding table as the web binding (see ./vitals.ts):
-        // a recognized vital gains a LOINC coding plus the vital-signs
-        // category, and Quantity.system/code are set only when the unit
-        // resolves to a real UCUM code rather than asserting the typed
-        // string is one.
-        const coded = codeObservation(label, unit);
-        const resource: Observation = {
-          resourceType: "Observation",
-          status: "final",
-          code: coded.code,
-          ...(coded.category ? { category: coded.category } : {}),
-          subject: { reference: `Patient/${patientId}` },
-          effectiveDateTime: new Date().toISOString(),
-          valueQuantity: {
-            value,
-            unit,
-            ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
-          },
-          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
-        };
+        resource = { ...resource, effectiveDateTime: new Date().toISOString() };
         const created = await client.createResource(resource);
         await emitWriteProvenance("Observation", created.id);
-        return { saved: true, resourceType: "Observation", id: created.id };
+        const readBack = await readBackAfterCreate(resource, created);
+        return {
+          saved: true,
+          resourceType: "Observation",
+          id: created.id,
+          ...(readBack ? { readBack } : {}),
+        };
       },
     },
     {
@@ -421,6 +536,8 @@ export function createWriteTools(
         };
         const policyBefore = await checkWritePolicy(proposal);
         if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
+        const supersedeBlocked = vendorOnlyObservation();
+        if (supersedeBlocked) return supersedeBlocked;
 
         // Fetch the original BEFORE asking, so the reviewer sees the real row
         // being superseded and a bogus id refuses instead of minting a
@@ -521,6 +638,8 @@ export function createWriteTools(
         };
         const policyBefore = await checkWritePolicy(proposal);
         if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
+        const taskBlocked = vendorOnlyObservation();
+        if (taskBlocked) return taskBlocked;
         const decision = await decide({
           title: "Create this task?",
           summary: [

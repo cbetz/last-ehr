@@ -1,6 +1,7 @@
 import type { McpRuntimeConfig } from "./config.js";
 import { HapiReadClient } from "./hapi.js";
 import { createMedplumClient } from "./medplum.js";
+import { runSandboxDoctor } from "./sandbox-doctor.js";
 
 const TIMEOUT_MS = 10_000;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
@@ -25,6 +26,10 @@ function configurationSummary(config: McpRuntimeConfig): string {
   const auth =
     config.backend === "hapi"
       ? "local no-auth HAPI"
+      : config.sandbox
+        ? config.sandbox.accessToken
+          ? "pre-minted access token"
+          : "SMART private_key_jwt"
       : config.transport === "http"
         ? "per-caller OAuth (token exchange)"
         : config.accessToken
@@ -177,6 +182,13 @@ export async function runDoctor(
   options: DoctorOptions = {},
 ): Promise<DoctorReport> {
   const lines = [configurationSummary(config)];
+  if (config.sandbox) {
+    const report = await runSandboxDoctor(
+      config.sandbox,
+      options.fetchFn ?? globalThis.fetch,
+    );
+    return { ok: report.ok, lines: [...lines, ...report.lines] };
+  }
   if (config.transport === "http") {
     if (options.connect) {
       lines.push("Live checks are not supported for HTTP transport. No network request was made.");
