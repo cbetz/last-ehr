@@ -27,6 +27,13 @@ export type SandboxConfig = {
   jwksUrl?: string;
   encounter?: string;
   performer?: string;
+  /** Patient id for the doctor search probe. Not printed. */
+  patientId?: string;
+  /**
+   * When true, an Oracle Observation keeps meta.tag. The proven create
+   * omits it, so this stays off unless LASTEHR_INCLUDE_META_TAG=1.
+   */
+  includeMetaTag?: boolean;
 };
 
 type Env = Record<string, string | undefined>;
@@ -189,6 +196,10 @@ export function readSandboxConfig(env: Env): SandboxRead {
       jwksUrl,
       encounter: pick(env, "LASTEHR_ENCOUNTER"),
       performer: pick(env, "LASTEHR_PERFORMER"),
+      patientId: pick(env, "LASTEHR_PATIENT_ID"),
+      includeMetaTag:
+        pick(env, "LASTEHR_INCLUDE_META_TAG") === "1" ||
+        pick(env, "LASTEHR_INCLUDE_META_TAG") === "true",
     },
   };
 }
