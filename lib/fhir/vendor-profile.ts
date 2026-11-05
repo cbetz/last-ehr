@@ -1,7 +1,7 @@
 import type { Observation, Resource } from "@medplum/fhirtypes";
 
 import { assessSmartAuth, sandboxFlagOn, type SmartAuthEnv } from "./smart-config";
-import { codeObservation, LOINC_SYSTEM, UCUM_SYSTEM } from "./vitals";
+import { codeObservation, LOINC_SYSTEM, resolveUcumCode, UCUM_SYSTEM } from "./vitals";
 
 /**
  * Vendor write profiles run before the human approves, so the card shows
@@ -90,6 +90,11 @@ export type VendorWriteHints = {
   performer?: string;
   mappings?: readonly EpicFlowsheetMapping[];
   allowlist?: readonly OracleVitalAllowance[];
+  /**
+   * Oracle's proven Observation create has no meta.tag. The tag is omitted
+   * unless this is set. LASTEHR_INCLUDE_META_TAG=1 turns it back on.
+   */
+  includeMetaTag?: boolean;
 };
 
 export class VendorWriteError extends Error {
@@ -155,6 +160,42 @@ function cloneObservation(resource: Observation): Observation {
   return JSON.parse(JSON.stringify(resource)) as Observation;
 }
 
+type Quantity = NonNullable<Observation["valueQuantity"]>;
+
+/**
+ * Epic rejected Quantity.unit "bpm" when code was the UCUM "/min"
+ * (OperationOutcome 59102: unit expected "/min"). The accepted Epic body
+ * puts that UCUM code in unit. The accepted Oracle body uses display unit
+ * "degC" with code "Cel", so Celsius is not rewritten to the UCUM code.
+ */
+function alignSandboxQuantity(quantity: Quantity, vendor: "epic" | "oracle"): Quantity {
+  const coded =
+    typeof quantity.code === "string" && quantity.code.trim()
+      ? quantity.code
+      : resolveUcumCode(quantity.unit ?? "");
+  if (!coded) return quantity;
+  if (vendor === "oracle" && coded === "Cel") {
+    return { ...quantity, unit: "degC", system: UCUM_SYSTEM, code: "Cel" };
+  }
+  if (vendor === "epic") {
+    return {
+      ...quantity,
+      unit: coded,
+      system: quantity.system ?? UCUM_SYSTEM,
+      code: coded,
+    };
+  }
+  return quantity;
+}
+
+function omitMetaTag(resource: Observation): void {
+  if (!resource.meta?.tag) return;
+  const meta = { ...resource.meta };
+  delete meta.tag;
+  if (Object.keys(meta).length === 0) delete resource.meta;
+  else resource.meta = meta;
+}
+
 function applyEpic(
   resource: Observation,
   hints: VendorWriteHints,
@@ -203,6 +244,9 @@ function applyEpic(
         ...coding,
       ],
     };
+  }
+  if (next.valueQuantity) {
+    next.valueQuantity = alignSandboxQuantity(next.valueQuantity, "epic");
   }
   return next;
 }
@@ -270,6 +314,15 @@ function applyOracle(
     );
   }
   next.performer = [legalAuthenticator(reference)];
+  const encounter =
+    next.encounter?.reference ?? fhirReference("Encounter", hints.encounter);
+  if (encounter && !next.encounter?.reference) {
+    next.encounter = { reference: encounter };
+  }
+  if (next.valueQuantity) {
+    next.valueQuantity = alignSandboxQuantity(next.valueQuantity, "oracle");
+  }
+  if (!hints.includeMetaTag) omitMetaTag(next);
   return next;
 }
 
@@ -389,8 +442,13 @@ export function buildObservationApproval(input: {
       draft,
       hints,
     ) as Observation;
+    const postedUnit = shaped.valueQuantity?.unit ?? input.unit;
     return {
-      fields: [...baseFields, ...codingFields(shaped, input.unit, coded.ucum)],
+      fields: [
+        ...baseFields.slice(0, 2),
+        { label: "Value", value: `${input.value} ${postedUnit}` },
+        ...codingFields(shaped, postedUnit, coded.ucum),
+      ],
       preview: shaped,
     };
   } catch (error) {

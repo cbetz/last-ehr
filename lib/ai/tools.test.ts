@@ -205,10 +205,12 @@ describe("agent FHIR tools", () => {
     const written = createResource.mock.calls.at(-1)?.[0] as {
       code?: { coding?: { code?: string }[] };
       encounter?: { reference?: string };
+      valueQuantity?: { value?: number; unit?: string; code?: string };
     };
     expect(written.code?.coding?.[0]?.code).toBe("8");
     expect(written.code?.coding?.[1]?.code).toBe("8867-4");
     expect(written.encounter?.reference).toBe("Encounter/enc-1");
+    expect(written.valueQuantity).toMatchObject({ value: 72, unit: "/min", code: "/min" });
     expect(result.id).toBe("obs-epic");
     expect(result.readBack.matched).toBe(true);
     expect(result.readBack.diff).toContain("8716-3");

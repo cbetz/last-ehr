@@ -71,17 +71,29 @@ export async function runSandboxProof(
     backend === "epic"
       ? { patientId, label: "Heart rate", value: 72, unit: "bpm" }
       : { patientId, label: "oral temperature", value: 37, unit: "Cel" };
-  const result = (await tool.execute(input)) as {
+  const lines = [
+    `Last EHR sandbox proof — ${backend}`,
+    `Patient: Patient/${patientId}`,
+  ];
+  let result: {
     saved?: boolean;
     id?: string;
     outcome?: string;
     readBack?: { matched?: boolean; diff?: string };
   };
-  const lines = [
-    `Last EHR sandbox proof — ${backend}`,
-    `Patient: Patient/${patientId}`,
-    ...shown,
-  ];
+  try {
+    result = (await tool.execute(input)) as typeof result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    lines.push(
+      ...shown,
+      message.startsWith("FHIR request failed")
+        ? message
+        : "Sandbox proof failed. No credential was printed.",
+    );
+    return { exitCode: 1, transcript: `${lines.join("\n")}\n` };
+  }
+  lines.push(...shown);
   if (!result.saved || !result.id) {
     lines.push(result.outcome ?? "The write was not saved.");
     return { exitCode: 1, transcript: `${lines.join("\n")}\n` };

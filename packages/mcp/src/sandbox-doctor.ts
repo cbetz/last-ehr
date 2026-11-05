@@ -11,6 +11,7 @@ export type SandboxDoctorReport = {
 };
 
 const MAX_JWKS_BYTES = 64 * 1024;
+const PATIENT_ID = /^[A-Za-z0-9\-.]{1,128}$/;
 
 async function readLimited(response: Response): Promise<string> {
   if (!response.body) return response.text();
@@ -138,8 +139,21 @@ export async function runSandboxDoctor(
   }
 
   try {
+    const requestedId = config.patientId?.trim();
+    const patientId =
+      requestedId && PATIENT_ID.test(requestedId) ? requestedId : undefined;
+    if (requestedId && !patientId) {
+      lines.push(
+        "LASTEHR_PATIENT_ID is not a FHIR-style id, so it was not placed on the search.",
+      );
+      ok = false;
+    }
     const url = new URL("Patient", `${config.baseUrl.replace(/\/+$/, "")}/`);
-    url.searchParams.set("_count", "1");
+    // Cerner rejects Patient?_count=1 (HTTP 400) unless a parameter such as
+    // _id is present, and rejects _count when _id is also set. Search by id
+    // alone when the operator supplied one.
+    if (patientId) url.searchParams.set("_id", patientId);
+    else url.searchParams.set("_count", "1");
     const response = await fetchFn(url, {
       headers: {
         accept: "application/fhir+json",
@@ -153,11 +167,19 @@ export async function runSandboxDoctor(
       lines.push(
         "Search was refused (HTTP 403). This app lacks the search scope. A direct read of a known id can still succeed.",
       );
+    } else if (response.status === 400 && !patientId) {
+      lines.push(
+        "Patient search without an id was refused (HTTP 400). This server requires a parameter such as _id. Set LASTEHR_PATIENT_ID to probe that search. No patient data was printed.",
+      );
     } else if (response.status >= 300 && response.status < 400) {
       lines.push("Patient search was a redirect and was refused.");
       ok = false;
     } else if (response.ok) {
-      lines.push("Patient search is allowed. No patient data was printed.");
+      lines.push(
+        patientId
+          ? "Patient search by id is allowed. No patient data was printed."
+          : "Patient search is allowed. No patient data was printed.",
+      );
     } else {
       lines.push(`Patient search failed (HTTP ${response.status}). No patient data was printed.`);
       ok = false;

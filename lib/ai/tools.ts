@@ -318,6 +318,9 @@ export function buildTools(
     applyVendorProfile(backend.vendorProfile, resource, {
       encounter: hints.encounter || process.env.LASTEHR_ENCOUNTER,
       performer: hints.performer || process.env.LASTEHR_PERFORMER,
+      includeMetaTag:
+        process.env.LASTEHR_INCLUDE_META_TAG === "1" ||
+        process.env.LASTEHR_INCLUDE_META_TAG === "true",
     });
 
   const refuseUnprovenVendorWrite = (): void => {

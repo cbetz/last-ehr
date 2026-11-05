@@ -111,6 +111,11 @@ export type WriteToolOptions = {
   vendor?: VendorProfile;
   encounter?: string;
   performer?: string;
+  /**
+   * Keep meta.tag on an Oracle Observation. Off matches the proven fixture.
+   * Set from LASTEHR_INCLUDE_META_TAG.
+   */
+  includeMetaTag?: boolean;
 };
 
 // Mirrors lib/ai/tools.ts input caps (note ≤1000, label ≤120, value within
@@ -253,6 +258,7 @@ export function writeToolOptionsFromConfig(config: {
     profile?: "epic" | "oracle";
     encounter?: string;
     performer?: string;
+    includeMetaTag?: boolean;
   };
 }): WriteToolOptions {
   const profile =
@@ -267,6 +273,7 @@ export function writeToolOptionsFromConfig(config: {
     vendor: profile,
     encounter: config.sandbox?.encounter,
     performer: config.sandbox?.performer,
+    ...(config.sandbox?.includeMetaTag ? { includeMetaTag: true } : {}),
   };
 }
 
@@ -464,6 +471,9 @@ export function createWriteTools(
           subject: { reference: `Patient/${patientId}` },
           valueQuantity: {
             value,
+            // The typed string stays here. The vendor profile replaces unit
+            // with the sandbox fixture's unit (Epic: the UCUM code; Oracle
+            // Celsius: degC) before this resource is posted.
             unit,
             ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
           },
@@ -473,6 +483,7 @@ export function createWriteTools(
           resource = applyVendorProfile(options.vendor, resource, {
             encounter: encounter ?? options.encounter,
             performer: performer ?? options.performer,
+            includeMetaTag: options.includeMetaTag,
           });
         } catch (error) {
           if (error instanceof VendorWriteError) {
@@ -490,7 +501,7 @@ export function createWriteTools(
             `Patient: Patient/${patientId}`,
             `Resource: Observation`,
             `Label: ${JSON.stringify(label)}`,
-            `Value: ${value} ${JSON.stringify(unit)}`,
+            `Value: ${value} ${JSON.stringify(resource.valueQuantity?.unit ?? unit)}`,
             ...(codingSummary ? [`Codes: ${codingSummary}`] : []),
             ...(resource.encounter?.reference
               ? [`Encounter: ${resource.encounter.reference}`]

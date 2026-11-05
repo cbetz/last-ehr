@@ -23,6 +23,55 @@ export class SandboxPublicError extends Error {
 export const SEARCH_SCOPE_MESSAGE =
   "Search was refused (HTTP 403). This app lacks the search scope. A direct read of a known id can still succeed.";
 
+/**
+ * OperationOutcome issues as one line. Raw bodies stay out of the message:
+ * a 400 can echo request content, and the MCP host does not receive this
+ * Error. sandbox-proof prints the line for the operator.
+ */
+function operationOutcomeDetail(body: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return undefined;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+  const outcome = parsed as {
+    resourceType?: unknown;
+    issue?: unknown;
+  };
+  if (outcome.resourceType !== "OperationOutcome" || !Array.isArray(outcome.issue)) {
+    return undefined;
+  }
+  const parts: string[] = [];
+  for (const issue of outcome.issue.slice(0, 5)) {
+    if (!issue || typeof issue !== "object") continue;
+    const row = issue as {
+      diagnostics?: unknown;
+      details?: { text?: unknown; coding?: Array<{ code?: unknown }> };
+    };
+    const diagnostics = typeof row.diagnostics === "string" ? row.diagnostics.trim() : "";
+    const detailText = typeof row.details?.text === "string" ? row.details.text.trim() : "";
+    const codes = (row.details?.coding ?? [])
+      .map((coding) => coding?.code)
+      .filter((code): code is string => typeof code === "string" && /^[A-Za-z0-9._-]{1,32}$/.test(code));
+    const prose = [diagnostics, detailText && detailText !== diagnostics ? detailText : ""]
+      .filter(Boolean)
+      .join(" ");
+    const piece = [codes.join(","), prose].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+    if (piece) parts.push(piece);
+  }
+  const joined = parts.join("; ").slice(0, 500);
+  return joined || undefined;
+}
+
+function fhirFailureMessage(status: number, body: string): string {
+  const detail = operationOutcomeDetail(body);
+  return detail
+    ? `FHIR request failed: HTTP ${status}: ${detail}`
+    : `FHIR request failed: HTTP ${status}`;
+}
+
 function resourceIdFromLocation(location: string, resourceType: string): string | undefined {
   const match = location
     .trim()
@@ -100,7 +149,7 @@ export function createSandboxClient(
     }
     const text = await readCappedText(response);
     if (!response.ok) {
-      throw Object.assign(new Error(`FHIR request failed: HTTP ${response.status}`), {
+      throw Object.assign(new Error(fhirFailureMessage(response.status, text)), {
         statusCode: response.status,
       });
     }

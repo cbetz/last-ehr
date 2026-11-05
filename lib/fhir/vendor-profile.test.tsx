@@ -140,6 +140,98 @@ describe("Oracle vendor profile", () => {
     expect(shaped.code?.coding?.[0]?.code).toBe("8331-1");
   });
 
+  it("matches the proven sandbox quantity, encounter, and meta.tag", () => {
+    const heart: Observation = {
+      resourceType: "Observation",
+      status: "final",
+      code: {
+        coding: [{ system: "http://loinc.org", code: "8867-4", display: "Heart rate" }],
+        text: "Heart rate",
+      },
+      subject: { reference: "Patient/erXuFYUfucBZaryVksYEcMg3" },
+      valueQuantity: {
+        value: 72,
+        unit: "bpm",
+        system: "http://unitsofmeasure.org",
+        code: "/min",
+      },
+    };
+    const epic = applyVendorProfile(EPIC_VENDOR_PROFILE, heart, {
+      encounter: "Encounter/eMT95RPaM-HxLc3NeIA5qlQ3",
+    });
+    const mcpEpic = mcpApply(EPIC_VENDOR_PROFILE, heart, {
+      encounter: "Encounter/eMT95RPaM-HxLc3NeIA5qlQ3",
+    });
+    expect(epic.valueQuantity).toMatchObject({
+      value: 72,
+      unit: "/min",
+      code: "/min",
+      system: "http://unitsofmeasure.org",
+    });
+    expect(epic.valueQuantity?.unit).not.toBe("bpm");
+    expect(mcpEpic.valueQuantity).toEqual(epic.valueQuantity);
+
+    const tag = [{ system: "https://lastehr.com/mcp", code: "approved-proposal" }];
+    const oral: Observation = {
+      resourceType: "Observation",
+      status: "final",
+      code: {
+        coding: [{ system: "http://loinc.org", code: "8331-1" }],
+        text: "oral temperature",
+      },
+      subject: { reference: "Patient/12724066" },
+      valueQuantity: {
+        value: 37,
+        unit: "Cel",
+        system: "http://unitsofmeasure.org",
+        code: "Cel",
+      },
+      meta: {
+        tag,
+        security: [
+          {
+            system: "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+            code: "AIAST",
+          },
+        ],
+      },
+    };
+    const hints = {
+      performer: "Practitioner/12724064",
+      encounter: "Encounter/97954294",
+    };
+    const oracle = applyVendorProfile(ORACLE_VENDOR_PROFILE, oral, hints);
+    const mcpOracle = mcpApply(ORACLE_VENDOR_PROFILE, oral, hints);
+    expect(oracle.valueQuantity).toMatchObject({
+      value: 37,
+      unit: "degC",
+      code: "Cel",
+      system: "http://unitsofmeasure.org",
+    });
+    expect(oracle.encounter?.reference).toBe("Encounter/97954294");
+    expect(oracle.performer?.[0]?.reference).toBe("Practitioner/12724064");
+    expect(
+      oracle.performer?.[0]?.extension?.[0]?.valueCodeableConcept?.coding?.[0]?.code,
+    ).toBe("LA");
+    expect(oracle.meta?.tag).toBeUndefined();
+    expect(oracle.meta?.security?.[0]?.code).toBe("AIAST");
+    expect(mcpOracle).toEqual(oracle);
+
+    const kept = applyVendorProfile(ORACLE_VENDOR_PROFILE, oral, {
+      ...hints,
+      includeMetaTag: true,
+    });
+    expect(kept.meta?.tag).toEqual(tag);
+    expect(mcpApply(ORACLE_VENDOR_PROFILE, oral, { ...hints, includeMetaTag: true }).meta?.tag).toEqual(
+      tag,
+    );
+
+    const withoutEncounter = applyVendorProfile(ORACLE_VENDOR_PROFILE, oral, {
+      performer: "Practitioner/12724064",
+    });
+    expect(withoutEncounter.encounter).toBeUndefined();
+  });
+
   it("accepts an extra allowlist row without editing the function", () => {
     const draft: Observation = {
       resourceType: "Observation",
@@ -184,6 +276,8 @@ describe("approval card", () => {
     expect(html).toContain("8867-4");
     expect(html).toContain(EPIC_FLOWSHEET_SYSTEM);
     expect(html).toContain("Encounter/eMT95RPaM-HxLc3NeIA5qlQ3");
+    expect(html).toContain("/min");
+    expect((ready.preview as Observation).valueQuantity?.unit).toBe("/min");
     expect(html).toContain("Approve");
 
     const blocked = buildObservationApproval({
@@ -224,6 +318,8 @@ describe("approval card", () => {
     expect(approval.blocked).toBeUndefined();
     const preview = approval.preview as Observation;
     expect(preview.code?.coding?.[0]?.code).toBe("8331-1");
+    expect(preview.valueQuantity).toMatchObject({ unit: "degC", code: "Cel" });
+    expect(preview.encounter?.reference).toBe("Encounter/97954294");
     expect(preview.performer?.[0]?.extension?.[0]?.valueCodeableConcept?.coding?.[0]?.code).toBe(
       "LA",
     );
