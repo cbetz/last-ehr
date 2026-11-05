@@ -9,12 +9,12 @@
     "source": "github",
     "subfolder": "packages/mcp"
   },
-  "version": "0.4.1",
+  "version": "0.5.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@lastehr/mcp",
-      "version": "0.4.1",
+      "version": "0.5.0",
       "transport": {
         "type": "stdio"
       },
@@ -40,6 +40,78 @@
         {
           "name": "MEDPLUM_BASE_URL",
           "description": "FHIR chart tools over Medplum or a local HAPI stack: read-only by default, with an opt-in elicitation-gated write profile (human-approved per action).",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_BACKEND",
+          "description": "epic, oracle, or smart. Requires LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1. Sandbox writes are approval-gated and persist because those sandboxes do not support delete.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS",
+          "description": "Set to 1 to enable LASTEHR_BACKEND epic, oracle, or smart.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_CLIENT_ID",
+          "description": "SMART Backend Services client id. Not a secret.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_PRIVATE_KEY",
+          "description": "PKCS#8 PEM for SMART private_key_jwt. Never log it.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "LASTEHR_PRIVATE_KEY_PATH",
+          "description": "Path to the PKCS#8 PEM. Alternative to LASTEHR_PRIVATE_KEY.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_KEY_ID",
+          "description": "JWT kid. Must match the public JWKS.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_JWKS_URL",
+          "description": "https URL of the public JWKS. doctor checks that LASTEHR_KEY_ID is present. Optional.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_SCOPES",
+          "description": "Space-delimited SMART scopes. Required for Oracle. Omit for Epic unless overriding the app registration.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_FHIR_BASE_URL",
+          "description": "FHIR base URL. Epic and Oracle default to their public sandboxes when unset.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_TOKEN_URL",
+          "description": "SMART token URL. Epic and Oracle default to their public sandboxes when unset.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_ENCOUNTER",
+          "description": "Encounter/{id} added to Epic observations when the tool call omits encounter.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LASTEHR_PERFORMER",
+          "description": "Practitioner/{id} filed as legal authenticator on Oracle observations.",
           "isRequired": false,
           "isSecret": false
         }

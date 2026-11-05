@@ -1,8 +1,12 @@
 # @lastehr/mcp
 
-FHIR chart tools for MCP clients, over a Medplum project or the Last EHR
+FHIR chart tools for MCP clients, over a Medplum project, the Last EHR
 repository's local HAPI evaluation stack (`FHIR_BACKEND=hapi`, synthetic
-data only).
+data only), or — with `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` — the Epic and
+Oracle Health sandboxes (`LASTEHR_BACKEND=epic|oracle`) and a generic SMART
+Backend Services server (`LASTEHR_BACKEND=smart`). The sandboxes do not
+support delete, so an approved write persists. This is not a clinical or
+compliance claim.
 
 Read-only by default, and the reads are the same ones the Last EHR web agent
 uses: search patients, show a whole chart, read any of 23 patient-scoped chart

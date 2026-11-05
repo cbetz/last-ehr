@@ -25,9 +25,16 @@ write tools.
 
 Use hosted or self-hosted Medplum for the authenticated path. The package also
 supports this repository's no-auth HAPI stack over stdio for local synthetic
-evaluation. The separate checkout-only Local Lab below exposes just two read
-tools against four synthetic patients. Other web-app adapters are not MCP
-backends; see the [support matrix](./support.md).
+evaluation. `LASTEHR_BACKEND=epic|oracle|smart` with
+`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` selects SMART Backend Services for the
+Epic sandbox, the Oracle Health sandbox, or another token endpoint. Those
+sandboxes do not support delete, so an approved Observation persists. They
+are not a supported production configuration and not a clinical or
+compliance claim. Setup is in
+[Epic and Oracle Health sandboxes](./adapters/epic-cerner.md) and the
+[0.5.0 draft notes](./releases/mcp-0.5.0.md). The separate checkout-only
+Local Lab below exposes just two read tools against four synthetic patients.
+See the [support matrix](./support.md).
 
 ## Where does patient data go?
 
@@ -103,7 +110,8 @@ to stdout. Keep the local stack running while the client is connected; use
 
 ## Install and connect
 
-This guide follows the repository's `0.4.1` MCP code. npm releases are
+This guide follows the repository's `0.5.0` MCP code, which is prepared and
+not yet published. npm releases are
 published separately. Check the version you installed with
 `npx -y @lastehr/mcp --version`; older releases do not include HTTP transport
 or `doctor --connect`. If a matching release is not yet available on npm,

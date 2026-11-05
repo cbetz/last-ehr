@@ -20,6 +20,7 @@ import {
 } from "./config.js";
 import { HapiReadClient } from "./hapi.js";
 import { createMedplumClient } from "./medplum.js";
+import { createSandboxClient, SandboxPublicError } from "./sandbox-client.js";
 import {
   createReadTools,
   type McpReadTool,
@@ -32,7 +33,7 @@ import {
   type McpWriteTool,
 } from "./write-tools.js";
 
-export const MCP_SERVER_VERSION = "0.4.1";
+export const MCP_SERVER_VERSION = "0.5.0";
 
 export type McpServerOptions = {
   /**
@@ -127,7 +128,7 @@ export async function callMcpTool(
     // generic message below would tell a model to go check its access policy
     // when the real answer is "Task has no status 'active'; use requested,
     // received, ...". Recognized structurally, not by comparing message text.
-    if (error instanceof ChartReadRefusal) {
+    if (error instanceof ChartReadRefusal || error instanceof SandboxPublicError) {
       return {
         isError: true,
         content: [{ type: "text", text: error.message }],
@@ -209,6 +210,9 @@ async function createBackendClient(
     // Local, no-auth synthetic evaluation stack; the URL was validated by
     // loadMcpConfig and the same local-only caveats as the web app apply.
     return new HapiReadClient(config.baseUrl as string);
+  }
+  if (config.sandbox) {
+    return createSandboxClient(config.sandbox);
   }
   return createMedplumClient(config);
 }
