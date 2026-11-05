@@ -27,7 +27,7 @@ jobs:
     name: Verify and optionally publish @lastehr/mcp
     if: github.repository == 'cbetz/last-ehr' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     permissions:
       contents: read
       actions: read
@@ -69,23 +69,35 @@ jobs:
           console.log(`Release candidate: ${manifest.name}@${version} from ${process.env.GITHUB_SHA}`);
           NODE
 
+      # status=success hides an in-progress run, and assert() then fails as
+      # actual undefined / expected true. Wait while that push CI is still
+      # running. A completed unsuccessful run stops publication immediately.
       - name: Require successful CI on this exact main commit before publication
         if: inputs.publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
-            -f head_sha="$GITHUB_SHA" -f branch=main -f event=push \
-            -f status=success -f per_page=100 > "$RUNNER_TEMP/mcp-ci-runs.json"
-          node --input-type=module <<'NODE'
-          import assert from 'node:assert/strict';
-          import { appendFileSync, readFileSync } from 'node:fs';
-          const { workflow_runs: runs } = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/mcp-ci-runs.json`, 'utf8'));
-          const run = runs.find(run => run.head_sha === process.env.GITHUB_SHA && run.head_branch === 'main' && run.event === 'push' && run.status === 'completed' && run.conclusion === 'success');
-          assert(run, 'Publishing requires completed, successful CI on this exact main SHA; wait for CI and dispatch again');
-          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Verified main CI: ${run.html_url}\n\n`);
-          console.log(`Verified main CI: ${run.html_url}`);
-          NODE
+          deadline=$((SECONDS + 1500))
+          while true; do
+            gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs" \
+              -f "head_sha=${GITHUB_SHA}" -f branch=main -f event=push \
+              -f per_page=100 > "${RUNNER_TEMP}/mcp-ci-runs.json"
+            set +e
+            node scripts/require-main-ci.mjs "${RUNNER_TEMP}/mcp-ci-runs.json"
+            status=$?
+            set -e
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+            if [ "$status" -ne 10 ]; then
+              exit "$status"
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "Main CI did not succeed within 25 minutes." >&2
+              exit 1
+            fi
+            sleep 20
+          done
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund

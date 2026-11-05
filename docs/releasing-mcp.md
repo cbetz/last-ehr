@@ -64,15 +64,17 @@ match both manifests. First run it without publishing:
 gh workflow run publish-mcp.yml --ref main -f version=0.4.1 -f publish=false
 ```
 
-Inspect the workflow summary and uploaded candidate. Before actual
-publication, wait for all of the `CI` workflow on that exact main commit to
-pass. Then:
+Inspect the workflow summary and uploaded candidate. Then:
 
 ```bash
 gh workflow run publish-mcp.yml --ref main -f version=0.4.1 -f publish=true
 ```
 
-The workflow enforces successful CI for its exact main SHA, builds and checks
+`publish=true` lists CI runs for that exact main SHA without requiring
+them to already be `success`. It waits up to 25 minutes while the push
+run is still in progress, and it publishes only after that run has
+completed successfully. A completed unsuccessful run stops publication.
+The workflow then builds and checks
 the tarball, preserves the candidate, and publishes that same file. It then
 downloads the named npm version, compares integrity with the candidate,
 checks that `latest` selects it, and repeats the isolated-install checks.
