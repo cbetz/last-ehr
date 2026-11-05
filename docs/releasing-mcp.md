@@ -3,10 +3,10 @@
 The repository version, npm package, MCP Registry record, and GitHub release
 are separate artifacts. A merged version change does not publish a package.
 The [0.4.0 release](./releases/mcp-0.4.0.md) was verified on npm and the
-Official MCP Registry on October 22, 2026. This checkout prepares the `0.5.0`
-candidate in [docs/releases/mcp-0.5.0.md](./releases/mcp-0.5.0.md). That
+Official MCP Registry on October 22, 2026. This checkout prepares the `0.5.1`
+candidate in [docs/releases/mcp-0.5.1.md](./releases/mcp-0.5.1.md). That
 version change does not establish publication. Do not publish, tag, or
-open a GitHub release for 0.5.0 until this process is run on purpose.
+open a GitHub release for 0.5.1 until this process is run on purpose.
 Check public registry metadata again when releasing.
 
 ## Verify the package people will install

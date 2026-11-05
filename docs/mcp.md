@@ -32,7 +32,7 @@ sandboxes do not support delete, so an approved Observation persists. They
 are not a supported production configuration and not a clinical or
 compliance claim. Setup is in
 [Epic and Oracle Health sandboxes](./adapters/epic-cerner.md) and the
-[0.5.0 draft notes](./releases/mcp-0.5.0.md). The separate checkout-only
+[0.5.1 draft notes](./releases/mcp-0.5.1.md). The separate checkout-only
 Local Lab below exposes just two read tools against four synthetic patients.
 See the [support matrix](./support.md).
 
@@ -110,7 +110,7 @@ to stdout. Keep the local stack running while the client is connected; use
 
 ## Install and connect
 
-This guide follows the repository's `0.5.0` MCP code, which is prepared and
+This guide follows the repository's `0.5.1` MCP code, which is prepared and
 not yet published. npm releases are
 published separately. Check the version you installed with
 `npx -y @lastehr/mcp --version`; older releases do not include HTTP transport
