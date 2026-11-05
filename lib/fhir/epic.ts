@@ -1,8 +1,20 @@
-import { randomUUID } from "node:crypto";
-
-import { importPKCS8, SignJWT } from "jose";
+import type {
+  Bundle,
+  ExtractResource,
+  ResourceType,
+} from "@medplum/fhirtypes";
 
 import { FhirRestBackend } from "./rest";
+import {
+  assessSmartAuth,
+  epicAuthError,
+  type SmartAuthEnv,
+} from "./smart-config";
+import {
+  createSmartBackendServicesTokenSource,
+  loadSmartPrivateKey,
+} from "./smart-backend";
+import { EPIC_VENDOR_PROFILE, type VendorProfile } from "./vendor-profile";
 
 /**
  * Epic's public FHIR R4 sandbox, as published by the sandbox CapabilityStatement
@@ -16,11 +28,8 @@ export const EPIC_SANDBOX_BASE_URL =
 export const EPIC_SANDBOX_TOKEN_URL =
   "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token";
 
-const EXPIRY_MARGIN_MS = 60_000;
-const FALLBACK_TTL_MS = 5 * 60 * 1000;
-/** Epic rejects an authentication JWT whose exp is more than 5 minutes out. */
-const ASSERTION_LIFETIME_SECONDS = 4 * 60;
-const ASSERTION_NOT_BEFORE_SKEW_SECONDS = 30;
+export const EPIC_SEARCH_SCOPE_MESSAGE =
+  "Epic search was refused (HTTP 403). This app lacks the search scope. Patient, Encounter, and Observation searches need a scope that includes search; a direct read of a known id can still succeed.";
 
 export type EpicBackendOptions = {
   /**
@@ -48,109 +57,30 @@ export type EpicBackendOptions = {
   fetch?: typeof globalThis.fetch;
 };
 
-function normalizePem(value: string): string {
-  const trimmed = value.trim();
-  return trimmed.includes("\\n") ? trimmed.replace(/\\n/g, "\n") : trimmed;
+function statusCodeOf(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null || !("statusCode" in error)) {
+    return undefined;
+  }
+  const status = (error as { statusCode: unknown }).statusCode;
+  return typeof status === "number" ? status : undefined;
 }
 
 /**
- * SMART Backend Services client-credentials token source for Epic.
- * Signs a short-lived RS384 JWT (iss/sub = client id, aud = token URL)
- * and caches the access token until shortly before `expires_in`.
- */
-function createEpicTokenSource(options: {
-  clientId: string;
-  privateKeyPem: string;
-  privateKeyId?: string;
-  scopes?: string;
-  tokenUrl: string;
-  fetchFn: typeof globalThis.fetch;
-}): () => Promise<string> {
-  let cached: { value: string; expiresAt: number } | undefined;
-  let minting: Promise<string> | undefined;
-
-  const mint = async (): Promise<string> => {
-    const key = await importPKCS8(normalizePem(options.privateKeyPem), "RS384");
-    const now = Math.floor(Date.now() / 1000);
-    const assertion = await new SignJWT({})
-      .setProtectedHeader({
-        alg: "RS384",
-        typ: "JWT",
-        ...(options.privateKeyId ? { kid: options.privateKeyId } : {}),
-      })
-      .setIssuer(options.clientId)
-      .setSubject(options.clientId)
-      .setAudience(options.tokenUrl)
-      .setJti(randomUUID())
-      .setIssuedAt(now - ASSERTION_NOT_BEFORE_SKEW_SECONDS)
-      .setNotBefore(now - ASSERTION_NOT_BEFORE_SKEW_SECONDS)
-      .setExpirationTime(now + ASSERTION_LIFETIME_SECONDS)
-      .sign(key);
-
-    const body = new URLSearchParams({
-      grant_type: "client_credentials",
-      client_assertion_type:
-        "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-      client_assertion: assertion,
-    });
-    if (options.scopes) body.set("scope", options.scopes);
-
-    const res = await options.fetchFn(options.tokenUrl, {
-      method: "POST",
-      headers: { "content-type": "application/x-www-form-urlencoded" },
-      body,
-    });
-    if (!res.ok) {
-      throw Object.assign(
-        new Error(`Epic token request failed: HTTP ${res.status}`),
-        { statusCode: res.status },
-      );
-    }
-    const payload = (await res.json()) as {
-      access_token?: string;
-      expires_in?: number;
-    };
-    if (!payload.access_token) {
-      throw new Error("Epic token response did not include access_token.");
-    }
-    const ttlMs =
-      typeof payload.expires_in === "number" && payload.expires_in > 0
-        ? payload.expires_in * 1000
-        : FALLBACK_TTL_MS;
-    cached = {
-      value: payload.access_token,
-      expiresAt: Date.now() + Math.max(0, ttlMs - EXPIRY_MARGIN_MS),
-    };
-    return payload.access_token;
-  };
-
-  return () => {
-    if (cached && cached.expiresAt > Date.now()) {
-      return Promise.resolve(cached.value);
-    }
-    if (!minting) {
-      minting = mint().finally(() => {
-        minting = undefined;
-      });
-    }
-    return minting;
-  };
-}
-
-/**
- * Scaffold for Epic's FHIR R4 sandbox. Auth is SMART Backend Services
- * (client credentials with a private-key JWT). Standalone launch is
- * documented in docs/adapters/epic-cerner.md and is not implemented: it
- * needs a browser login this process does not run.
+ * Epic FHIR R4 sandbox over SMART Backend Services (client credentials
+ * with a private-key JWT). Standalone launch is not implemented: it needs
+ * a browser login this process does not run.
  *
- * Writes are the inherited REST POST. They are unverified against the
- * sandbox. Do not point this at a server holding real PHI.
+ * Writes are POSTed. Epic's sandbox does not support delete, so an
+ * approved write stays on the sandbox. The vendor profile adds the
+ * flowsheet coding and requires an encounter before approval.
  *
  * Registered as `FHIR_BACKEND=epic` only when
  * `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` and credentials are present.
- * CI skips the live test when those are absent. No secret is built in.
+ * No secret is built in.
  */
 export class EpicBackend extends FhirRestBackend {
+  readonly vendorProfile: VendorProfile = EPIC_VENDOR_PROFILE;
+
   constructor(options: EpicBackendOptions = {}) {
     const {
       accessToken,
@@ -171,13 +101,13 @@ export class EpicBackend extends FhirRestBackend {
     const token =
       accessToken || !clientId || !privateKeyPem
         ? undefined
-        : createEpicTokenSource({
+        : createSmartBackendServicesTokenSource({
             clientId,
             privateKeyPem,
-            privateKeyId,
+            keyId: privateKeyId,
             scopes,
             tokenUrl,
-            fetchFn: fetchFn ?? globalThis.fetch,
+            fetch: fetchFn,
           });
 
     super({
@@ -187,5 +117,49 @@ export class EpicBackend extends FhirRestBackend {
         : () => ({ authorization: `Bearer ${accessToken}` }),
       fetch: fetchFn,
     });
+  }
+
+  static fromEnv(env: SmartAuthEnv = process.env): EpicBackend {
+    const auth = assessSmartAuth(env, "epic");
+    if (auth.state === "partial") throw new Error(epicAuthError(auth.detail));
+    if (auth.state !== "ready") throw new Error(epicAuthError());
+    if (auth.mode === "token") {
+      return new EpicBackend({
+        accessToken: auth.accessToken,
+        baseUrl: auth.baseUrl,
+        tokenUrl: auth.tokenUrl,
+      });
+    }
+    return new EpicBackend({
+      clientId: auth.clientId,
+      privateKeyPem: loadSmartPrivateKey(auth),
+      privateKeyId: auth.keyId,
+      scopes: auth.scopes,
+      baseUrl: auth.baseUrl,
+      tokenUrl: auth.tokenUrl,
+    });
+  }
+
+  override async search<K extends ResourceType>(
+    resourceType: K,
+    params?: Record<string, string>,
+  ): Promise<Bundle<ExtractResource<K>>> {
+    try {
+      return await super.search(resourceType, params);
+    } catch (error) {
+      // Token failures also carry statusCode. Only a FHIR search 403 means
+      // the app's scopes do not include search.
+      if (
+        statusCodeOf(error) === 403 &&
+        error instanceof Error &&
+        error.message.startsWith("FHIR request failed")
+      ) {
+        throw Object.assign(new Error(EPIC_SEARCH_SCOPE_MESSAGE), {
+          statusCode: 403,
+          code: "FHIR_SEARCH_SCOPE",
+        });
+      }
+      throw error;
+    }
   }
 }

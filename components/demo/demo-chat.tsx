@@ -20,11 +20,12 @@ import {
 import { PatientCard } from "@/components/chat/patient";
 import { ConfirmWrite } from "@/components/chat/confirm-write";
 import { ApprovedWriteNotice } from "@/components/demo/approved-write-notice";
+import { OBSERVATION_REPLACES_EXTENSION } from "@/lib/fhir/vitals";
 import {
-  codeObservation,
-  OBSERVATION_REPLACES_EXTENSION,
-  UCUM_SYSTEM,
-} from "@/lib/fhir/vitals";
+  buildObservationApproval,
+  vendorBlocksTool,
+} from "@/lib/fhir/vendor-profile";
+import { useVendorWrite } from "@/components/demo/vendor-write";
 import { ChatScrollAnchor } from "@/lib/hooks/chat-scroll-anchor";
 import { useEnterSubmit } from "@/lib/hooks/use-enter-submit";
 import {
@@ -67,46 +68,8 @@ const DEV_EVENT_CAP = 200;
 // The chat API writes its error bodies for users (rate limit, expired session,
 // model failure), and the transport surfaces that body as error.message. Show
 // messages we recognize verbatim; anything else gets a generic fallback.
-// Approval-card rendering of the observation coding, derived from the same
-// pinned table the write tool uses (lib/fhir/vitals.ts) so the card cannot
-// drift from what saves.
-function observationCodingRows(
-  label: string,
-  unit: string,
-): { label: string; value: string }[] {
-  const coded = codeObservation(label, unit);
-  const loinc = coded.code.coding?.[0];
-  return [
-    ...(loinc
-      ? [{ label: "Code", value: `LOINC ${loinc.code} — ${loinc.display}` }]
-      : [{ label: "Code", value: `${label} (text only — no standard code)` }]),
-    ...(coded.ucum
-      ? [{ label: "Unit", value: `UCUM ${coded.ucum}` }]
-      : [{ label: "Unit", value: `${unit} (no UCUM code — saved as text)` }]),
-  ];
-}
-
-function observationPreview(
-  patientId: string,
-  label: string,
-  value: number,
-  unit: string,
-) {
-  const coded = codeObservation(label, unit);
-  return {
-    resourceType: "Observation",
-    status: "final",
-    code: coded.code,
-    ...(coded.category ? { category: coded.category } : {}),
-    subject: { reference: `Patient/${patientId}` },
-    effectiveDateTime: "<server time when approved>",
-    valueQuantity: {
-      value,
-      unit,
-      ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
-    },
-  };
-}
+// The observation card uses buildObservationApproval, the same profile the
+// write tool applies, so a vendor sandbox shows the body it will accept.
 
 // read_chart_section returns `related`, `truncated`, `includeUnsupported`,
 // and `codeFilterUnmatched` conditionally, so the card reads them defensively
@@ -189,6 +152,8 @@ export function DemoChat() {
     pickBackend,
     pickerEnabled: backendPickerEnabled,
   } = useDemoBackend();
+  const vendorWrite = useVendorWrite();
+  const vendorBlocked = vendorBlocksTool(vendorWrite?.profile, "other");
   const demoBackendRef = useRef("");
   useEffect(() => {
     demoBackendRef.current = backendPickerEnabled ? demoBackend : "";
@@ -707,17 +672,22 @@ export function DemoChat() {
                                   },
                                   { label: "Note", value: part.input.text },
                                 ]}
-                                preview={{
-                                  resourceType: "Communication",
-                                  status: "completed",
-                                  subject: {
-                                    reference: `Patient/${part.input.patientId}`,
-                                  },
-                                  sent: "<server time when approved>",
-                                  payload: [
-                                    { contentString: part.input.text },
-                                  ],
-                                }}
+                                blocked={vendorBlocked}
+                                preview={
+                                  vendorBlocked
+                                    ? undefined
+                                    : {
+                                        resourceType: "Communication",
+                                        status: "completed",
+                                        subject: {
+                                          reference: `Patient/${part.input.patientId}`,
+                                        },
+                                        sent: "<server time when approved>",
+                                        payload: [
+                                          { contentString: part.input.text },
+                                        ],
+                                      }
+                                }
                                 onApprove={() =>
                                   respondToApproval(
                                     "add_note",
@@ -757,37 +727,23 @@ export function DemoChat() {
 
                       case "tool-record_observation":
                         if (part.state === "approval-requested") {
+                          const approval = buildObservationApproval({
+                            patientId: part.input.patientId,
+                            label: part.input.label,
+                            value: part.input.value,
+                            unit: part.input.unit,
+                            encounter: part.input.encounter,
+                            performer: part.input.performer,
+                            vendor: vendorWrite,
+                          });
                           return (
                             <BotCard key={part.toolCallId} showAvatar={false}>
                               <ConfirmWrite
                                 title="Record this observation?"
                                 resourceType="Observation"
-                                fields={[
-                                  {
-                                    label: "Patient",
-                                    value: `Patient/${part.input.patientId}`,
-                                  },
-                                  { label: "Label", value: part.input.label },
-                                  {
-                                    label: "Value",
-                                    value: `${part.input.value} ${part.input.unit}`,
-                                  },
-                                  // The derived codes are clinically
-                                  // meaningful, so the reviewer sees them
-                                  // rather than discovering them on the
-                                  // chart. Same shared function the write
-                                  // tool builds from.
-                                  ...observationCodingRows(
-                                    part.input.label,
-                                    part.input.unit,
-                                  ),
-                                ]}
-                                preview={observationPreview(
-                                  part.input.patientId,
-                                  part.input.label,
-                                  part.input.value,
-                                  part.input.unit,
-                                )}
+                                fields={approval.fields}
+                                preview={approval.preview}
+                                blocked={approval.blocked}
                                 onApprove={() =>
                                   respondToApproval(
                                     "record_observation",
@@ -858,7 +814,8 @@ export function DemoChat() {
                                       "The earlier entry stays on the chart as a final result. This does not mark it as an error, and does not delete it. Retracting it requires the EHR's own correction workflow.",
                                   },
                                 ]}
-                                preview={{
+                                blocked={vendorBlocked}
+                                preview={vendorBlocked ? undefined : {
                                   resourceType: "Observation",
                                   status: "final",
                                   code: "<copied from the superseded observation>",
@@ -943,25 +900,30 @@ export function DemoChat() {
                                       ]
                                     : []),
                                 ]}
-                                preview={{
-                                  resourceType: "Task",
-                                  status: "requested",
-                                  intent: "order",
-                                  description: part.input.description,
-                                  for: {
-                                    reference: `Patient/${part.input.patientId}`,
-                                  },
-                                  authoredOn: "<server time when approved>",
-                                  ...(part.input.dueDate
-                                    ? {
-                                        restriction: {
-                                          period: {
-                                            end: `${part.input.dueDate}T23:59:59Z`,
-                                          },
+                                blocked={vendorBlocked}
+                                preview={
+                                  vendorBlocked
+                                    ? undefined
+                                    : {
+                                        resourceType: "Task",
+                                        status: "requested",
+                                        intent: "order",
+                                        description: part.input.description,
+                                        for: {
+                                          reference: `Patient/${part.input.patientId}`,
                                         },
+                                        authoredOn: "<server time when approved>",
+                                        ...(part.input.dueDate
+                                          ? {
+                                              restriction: {
+                                                period: {
+                                                  end: `${part.input.dueDate}T23:59:59Z`,
+                                                },
+                                              },
+                                            }
+                                          : {}),
                                       }
-                                    : {}),
-                                }}
+                                }
                                 onApprove={() =>
                                   respondToApproval(
                                     "create_task",

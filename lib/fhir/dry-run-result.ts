@@ -22,6 +22,21 @@ export function isDryRunToolOutput(
  * caller's success copy. A dry-run result must not reuse that copy.
  * This module stays free of Node built-ins so the demo client can import it.
  */
+function readBackOf(
+  output: unknown,
+): { matched: boolean; diff: string } | undefined {
+  if (!output || typeof output !== "object" || !("readBack" in output)) {
+    return undefined;
+  }
+  const value = (output as { readBack?: unknown }).readBack;
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as { matched?: unknown; diff?: unknown };
+  if (typeof record.diff !== "string" || typeof record.matched !== "boolean") {
+    return undefined;
+  }
+  return { matched: record.matched, diff: record.diff };
+}
+
 export function describeApprovedWriteOutput(
   persistedMessage: string,
   output: unknown,
@@ -29,5 +44,13 @@ export function describeApprovedWriteOutput(
   if (isDryRunToolOutput(output)) {
     return { persisted: false, message: DRY_RUN_OUTCOME, diff: output.diff };
   }
-  return { persisted: true, message: persistedMessage };
+  const readBack = readBackOf(output);
+  if (!readBack) return { persisted: true, message: persistedMessage };
+  return {
+    persisted: true,
+    message: readBack.matched
+      ? persistedMessage
+      : `${persistedMessage} Read-back does not match what was sent.`,
+    diff: readBack.diff,
+  };
 }

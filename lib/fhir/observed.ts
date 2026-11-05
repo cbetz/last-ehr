@@ -21,7 +21,7 @@ import type { FhirBackend } from "./backend";
 // HttpOnly capability token — redacted below). observed.test.ts asserts
 // these negatives; treat them as safety-boundary tests.
 export type FhirDevEvent = {
-  op: "search" | "searchResources" | "create";
+  op: "search" | "searchResources" | "create" | "read";
   method: "GET" | "POST";
   /**
    * Synthesized the way FhirRestBackend builds its request line, e.g.
@@ -71,6 +71,11 @@ export class ObservedFhirBackend implements FhirBackend {
   /** So a dry-run inner backend still stages instead of POSTing. */
   get writeDisposition(): FhirBackend["writeDisposition"] {
     return this.inner.writeDisposition;
+  }
+
+  /** The approval card and the commit path both read this off the wrapper. */
+  get vendorProfile(): FhirBackend["vendorProfile"] {
+    return this.inner.vendorProfile;
   }
 
   private path(
@@ -180,6 +185,44 @@ export class ObservedFhirBackend implements FhirBackend {
         status: statusOf(error),
         durationMs: Date.now() - started,
         resourceType: resource.resourceType,
+      });
+      throw error;
+    }
+  }
+
+  async readResource<K extends ResourceType>(
+    resourceType: K,
+    id: string,
+  ): Promise<ExtractResource<K>> {
+    const read = this.inner.readResource;
+    if (typeof read !== "function") {
+      throw new Error("This backend cannot read a resource back by id.");
+    }
+    const started = Date.now();
+    let path = `/${resourceType}/${id}`;
+    if (this.sessionId) path = path.split(this.sessionId).join("redacted");
+    path = path.replace(/session-[A-Za-z0-9-]+/g, "session-redacted");
+    try {
+      const resource = await read.call(this.inner, resourceType, id);
+      this.emit({
+        op: "read",
+        method: "GET",
+        path,
+        ok: true,
+        durationMs: Date.now() - started,
+        resourceType,
+        resourceId: id,
+      });
+      return resource as ExtractResource<K>;
+    } catch (error) {
+      this.emit({
+        op: "read",
+        method: "GET",
+        path,
+        ok: false,
+        status: statusOf(error),
+        durationMs: Date.now() - started,
+        resourceType,
       });
       throw error;
     }

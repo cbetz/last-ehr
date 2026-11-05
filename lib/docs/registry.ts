@@ -114,9 +114,9 @@ export const docsRegistry: readonly DocsRegistryEntry[] = [
   {
     slug: "epic-cerner",
     file: "docs/adapters/epic-cerner.md",
-    title: "Epic and Oracle Health sandbox adapters",
+    title: "Epic and Oracle Health sandboxes",
     description:
-      "Experimental, flag-gated read of the public Epic and Oracle Health FHIR sandboxes. Synthetic data only.",
+      "Flag-gated SMART Backend Services adapters for the Epic and Oracle Health sandboxes. Approval-gated Observation writes, synthetic patients only.",
     group: "Build & integrate",
     order: 15,
     audience: "Backend contributors",

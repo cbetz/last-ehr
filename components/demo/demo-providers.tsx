@@ -6,6 +6,8 @@ import { MedplumProvider } from "@medplum/react-hooks";
 import posthog from "posthog-js";
 
 import { DemoBackendProvider } from "@/components/demo/demo-backend";
+import { VendorWriteProvider } from "@/components/demo/vendor-write";
+import type { VendorWriteContext } from "@/lib/fhir/vendor-profile";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // Demo-only client context. This module must stay out of the root layout:
@@ -44,11 +46,19 @@ const medplum = new MedplumClient({
   cacheTime: 10000,
 });
 
-export function DemoProviders({ children }: { children: React.ReactNode }) {
+export function DemoProviders({
+  children,
+  vendorWrite = null,
+}: {
+  children: React.ReactNode;
+  vendorWrite?: VendorWriteContext | null;
+}) {
   return (
     <TooltipProvider delayDuration={0}>
       <MedplumProvider medplum={medplum}>
-        <DemoBackendProvider>{children}</DemoBackendProvider>
+        <VendorWriteProvider value={vendorWrite}>
+          <DemoBackendProvider>{children}</DemoBackendProvider>
+        </VendorWriteProvider>
       </MedplumProvider>
     </TooltipProvider>
   );

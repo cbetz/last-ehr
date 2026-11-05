@@ -48,4 +48,11 @@ export class MedplumBackend implements FhirBackend {
   async deleteResource(resourceType: ResourceType, id: string): Promise<void> {
     await this.medplum.deleteResource(resourceType, id);
   }
+
+  readResource<K extends ResourceType>(
+    resourceType: K,
+    id: string,
+  ): Promise<ExtractResource<K>> {
+    return this.medplum.readResource(resourceType, id);
+  }
 }

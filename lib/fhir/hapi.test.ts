@@ -155,6 +155,27 @@ describe("createFhirBackend", () => {
     vi.stubEnv("EPIC_ACCESS_TOKEN", "pre-minted");
     expect(createFhirBackend("tok")).toBeInstanceOf(EpicBackend);
   });
+
+  it("builds an authenticated Oracle adapter from LASTEHR_* and keeps a partial config off", () => {
+    vi.stubEnv("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS", "1");
+    vi.stubEnv("FHIR_BACKEND", "oracle-health");
+    vi.stubEnv("LASTEHR_CLIENT_ID", "oracle-client");
+    vi.stubEnv("LASTEHR_PRIVATE_KEY", "");
+    vi.stubEnv("LASTEHR_PRIVATE_KEY_PATH", "");
+    vi.stubEnv("LASTEHR_SCOPES", "");
+    vi.stubEnv("ORACLE_ACCESS_TOKEN", "");
+    expect(hasFhirBackendConfig("oracle-health")).toBe(false);
+    expect(() => createFhirBackend("tok")).toThrow("LASTEHR_SCOPES");
+
+    vi.stubEnv("LASTEHR_PRIVATE_KEY", "not-a-real-key");
+    vi.stubEnv(
+      "LASTEHR_SCOPES",
+      "system/Observation.read system/Observation.write",
+    );
+    expect(hasFhirBackendConfig("oracle-health")).toBe(true);
+    expect(createFhirBackend("tok")).toBeInstanceOf(OracleHealthBackend);
+    expect(createFhirBackend("tok").writeDisposition).toBe("persist");
+  });
 });
 
 describe("hasFhirBackendConfig", () => {

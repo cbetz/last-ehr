@@ -12,6 +12,7 @@ export function ConfirmWrite({
   resourceType,
   fields,
   preview,
+  blocked,
   onApprove,
   onCancel,
 }: {
@@ -19,6 +20,11 @@ export function ConfirmWrite({
   resourceType: string;
   fields: { label: string; value: string }[];
   preview?: unknown;
+  /**
+   * The vendor profile refused this body. Approve stays hidden so the
+   * reviewer cannot accept a write the server will reject.
+   */
+  blocked?: string;
   onApprove: () => void;
   onCancel: () => void;
 }) {
@@ -45,9 +51,13 @@ export function ConfirmWrite({
             </div>
           ))}
         </dl>
-        <p className="text-xs text-muted-foreground">
-          Nothing is saved to the chart until you approve.
-        </p>
+        {blocked ? (
+          <p className="text-sm text-foreground">{blocked}</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Nothing is saved to the chart until you approve.
+          </p>
+        )}
         {preview ? (
           <details className="rounded-md border bg-background">
             <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-muted-foreground">
@@ -62,9 +72,11 @@ export function ConfirmWrite({
           <Button variant="outline" size="sm" onClick={onCancel}>
             Cancel &amp; revise
           </Button>
-          <Button size="sm" onClick={onApprove}>
-            Approve &amp; save
-          </Button>
+          {blocked ? null : (
+            <Button size="sm" onClick={onApprove}>
+              Approve &amp; save
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

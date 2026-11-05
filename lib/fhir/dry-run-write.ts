@@ -4,6 +4,12 @@ import type { Resource } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "./backend";
 import { DRY_RUN_OUTCOME } from "./dry-run-result";
+import {
+  DEFAULT_READ_BACK_TOLERANCE,
+  diffSentVsPersisted,
+  readBackFailureDiff,
+  type ReadBackReport,
+} from "./read-back";
 
 export { DRY_RUN_OUTCOME };
 
@@ -76,7 +82,12 @@ export function listStagedWrites(backend: object): readonly StagedWrite[] {
 }
 
 export type ApprovedWriteCommit<T extends Resource> =
-  | { persisted: true; resource: T & { id: string } }
+  | {
+      persisted: true;
+      resource: T & { id: string };
+      /** Present when the backend can read the created resource back. */
+      readBack?: ReadBackReport;
+    }
   | DryRunCommit;
 
 /**
@@ -92,7 +103,34 @@ export async function commitApprovedWrite<T extends Resource>(
     return stageDryRunWrite(backend, resource);
   }
   const created = await backend.createResource(resource);
-  return { persisted: true, resource: created };
+  const read = backend.readResource;
+  if (typeof read !== "function") {
+    return { persisted: true, resource: created };
+  }
+  try {
+    const persisted = await read.call(
+      backend,
+      created.resourceType,
+      created.id,
+    );
+    return {
+      persisted: true,
+      resource: created,
+      readBack: diffSentVsPersisted(
+        resource,
+        persisted,
+        backend.vendorProfile?.readBack ?? DEFAULT_READ_BACK_TOLERANCE,
+      ),
+    };
+  } catch (error) {
+    // The create already succeeded. A failed comparison must not look like
+    // a failed write, and the error text can carry server diagnostics.
+    return {
+      persisted: true,
+      resource: created,
+      readBack: { matched: false, diff: readBackFailureDiff(error) },
+    };
+  }
 }
 
 export function dryRunToolResult(

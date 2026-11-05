@@ -1,0 +1,42 @@
+{
+  "resourceType": "Observation",
+  "status": "final",
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+          "code": "vital-signs"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.707679",
+        "code": "8",
+        "display": "Pulse"
+      },
+      {
+        "system": "http://loinc.org",
+        "code": "8867-4",
+        "display": "Heart rate"
+      }
+    ],
+    "text": "Pulse"
+  },
+  "subject": {
+    "reference": "Patient/erXuFYUfucBZaryVksYEcMg3"
+  },
+  "effectiveDateTime": "2026-11-04T23:53:58Z",
+  "valueQuantity": {
+    "value": 72,
+    "unit": "/min",
+    "system": "http://unitsofmeasure.org",
+    "code": "/min"
+  },
+  "encounter": {
+    "reference": "Encounter/eMT95RPaM-HxLc3NeIA5qlQ3"
+  }
+}

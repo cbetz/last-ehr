@@ -49,6 +49,11 @@ const VITALS: ReadonlyArray<{
     display: "Body temperature",
     labels: ["body temperature", "temperature", "temp"],
   },
+  {
+    loinc: "8331-1",
+    display: "Oral temperature",
+    labels: ["oral temperature", "temperature oral"],
+  },
   { loinc: "29463-7", display: "Body weight", labels: ["body weight", "weight"] },
   { loinc: "8302-2", display: "Body height", labels: ["body height", "height"] },
   {

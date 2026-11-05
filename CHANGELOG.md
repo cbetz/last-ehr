@@ -5,13 +5,20 @@ self-hosters can tell what moved between pulls.
 
 ## Unreleased
 
-- Experimental sandbox adapters, off unless
-  `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`: a read-only Oracle Health open
-  sandbox (`FHIR_BACKEND=oracle-health`) whose approved writes are staged
-  and diffed instead of POSTed, and an Epic sandbox auth scaffold
-  (`FHIR_BACKEND=epic`) that reads a client id and private key from the
-  environment. Neither is demo-eligible or a supported configuration.
-  See [docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md).
+- Epic and Oracle Health sandbox adapters, still off unless
+  `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`. SMART Backend Services
+  (`client_credentials`, `private_key_jwt`, RS384) is configured with
+  `LASTEHR_FHIR_BASE_URL`, `LASTEHR_TOKEN_URL`, `LASTEHR_CLIENT_ID`,
+  `LASTEHR_PRIVATE_KEY` or `LASTEHR_PRIVATE_KEY_PATH`, `LASTEHR_KEY_ID`,
+  and optional `LASTEHR_SCOPES` (required for Oracle). Vendor profiles
+  shape an Observation before approval: Epic requires an encounter and a
+  flowsheet code beside LOINC; Oracle requires a legal-authenticator
+  performer and an allowlisted vital (`8331-1`; `8867-4` is refused).
+  Approved writes are read back and the diff is returned to the agent.
+  The open Oracle sandbox stays read-only. Neither sandbox supports
+  delete, so writes persist. Not demo-eligible and not a clinical or
+  compliance claim. See
+  [docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md).
 
 ## 0.4.1 — 2026-10-23
 

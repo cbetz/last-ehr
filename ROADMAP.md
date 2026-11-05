@@ -68,10 +68,13 @@ exists. Adapter status:
   tool contract (no Communication resource, no Observation create, no FHIR
   delete, meta.tag discarded on create). Evidence and reopen criteria in
   [#123](https://github.com/cbetz/last-ehr/issues/123).
-- Epic sandbox and Oracle Health open sandbox — experimental spike behind
-  `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS`, not demo-eligible and not verified
-  for writes. The open Oracle host is read-only (approved writes are staged
-  and diffed). Evidence in
+- Epic sandbox and Oracle Health — flag-gated
+  (`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS`) sandbox adapters with SMART
+  Backend Services auth, an approval-time vendor profile, and read-back
+  after a proven Observation create (2026-11-04, synthetic patients).
+  Not demo-eligible: the sandboxes do not support delete, so writes
+  persist and the safety eval cannot clean up. The open Oracle host
+  stays read-only. Evidence in
   [docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md).
 
 ### 3.1 Synthetic workflow evidence
