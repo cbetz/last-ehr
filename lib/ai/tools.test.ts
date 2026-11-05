@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 import { buildSystemPrompt, buildTools } from "@/lib/ai/tools";
+import { EPIC_VENDOR_PROFILE } from "@/lib/fhir/vendor-profile";
 import { WritePolicyDeniedError } from "@/lib/ai/write-policy";
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { DRY_RUN_OUTCOME, listStagedWrites } from "@/lib/fhir/dry-run-write";
@@ -148,6 +149,75 @@ describe("agent FHIR tools", () => {
         }),
       }),
     );
+  });
+
+  it("shapes an Epic observation before the write and reports the read-back", async () => {
+    const readResource = vi.fn(async () => {
+      const sent = createResource.mock.calls.at(-1)?.[0] as {
+        code?: { coding?: { system?: string; code?: string; display?: string }[]; text?: string };
+      };
+      return {
+        ...sent,
+        id: "obs-epic",
+        code: {
+          ...sent.code,
+          coding: [
+            ...(sent.code?.coding ?? []),
+            { system: "http://loinc.org", code: "8716-3", display: "Vital signs" },
+          ],
+        },
+      };
+    });
+    createResource.mockImplementation(async (resource: { resourceType: string }) => ({
+      ...resource,
+      id: "obs-epic",
+    }));
+    const tools = buildTools({
+      ...backend,
+      vendorProfile: EPIC_VENDOR_PROFILE,
+      readResource: readResource as unknown as FhirBackend["readResource"],
+    });
+    await expect(
+      (
+        tools.record_observation.execute as (
+          input: unknown,
+          opts: unknown,
+        ) => Promise<unknown>
+      )({ patientId: "p2", label: "Heart rate", value: 72, unit: "bpm" }, {}),
+    ).rejects.toThrow(/Encounter/);
+    expect(createResource).not.toHaveBeenCalled();
+
+    const result = (await (
+      tools.record_observation.execute as unknown as (
+        input: unknown,
+        opts: unknown,
+      ) => Promise<{ id: string; readBack: { matched: boolean; diff: string } }>
+    )(
+      {
+        patientId: "p2",
+        label: "Heart rate",
+        value: 72,
+        unit: "bpm",
+        encounter: "enc-1",
+      },
+      {},
+    )) as { id: string; readBack: { matched: boolean; diff: string } };
+    const written = createResource.mock.calls.at(-1)?.[0] as {
+      code?: { coding?: { code?: string }[] };
+      encounter?: { reference?: string };
+    };
+    expect(written.code?.coding?.[0]?.code).toBe("8");
+    expect(written.code?.coding?.[1]?.code).toBe("8867-4");
+    expect(written.encounter?.reference).toBe("Encounter/enc-1");
+    expect(result.id).toBe("obs-epic");
+    expect(result.readBack.matched).toBe(true);
+    expect(result.readBack.diff).toContain("8716-3");
+    expect(tools.add_note.needsApproval).toBe(true);
+    await expect(
+      (
+        tools.add_note.execute as (input: unknown, opts: unknown) => Promise<unknown>
+      )({ patientId: "p2", text: "hello" }, {}),
+    ).rejects.toThrow(/Observation creates only/);
   });
 
   it("record_observation writes an Observation with the value and unit", async () => {

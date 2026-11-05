@@ -243,15 +243,17 @@ Add a note to Maria Garcia's chart that she reports feeling well with no complai
 
 The write prompts should stop at the approval card before anything is saved.
 
-## Experimental Epic and Oracle Health sandboxes
+## Epic and Oracle Health sandboxes
 
-`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` turns on two sandbox adapters that are
-not part of the supported matrix: `FHIR_BACKEND=oracle-health` (the public
-Oracle Health open sandbox, read-only, dry-run writes) and
-`FHIR_BACKEND=epic` (SMART Backend Services scaffold; needs a client id and
-private key you do not commit). Details, including what was checked against
-the live sandboxes and what was not, are in
-[adapters/epic-cerner.md](./adapters/epic-cerner.md).
+`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` turns on `FHIR_BACKEND=epic` and
+`FHIR_BACKEND=oracle-health`. With SMART Backend Services credentials an
+approved Observation is posted and read back. Without Oracle credentials
+the public open sandbox stays read-only and dry-run. The sandboxes do not
+support delete, so a posted write persists. Setup that fits in about ten
+minutes — register the app, generate a key, host a JWKS, set the env, approve
+one write — is in [adapters/epic-cerner.md](./adapters/epic-cerner.md).
+These are not part of the supported matrix and not a clinical or compliance
+claim.
 
 ## Other synthetic-evaluation backends
 

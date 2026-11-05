@@ -5,6 +5,7 @@ import type { FhirBackend } from "@/lib/fhir/backend";
 import {
   commitApprovedWrite,
   dryRunToolResult,
+  type ApprovedWriteCommit,
 } from "@/lib/fhir/dry-run-write";
 import {
   createChartReader,
@@ -16,6 +17,13 @@ import {
   OBSERVATION_REPLACES_EXTENSION,
   UCUM_SYSTEM,
 } from "@/lib/fhir/vitals";
+import {
+  applyVendorProfile,
+  vendorBlocksTool,
+  vendorWritePrompt,
+  type VendorWriteContext,
+} from "@/lib/fhir/vendor-profile";
+import type { Resource } from "@medplum/fhirtypes";
 import {
   evaluateWritePolicy,
   resolveDisabledWriteTools,
@@ -64,7 +72,7 @@ const DRY_RUN_WRITES_SECTION = `Dry-run writes: this server does not accept char
  */
 export function buildSystemPrompt(
   writeToolsDisabled: ReadonlySet<string> = new Set(),
-  options: { dryRunWrites?: boolean } = {},
+  options: { dryRunWrites?: boolean; vendorWrite?: VendorWriteContext | null } = {},
 ): string {
   const enabledWrites = (
     Object.keys(WRITE_TOOL_PROMPT_LINES) as WriteToolName[]
@@ -77,7 +85,10 @@ export function buildSystemPrompt(
           ...enabledWrites.map((name) => WRITE_TOOL_PROMPT_LINES[name]),
           writeSectionFooter(enabledWrites),
           ...(options.dryRunWrites ? [DRY_RUN_WRITES_SECTION] : []),
-        ].join("\n");
+          ...(options.vendorWrite
+            ? [vendorWritePrompt(options.vendorWrite) ?? ""]
+            : []),
+        ].filter((line) => line.length > 0).join("\n");
   return `You are an EHR assistant working over a FHIR backend.
 
 Reading the chart:
@@ -298,6 +309,40 @@ export function buildTools(
     }
   };
 
+  // Vendor profiles run before the POST so the body matches the card. A
+  // refusal throws: the SDK turns that into a tool error, not a saved row.
+  const shapeForVendor = <T extends Resource>(
+    resource: T,
+    hints: { encounter?: string; performer?: string } = {},
+  ): T =>
+    applyVendorProfile(backend.vendorProfile, resource, {
+      encounter: hints.encounter || process.env.LASTEHR_ENCOUNTER,
+      performer: hints.performer || process.env.LASTEHR_PERFORMER,
+    });
+
+  const refuseUnprovenVendorWrite = (): void => {
+    const blocked = vendorBlocksTool(backend.vendorProfile, "other");
+    if (blocked) throw new Error(blocked);
+  };
+
+  const finishWrite = <T extends Resource>(
+    committed: ApprovedWriteCommit<T>,
+    summary: string,
+    resourceType: string,
+    extra: Record<string, unknown> = {},
+  ) => {
+    if (!committed.persisted) {
+      return dryRunToolResult(committed, summary, extra);
+    }
+    return {
+      ...extra,
+      id: committed.resource.id,
+      resourceType: committed.resource.resourceType || resourceType,
+      summary,
+      ...(committed.readBack ? { readBack: committed.readBack } : {}),
+    };
+  };
+
   const tools = {
     search_patients: tool({
       description:
@@ -393,6 +438,7 @@ export function buildTools(
       // well-formed tool error.
       needsApproval: true,
       execute: async ({ patientId, text }) => {
+        refuseUnprovenVendorWrite();
         await guardWritePolicy({
           toolName: "add_note",
           resourceType: "Communication",
@@ -407,15 +453,10 @@ export function buildTools(
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
         };
         const committed = await commitApprovedWrite(backend, resource);
-        if (!committed.persisted) {
-          return dryRunToolResult(committed, text);
+        if (committed.persisted) {
+          await emitWriteProvenance("Communication", committed.resource.id);
         }
-        await emitWriteProvenance("Communication", committed.resource.id);
-        return {
-          id: committed.resource.id,
-          resourceType: "Communication",
-          summary: text,
-        };
+        return finishWrite(committed, text, "Communication");
       },
     }),
     record_observation: tool({
@@ -444,9 +485,25 @@ export function buildTools(
           .min(1)
           .max(20)
           .describe("The unit, e.g. 'mmHg', 'kg', 'bpm'."),
+        encounter: z
+          .string()
+          .min(1)
+          .max(160)
+          .optional()
+          .describe(
+            "Encounter id or Encounter/{id}. Required on the Epic sandbox. Omit when the deployment sets LASTEHR_ENCOUNTER.",
+          ),
+        performer: z
+          .string()
+          .min(1)
+          .max(160)
+          .optional()
+          .describe(
+            "Practitioner id or Practitioner/{id}. Required on the Oracle Health sandbox; filed as legal authenticator (LA).",
+          ),
       }),
       needsApproval: true,
-      execute: async ({ patientId, label, value, unit }) => {
+      execute: async ({ patientId, label, value, unit, encounter, performer }) => {
         await guardWritePolicy({
           toolName: "record_observation",
           resourceType: "Observation",
@@ -477,16 +534,12 @@ export function buildTools(
           },
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
         };
-        const committed = await commitApprovedWrite(backend, resource);
-        if (!committed.persisted) {
-          return dryRunToolResult(committed, summary);
+        const shaped = shapeForVendor(resource, { encounter, performer });
+        const committed = await commitApprovedWrite(backend, shaped);
+        if (committed.persisted) {
+          await emitWriteProvenance("Observation", committed.resource.id);
         }
-        await emitWriteProvenance("Observation", committed.resource.id);
-        return {
-          id: committed.resource.id,
-          resourceType: "Observation",
-          summary,
-        };
+        return finishWrite(committed, summary, "Observation");
       },
     }),
     record_superseding_observation: tool({
@@ -518,6 +571,7 @@ export function buildTools(
       }),
       needsApproval: true,
       execute: async ({ patientId, supersedes, value, unit }) => {
+        refuseUnprovenVendorWrite();
         await guardWritePolicy({
           toolName: "record_superseding_observation",
           resourceType: "Observation",
@@ -580,19 +634,19 @@ export function buildTools(
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
         };
         const committed = await commitApprovedWrite(backend, resource);
-        if (!committed.persisted) {
-          return dryRunToolResult(committed, summary, { supersedes });
+        if (committed.persisted) {
+          await emitWriteProvenance("Observation", committed.resource.id);
         }
-        await emitWriteProvenance("Observation", committed.resource.id);
-        return {
-          id: committed.resource.id,
-          resourceType: "Observation",
+        return finishWrite(committed, summary, "Observation", {
           supersedes,
-          summary,
           // The model paraphrases this, so the limit is stated here and not
-          // only on the card.
-          outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
-        };
+          // only on the card. A dry-run keeps its own outcome.
+          ...(committed.persisted
+            ? {
+                outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
+              }
+            : {}),
+        });
       },
     }),
     create_task: tool({
@@ -618,6 +672,7 @@ export function buildTools(
       }),
       needsApproval: true,
       execute: async ({ patientId, description, dueDate }) => {
+        refuseUnprovenVendorWrite();
         await guardWritePolicy({
           toolName: "create_task",
           resourceType: "Task",
@@ -637,15 +692,10 @@ export function buildTools(
           meta: { ...(demoTag ? { tag: demoTag } : {}), security: [AIAST_LABEL] },
         };
         const committed = await commitApprovedWrite(backend, resource);
-        if (!committed.persisted) {
-          return dryRunToolResult(committed, summary);
+        if (committed.persisted) {
+          await emitWriteProvenance("Task", committed.resource.id);
         }
-        await emitWriteProvenance("Task", committed.resource.id);
-        return {
-          id: committed.resource.id,
-          resourceType: "Task",
-          summary,
-        };
+        return finishWrite(committed, summary, "Task");
       },
     }),
   } satisfies ToolSet;

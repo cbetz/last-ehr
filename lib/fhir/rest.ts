@@ -35,6 +35,32 @@ const REQUEST_TIMEOUT_MS = 30_000;
  */
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 
+/** FHIR id, widened past 64 for Epic sandbox ids (the proven pulse id is 66). */
+const RESOURCE_ID = /^[A-Za-z0-9\-.]{1,128}$/;
+
+/**
+ * The id in a create Location header. Epic answers 201 with an empty body
+ * and puts the id here. Absolute and relative locations both work.
+ */
+export function resourceIdFromLocation(
+  location: string,
+  resourceType: string,
+): string | undefined {
+  const match = location
+    .trim()
+    .match(
+      new RegExp(`(?:^|/)${resourceType}/([A-Za-z0-9\\-.]{1,128})(?:$|[/?#])`),
+    );
+  const id = match?.[1];
+  return id && RESOURCE_ID.test(id) ? id : undefined;
+}
+
+function locationHeader(res: Response): string {
+  const headers = res.headers;
+  if (!headers || typeof headers.get !== "function") return "";
+  return headers.get("location") ?? "";
+}
+
 /**
  * Buffer a body under a hard ceiling. An unbounded read lets a server stream
  * until the process dies, and a `content-length` precheck does not help: a
@@ -89,7 +115,10 @@ export class FhirRestBackend implements FhirBackend {
     return headers;
   }
 
-  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+  private async request<T>(
+    path: string,
+    init?: RequestInit,
+  ): Promise<{ value: T; location: string }> {
     const res = await this.fetchFn(`${this.baseUrl}${path}`, {
       ...init,
       headers: await this.headers(init?.headers),
@@ -138,11 +167,12 @@ export class FhirRestBackend implements FhirBackend {
       });
     }
     // Deletes and some servers' creates answer 200/204 with an empty body.
-    if (!text) return undefined as T;
-    return JSON.parse(text) as T;
+    const location = locationHeader(res);
+    if (!text) return { value: undefined as T, location };
+    return { value: JSON.parse(text) as T, location };
   }
 
-  search<K extends ResourceType>(
+  async search<K extends ResourceType>(
     resourceType: K,
     params?: Record<string, string>,
   ): Promise<Bundle<ExtractResource<K>>> {
@@ -150,9 +180,10 @@ export class FhirRestBackend implements FhirBackend {
       params && Object.keys(params).length > 0
         ? `?${new URLSearchParams(params).toString()}`
         : "";
-    return this.request<Bundle<ExtractResource<K>>>(
+    const { value } = await this.request<Bundle<ExtractResource<K>>>(
       `/${resourceType}${query}`,
     );
+    return value;
   }
 
   async searchResources<K extends ResourceType>(
@@ -172,25 +203,46 @@ export class FhirRestBackend implements FhirBackend {
   async createResource<T extends Resource>(
     resource: T,
   ): Promise<T & { id: string }> {
-    const created = await this.request<T & { id: string }>(
+    const { value: created, location } = await this.request<T & { id: string }>(
       `/${resource.resourceType}`,
       {
         method: "POST",
         headers: {
           "content-type": "application/fhir+json",
           // Without this some servers answer 201 with an empty body; the tools
-          // need the server-assigned id back.
+          // need the server-assigned id back. Epic still returns an empty
+          // body and a Location header; that path is handled below.
           prefer: "return=representation",
         },
         body: JSON.stringify(resource),
       },
     );
     if (!created?.id) {
+      const id = resourceIdFromLocation(location, resource.resourceType);
+      // Empty body + Location is a successful create. Return the sent
+      // resource plus that id; read-back fetches what the server stored.
+      if (id) return { ...resource, id };
       throw new Error(
         "FHIR create response did not include a resource id; the adapter requires Prefer: return=representation support.",
       );
     }
     return created;
+  }
+
+  async readResource<K extends ResourceType>(
+    resourceType: K,
+    id: string,
+  ): Promise<ExtractResource<K>> {
+    if (!RESOURCE_ID.test(id)) {
+      throw new Error("FHIR read refused: the resource id is not a safe id.");
+    }
+    const { value: resource } = await this.request<ExtractResource<K>>(
+      `/${resourceType}/${encodeURIComponent(id)}`,
+    );
+    if (!resource || resource.resourceType !== resourceType) {
+      throw new Error("FHIR read did not return the requested resource.");
+    }
+    return resource;
   }
 
   async deleteResource(resourceType: ResourceType, id: string): Promise<void> {

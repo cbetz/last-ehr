@@ -8,6 +8,33 @@
 
 **Status: early / alpha.** Use synthetic data only. License: [Apache-2.0](./LICENSE).
 
+## Works with Epic and Oracle Health sandboxes
+
+Last EHR can be the approval gate in front of the Epic FHIR sandbox and the
+Oracle Health secure sandbox. The human sees the Observation those servers
+accepted (Epic flowsheet code plus encounter, Oracle legal-authenticator
+performer and an allowlisted vital), and the agent gets a read-back diff
+after the save. Synthetic sandbox patients only. This is not a clinical or
+compliance claim. The adapters stay behind
+`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` because those sandboxes do not
+support delete: an approved write persists, and the safety eval cannot
+clean up. Ten-minute setup is in
+[docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md).
+
+```bash
+export LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1
+export FHIR_BACKEND=epic
+export LASTEHR_CLIENT_ID='your-non-production-client-id'
+export LASTEHR_PRIVATE_KEY_PATH="$PWD/lastehr-sandbox.pem"
+export LASTEHR_KEY_ID='lastehr-epic-1'
+export LASTEHR_ENCOUNTER='Encounter/eMT95RPaM-HxLc3NeIA5qlQ3'
+```
+
+Then ask: `Record a heart rate of 72 bpm for patient erXuFYUfucBZaryVksYEcMg3`.
+The card shows flowsheet code `8` and LOINC `8867-4` before anything is
+saved. Oracle uses `FHIR_BACKEND=oracle-health`, `LASTEHR_SCOPES`, and an
+oral temperature (`8331-1`) with `LASTEHR_PERFORMER`.
+
 ## Start here
 
 The first step is the published package. It does not create an account.
@@ -181,10 +208,12 @@ Server** (`FHIR_BACKEND=firely`), **Aidbox** (`FHIR_BACKEND=aidbox`), and
 adapters: each passed both contract harnesses and the
 [FHIR Agent Safety Eval](./docs/evals.md) against a disposable synthetic
 target. Other FHIR R4 backends need an adapter before they are
-supported. An experimental, flag-gated spike for the public Epic sandbox and
-the Oracle Health open sandbox is documented in
-[docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md); it is not a
-supported path. See the full [support matrix](./docs/support.md) for the web,
+supported. Epic and Oracle Health sandbox adapters are flag-gated
+(`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`) and can post an approved
+Observation; they are not a supported path because those sandboxes do not
+support delete. See
+[docs/adapters/epic-cerner.md](./docs/adapters/epic-cerner.md) and the
+[support matrix](./docs/support.md) for the web,
 SMART, MCP, auth, and evaluation boundaries before choosing a path.
 
 Self-hosted demos can offer a **backend picker** (swap the EHR under the
@@ -199,7 +228,7 @@ the eligibility rules and `npm run check:backends` for preflight.
 
 ## How it works
 
-Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with five built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, Aidbox, and Oystehr for synthetic evaluation ([docs/support.md](./docs/support.md)). Epic and Oracle Health sandbox adapters exist behind `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS` and are not part of that supported set. The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
+Next.js 15 (App Router) + React 19. The agent lives in `app/api/chat/route.ts` (`streamText` + FHIR tools); the FHIR calls go through a small backend interface ([`lib/fhir/backend.ts`](./lib/fhir/backend.ts)) with five built-in adapters: Medplum (hosted or self-hosted, token-authenticated), plus local HAPI FHIR, Firely Server, Aidbox, and Oystehr for synthetic evaluation ([docs/support.md](./docs/support.md)). Epic and Oracle Health sandbox adapters are behind `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS` and are not part of that supported set. The interface is four methods plus contract notes, so an adapter for another headless EHR is a small, well-scoped contribution. See [docs/adapters.md](./docs/adapters.md) and the [roadmap](./ROADMAP.md).
 
 ```mermaid
 flowchart LR

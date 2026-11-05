@@ -1,0 +1,66 @@
+{
+  "id": "eQ36ru9st5pkcpWMMJBxjcxQNqRAVOaGy1aHFyggLA4VYxm5r2IvRWw96gM1SSwFs3",
+  "status": "final",
+  "category": [
+    {
+      "coding": [
+        {
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+          "code": "vital-signs",
+          "display": "Vital Signs"
+        }
+      ],
+      "text": "Vital Signs"
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.707679",
+        "code": "8",
+        "display": "Pulse"
+      },
+      {
+        "system": "http://open.epic.com/FHIR/StructureDefinition/observation-flowsheet-id",
+        "code": "t0nle2B9NVDaJJUDo0FtQrA0",
+        "display": "Pulse"
+      },
+      {
+        "system": "urn:oid:1.2.246.537.6.96",
+        "code": "8867-4"
+      },
+      {
+        "system": "http://loinc.org",
+        "code": "8716-3",
+        "display": "Vital signs"
+      },
+      {
+        "system": "http://loinc.org",
+        "code": "8867-4",
+        "display": "Heart rate"
+      }
+    ],
+    "text": "Pulse"
+  },
+  "subject": {
+    "reference": "Patient/erXuFYUfucBZaryVksYEcMg3",
+    "display": "Lopez, Camila Maria"
+  },
+  "encounter": {
+    "reference": "Encounter/eMT95RPaM-HxLc3NeIA5qlQ3",
+    "identifier": {
+      "use": "usual",
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.698084.8",
+      "value": "29544"
+    },
+    "display": "Office Visit"
+  },
+  "effectiveDateTime": "2026-11-04T23:53:58Z",
+  "valueQuantity": {
+    "value": 72,
+    "unit": "/min",
+    "system": "http://unitsofmeasure.org",
+    "code": "/min"
+  },
+  "resourceType": "Observation"
+}

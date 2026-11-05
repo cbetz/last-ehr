@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { DemoProviders } from "@/components/demo/demo-providers";
+import { publicVendorWriteContext } from "@/lib/fhir/vendor-profile";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata({
@@ -15,5 +16,9 @@ export const metadata: Metadata = pageMetadata({
 export default function DemoLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <DemoProviders>{children}</DemoProviders>;
+  return (
+    <DemoProviders vendorWrite={publicVendorWriteContext()}>
+      {children}
+    </DemoProviders>
+  );
 }

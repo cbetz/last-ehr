@@ -7,6 +7,16 @@ import type {
 
 import { stageDryRunWrite } from "./dry-run-write";
 import { FhirRestBackend } from "./rest";
+import {
+  assessSmartAuth,
+  oracleAuthError,
+  type SmartAuthEnv,
+} from "./smart-config";
+import {
+  createSmartBackendServicesTokenSource,
+  loadSmartPrivateKey,
+} from "./smart-backend";
+import { ORACLE_VENDOR_PROFILE, type VendorProfile } from "./vendor-profile";
 
 /**
  * Public open sandbox documented by Oracle Health. No Authorization header.
@@ -16,6 +26,16 @@ import { FhirRestBackend } from "./rest";
  */
 export const ORACLE_HEALTH_OPEN_SANDBOX_BASE_URL =
   "https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d";
+
+/**
+ * Secure sandbox used by the authenticated adapter. Override with
+ * LASTEHR_FHIR_BASE_URL / LASTEHR_TOKEN_URL for another tenant.
+ */
+export const ORACLE_HEALTH_SECURE_BASE_URL =
+  "https://fhir-ehr-code.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d";
+
+export const ORACLE_HEALTH_SECURE_TOKEN_URL =
+  "https://authorization.cerner.com/tenants/ec2458f2-1e24-41c8-b71b-0e701af7583d/hosts/fhir-ehr-code.cerner.com/protocols/oauth2/profiles/smart-v1/token";
 
 /**
  * The open sandbox rejects `_count` whenever `_id` is also set
@@ -33,29 +53,85 @@ export function adjustOracleHealthSearchParams(
 }
 
 export type OracleHealthBackendOptions = {
-  /** Defaults to the public open sandbox. */
+  /** Defaults to the public open sandbox when unauthenticated. */
   baseUrl?: string;
   fetch?: typeof globalThis.fetch;
+  /** Pre-minted bearer. Skips the private-key assertion. */
+  accessToken?: string;
+  /** SMART Backend Services token source. Presence selects the write path. */
+  getAccessToken?: () => Promise<string>;
+  tokenUrl?: string;
 };
 
 /**
- * Read-only adapter for the Oracle Health (Cerner) open sandbox.
- * `writeDisposition` is `dry-run`: the approval gate stages and diffs a
- * proposed resource instead of POSTing it. `createResource` and
- * `deleteResource` refuse locally so a caller that skips the gate still
- * cannot write.
+ * Oracle Health (Cerner) adapter.
  *
- * Registered as `FHIR_BACKEND=oracle-health` only when
- * `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`.
+ * Without a token this is the public open sandbox: reads only, and an
+ * approved write is staged as a dry-run. With SMART Backend Services
+ * credentials it POSTs to the secure sandbox. That sandbox does not
+ * support delete, so an approved write stays there. The vendor profile
+ * requires a legal-authenticator performer and an allowlisted vital code
+ * before the human approves.
  */
 export class OracleHealthBackend extends FhirRestBackend {
-  readonly writeDisposition = "dry-run" as const;
+  private readonly authed: boolean;
 
   constructor(options: OracleHealthBackendOptions = {}) {
+    const authed = Boolean(options.accessToken || options.getAccessToken);
     super({
-      baseUrl: options.baseUrl || ORACLE_HEALTH_OPEN_SANDBOX_BASE_URL,
+      baseUrl:
+        options.baseUrl ||
+        (authed
+          ? ORACLE_HEALTH_SECURE_BASE_URL
+          : ORACLE_HEALTH_OPEN_SANDBOX_BASE_URL),
       fetch: options.fetch,
+      getHeaders: authed
+        ? async () => ({
+            authorization: `Bearer ${
+              options.getAccessToken
+                ? await options.getAccessToken()
+                : options.accessToken
+            }`,
+          })
+        : undefined,
     });
+    this.authed = authed;
+  }
+
+  static fromEnv(env: SmartAuthEnv = process.env): OracleHealthBackend {
+    const auth = assessSmartAuth(env, "oracle");
+    if (auth.state === "partial") throw new Error(oracleAuthError(auth.detail));
+    if (auth.state === "absent") {
+      return new OracleHealthBackend({
+        baseUrl: env.ORACLE_HEALTH_BASE_URL || undefined,
+      });
+    }
+    if (auth.mode === "token") {
+      return new OracleHealthBackend({
+        accessToken: auth.accessToken,
+        baseUrl: auth.baseUrl,
+      });
+    }
+    const tokenUrl = auth.tokenUrl || ORACLE_HEALTH_SECURE_TOKEN_URL;
+    const pem = loadSmartPrivateKey(auth);
+    return new OracleHealthBackend({
+      baseUrl: auth.baseUrl,
+      getAccessToken: createSmartBackendServicesTokenSource({
+        clientId: auth.clientId,
+        privateKeyPem: pem,
+        keyId: auth.keyId,
+        scopes: auth.scopes,
+        tokenUrl,
+      }),
+    });
+  }
+
+  get writeDisposition(): "persist" | "dry-run" {
+    return this.authed ? "persist" : "dry-run";
+  }
+
+  get vendorProfile(): VendorProfile | undefined {
+    return this.authed ? ORACLE_VENDOR_PROFILE : undefined;
   }
 
   override search<K extends ResourceType>(
@@ -71,6 +147,7 @@ export class OracleHealthBackend extends FhirRestBackend {
   override async createResource<T extends Resource>(
     resource: T,
   ): Promise<T & { id: string }> {
+    if (this.authed) return super.createResource(resource);
     stageDryRunWrite(this, resource);
     throw Object.assign(
       new Error(
@@ -84,6 +161,12 @@ export class OracleHealthBackend extends FhirRestBackend {
     resourceType: ResourceType,
     id: string,
   ): Promise<void> {
+    if (this.authed) {
+      // The secure sandbox's CapabilityStatement does not list delete for
+      // Observation or Patient. The call still goes out so the server's
+      // answer is the error, and the docs say the write persists.
+      return super.deleteResource(resourceType, id);
+    }
     void resourceType;
     void id;
     throw Object.assign(

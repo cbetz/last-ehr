@@ -1,3 +1,4 @@
+import { exportPKCS8, generateKeyPair } from "jose";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { listStagedWrites } from "./dry-run-write";
@@ -77,5 +78,60 @@ describe("Oracle Health open-sandbox adapter", () => {
       backend.deleteResource("Observation", "obs-1"),
     ).rejects.toMatchObject({ code: "FHIR_READ_ONLY" });
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("posts application/fhir+json with a bearer when SMART auth is configured", async () => {
+    const { privateKey } = await generateKeyPair("RS384", { extractable: true });
+    const pem = await exportPKCS8(privateKey);
+    const { createSmartBackendServicesTokenSource } = await import("./smart-backend");
+    const calls: { url: string; init?: RequestInit }[] = [];
+    const fetch = vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({ url: String(url), init });
+      if (String(url).endsWith("/token")) {
+        return new Response(
+          JSON.stringify({ access_token: "oracle-token", expires_in: 3600 }),
+          { status: 200 },
+        );
+      }
+      return new Response(null, {
+        status: 201,
+        headers: { location: "https://fhir.example.test/r4/tenant/Observation/VS-209196396" },
+      });
+    });
+    const fetchFn = fetch as typeof globalThis.fetch;
+    const backend = new OracleHealthBackend({
+      baseUrl: "https://fhir.example.test/r4/tenant",
+      fetch: fetchFn,
+      getAccessToken: createSmartBackendServicesTokenSource({
+        clientId: "oracle-client",
+        privateKeyPem: pem,
+        keyId: "lastehr-oracle-1",
+        scopes: "system/Observation.read system/Observation.write",
+        tokenUrl: "https://auth.example.test/token",
+        fetch: fetchFn,
+      }),
+    });
+    const created = await backend.createResource({
+      resourceType: "Observation",
+      status: "final",
+      code: { text: "Temperature Oral" },
+    });
+    expect(created.id).toBe("VS-209196396");
+    expect(backend.writeDisposition).toBe("persist");
+    expect(backend.vendorProfile?.id).toBe("oracle");
+    const post = calls.find(
+      (call) => call.init?.method === "POST" && call.url.endsWith("/Observation"),
+    );
+    const headers = new Headers(post?.init?.headers);
+    expect(headers.get("content-type")).toBe("application/fhir+json");
+    expect(headers.get("accept")).toBe("application/fhir+json");
+    expect(headers.get("authorization")).toBe("Bearer oracle-token");
+    const tokenCall = calls.find((call) => call.url.endsWith("/token"));
+    const body = new URLSearchParams(String(tokenCall?.init?.body));
+    expect(body.get("scope")).toBe(
+      "system/Observation.read system/Observation.write",
+    );
+    expect(body.get("grant_type")).toBe("client_credentials");
+    expect(String(tokenCall?.init?.body)).not.toContain("BEGIN PRIVATE KEY");
   });
 });

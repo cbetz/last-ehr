@@ -1,0 +1,56 @@
+{
+ "resourceType": "Observation",
+ "status": "final",
+ "category": [
+  {
+   "coding": [
+    {
+     "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+     "code": "vital-signs"
+    }
+   ]
+  }
+ ],
+ "code": {
+  "coding": [
+   {
+    "system": "http://loinc.org",
+    "code": "8331-1"
+   }
+  ],
+  "text": "Temperature Oral"
+ },
+ "subject": {
+  "reference": "Patient/12724066"
+ },
+ "encounter": {
+  "reference": "Encounter/97954294"
+ },
+ "effectiveDateTime": "2026-11-04T23:53:58Z",
+ "valueQuantity": {
+  "value": 37.0,
+  "unit": "degC",
+  "system": "http://unitsofmeasure.org",
+  "code": "Cel"
+ },
+ "performer": [
+  {
+   "reference": "Practitioner/12724064",
+   "extension": [
+    {
+     "url": "http://hl7.org/fhir/StructureDefinition/event-performerFunction",
+     "valueCodeableConcept": {
+      "coding": [
+       {
+        "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType",
+        "code": "LA",
+        "display": "legal authenticator"
+       }
+      ],
+      "text": "legal authenticator"
+     }
+    }
+   ]
+  }
+ ]
+}

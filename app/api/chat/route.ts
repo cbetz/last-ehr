@@ -16,6 +16,7 @@ import {
 } from "@/lib/ai/chat-errors";
 import { parseDemoModels, resolveDemoModel } from "@/lib/ai/demo-models";
 import { buildSystemPrompt, buildTools } from "@/lib/ai/tools";
+import { publicVendorWriteContext } from "@/lib/fhir/vendor-profile";
 import {
   resolveDisabledWriteTools,
   WRITE_TOOL_NAMES,
@@ -180,6 +181,7 @@ export async function POST(req: Request) {
   }
   const system = buildSystemPrompt(disabledWriteTools, {
     dryRunWrites: backend.writeDisposition === "dry-run",
+    vendorWrite: publicVendorWriteContext(),
   });
   const writeToolsDisabled = [...disabledWriteTools];
 

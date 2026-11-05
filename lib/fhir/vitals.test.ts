@@ -105,7 +105,7 @@ describe("observation coding", () => {
     // so its vitals table is a copy. This is the drift guard: if either
     // side changes, the two bindings would code the same write differently.
     const labels = [
-      "Heart rate", "pulse", "Body temperature", "Body weight", "height",
+      "Heart rate", "pulse", "Body temperature", "oral temperature", "Body weight", "height",
       "Systolic blood pressure", "diastolic", "spo2", "BMI",
       "head circumference", "Peak expiratory flow", "",
     ];

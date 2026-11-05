@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { defineFhirRestAdapterContract } from "@/test/fhir-rest-adapter-contract";
 
-import { EpicBackend, EPIC_SANDBOX_TOKEN_URL } from "./epic";
+import { EpicBackend, EPIC_SANDBOX_TOKEN_URL, EPIC_SEARCH_SCOPE_MESSAGE } from "./epic";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -97,7 +97,82 @@ describe("EpicBackend SMART Backend Services scaffold", () => {
     });
 
     await expect(backend.search("Patient")).rejects.toThrow(
-      "Epic token request failed: HTTP 401",
+      "SMART token request failed: HTTP 401",
     );
+    await expect(backend.search("Patient")).rejects.not.toThrow(/nope|BEGIN PRIVATE KEY/);
+  });
+
+  it("does not describe a token HTTP 403 as a missing search scope", async () => {
+    const { privateKey } = await generateKeyPair("RS384", { extractable: true });
+    const pem = await exportPKCS8(privateKey);
+    const fetchFn = vi.fn(async () => new Response("nope", { status: 403 }));
+    const backend = new EpicBackend({
+      clientId: "non-prod-client",
+      privateKeyPem: pem,
+      fetch: fetchFn as typeof globalThis.fetch,
+    });
+    await expect(backend.search("Patient")).rejects.toThrow(
+      "SMART token request failed: HTTP 403",
+    );
+    await expect(backend.search("Patient")).rejects.not.toThrow(/search scope/);
+  });
+
+  it("reads the created id from an empty Epic body and a long Location", async () => {
+    const id =
+      "eQ36ru9st5pkcpWMMJBxjcxQNqRAVOaGy1aHFyggLA4VYxm5r2IvRWw96gM1SSwFs3";
+    expect(id).toHaveLength(66);
+    const fetchFn = vi.fn<typeof globalThis.fetch>(async () =>
+        new Response(null, {
+          status: 201,
+          headers: {
+            location: `https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/Observation/${id}`,
+          },
+        }),
+    );
+    const backend = new EpicBackend({
+      baseUrl: "https://fhir.example.test/R4",
+      accessToken: "epic-test-token",
+      fetch: fetchFn as typeof globalThis.fetch,
+    });
+    const created = await backend.createResource({
+      resourceType: "Observation",
+      status: "final",
+      code: { text: "Pulse" },
+    });
+    expect(created.id).toBe(id);
+    const headers = new Headers(fetchFn.mock.calls[0]?.[1]?.headers);
+    expect(headers.get("content-type")).toBe("application/fhir+json");
+    expect(headers.get("authorization")).toBe("Bearer epic-test-token");
+  });
+
+  it("turns a search 403 into a missing-search-scope error and still reads by id", async () => {
+    const fetchFn = vi.fn(async (url: RequestInfo | URL) => {
+      const path = String(url);
+      if (path.includes("/Observation/obs-1")) {
+        return new Response(
+          JSON.stringify({ resourceType: "Observation", id: "obs-1", status: "final" }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          resourceType: "OperationOutcome",
+          issue: [{ diagnostics: "forbidden secret detail" }],
+        }),
+        { status: 403 },
+      );
+    });
+    const backend = new EpicBackend({
+      baseUrl: "https://fhir.example.test/R4",
+      accessToken: "epic-test-token",
+      fetch: fetchFn as typeof globalThis.fetch,
+    });
+    await expect(backend.search("Patient", { name: "Lopez" })).rejects.toThrow(
+      EPIC_SEARCH_SCOPE_MESSAGE,
+    );
+    await expect(backend.search("Patient")).rejects.not.toThrow(/secret/);
+    await expect(backend.readResource("Observation", "obs-1")).resolves.toMatchObject({
+      id: "obs-1",
+    });
   });
 });

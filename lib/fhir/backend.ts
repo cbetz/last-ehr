@@ -13,6 +13,8 @@ import { OystehrBackend } from "./oystehr";
 import { EpicBackend } from "./epic";
 import { experimentalFhirAdaptersEnabled } from "./experimental";
 import { OracleHealthBackend } from "./oracle-health";
+import { assessSmartAuth } from "./smart-config";
+import type { VendorProfile } from "./vendor-profile";
 
 // The FHIR surface the agent tools require of a backend. Built-in
 // implementations are Medplum (./medplum.ts) and the local HAPI FHIR
@@ -52,6 +54,21 @@ export interface FhirBackend {
    * Omitted means the write is persisted with `createResource`.
    */
   readonly writeDisposition?: "persist" | "dry-run";
+  /**
+   * Direct read of a known id. Read-back after an approved write uses this
+   * so a server that returns an empty create body (Epic) can still be
+   * compared. Search is a different operation: Epic apps often have read
+   * without search.
+   */
+  readResource?<K extends ResourceType>(
+    resourceType: K,
+    id: string,
+  ): Promise<ExtractResource<K>>;
+  /**
+   * When set, write tools shape the resource with this profile before the
+   * human approves and again at commit.
+   */
+  readonly vendorProfile?: VendorProfile;
 }
 
 /**
@@ -92,16 +109,16 @@ export function hasFhirBackendConfig(name: string): boolean {
       return Boolean(
         process.env.OYSTEHR_CLIENT_ID && process.env.OYSTEHR_CLIENT_SECRET,
       );
-    case "oracle-health":
-      // The open sandbox URL is built in. The flag is the whole gate.
-      return experimentalFhirAdaptersEnabled();
+    case "oracle-health": {
+      // The open sandbox needs only the flag. A half-set SMART config is
+      // not that sandbox and must not look ready.
+      if (!experimentalFhirAdaptersEnabled()) return false;
+      return assessSmartAuth(process.env, "oracle").state !== "partial";
+    }
     case "epic":
       return (
         experimentalFhirAdaptersEnabled() &&
-        Boolean(
-          process.env.EPIC_ACCESS_TOKEN ||
-            (process.env.EPIC_CLIENT_ID && process.env.EPIC_PRIVATE_KEY),
-        )
+        assessSmartAuth(process.env, "epic").state === "ready"
       );
     default:
       return false;
@@ -183,30 +200,12 @@ export function createFhirBackend(
     }
   }
   if (backend === "oracle-health") {
-    // No shared FHIR_BASE_URL fallback: that variable belongs to whichever
-    // backend the deployment already points at.
-    return new OracleHealthBackend({
-      baseUrl: process.env.ORACLE_HEALTH_BASE_URL || undefined,
-    });
+    // No shared FHIR_BASE_URL fallback onto another backend's server.
+    // LASTEHR_FHIR_BASE_URL is read inside the adapter when SMART auth is set.
+    return OracleHealthBackend.fromEnv(process.env);
   }
   if (backend === "epic") {
-    const accessToken = process.env.EPIC_ACCESS_TOKEN || undefined;
-    const clientId = process.env.EPIC_CLIENT_ID || undefined;
-    const privateKeyPem = process.env.EPIC_PRIVATE_KEY || undefined;
-    if (!accessToken && !(clientId && privateKeyPem)) {
-      throw new Error(
-        "FHIR_BACKEND=epic requires EPIC_ACCESS_TOKEN, or EPIC_CLIENT_ID and EPIC_PRIVATE_KEY (PKCS#8 PEM for SMART Backend Services). No secret is built in. See docs/adapters/epic-cerner.md.",
-      );
-    }
-    return new EpicBackend({
-      accessToken,
-      clientId,
-      privateKeyPem,
-      privateKeyId: process.env.EPIC_PRIVATE_KEY_ID || undefined,
-      scopes: process.env.EPIC_SCOPES || undefined,
-      baseUrl: process.env.EPIC_BASE_URL || undefined,
-      tokenUrl: process.env.EPIC_TOKEN_URL || undefined,
-    });
+    return EpicBackend.fromEnv(process.env);
   }
   if (backend !== "medplum") {
     throw new Error(
