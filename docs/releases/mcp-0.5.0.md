@@ -1,9 +1,8 @@
 # Last EHR MCP 0.5.0: approval-gated writes on the Epic and Oracle Health sandboxes
 
-This is a draft. Merging the version bump does not publish the package,
-cut a tag, or open a GitHub release. npm `latest` stays on the last
-published version until the [release process](../releasing-mcp.md) runs
-on purpose.
+Published November 5, 2026 as `@lastehr/mcp@0.5.0`. Git tag
+[`mcp-v0.5.0`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.0).
+npm `latest` is `@lastehr/mcp@0.5.1`.
 
 Headline: an MCP client can propose an Observation, a person approves the
 exact body the sandbox will accept, and the agent gets a read-back diff of

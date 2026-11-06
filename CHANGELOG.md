@@ -3,13 +3,12 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## 0.5.1 — prepared, not published
+## 0.5.1 — 2026-11-05
 
-`@lastehr/mcp` `0.5.1` corrects the sandbox write bodies from the `0.5.0`
-live run ([#219](https://github.com/cbetz/last-ehr/pull/219)). This version
-bump is not on npm, and there is no git tag. Publication stays on the
-[release process](./docs/releasing-mcp.md). Draft notes:
-[docs/releases/mcp-0.5.1.md](./docs/releases/mcp-0.5.1.md).
+`@lastehr/mcp` `0.5.1` is npm `latest`. It corrects the sandbox write bodies
+from the `0.5.0` live run ([#219](https://github.com/cbetz/last-ehr/pull/219)).
+Git tag [`mcp-v0.5.1`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.1).
+Notes: [docs/releases/mcp-0.5.1.md](./docs/releases/mcp-0.5.1.md).
 
 - Epic posts `valueQuantity.unit` as the UCUM code. A heart rate typed as
   `bpm` is sent as `/min`. The Epic sandbox write was re-verified live.
@@ -24,12 +23,13 @@ bump is not on npm, and there is no git tag. Publication stays on the
   returning HTTP 500s.
 - Not a clinical, regulatory, or compliance claim.
 
-## 0.5.0 — prepared, not published
+## 0.5.0 — 2026-11-05
 
-`@lastehr/mcp` can drive the Epic and Oracle Health sandboxes. This version
-bump is the release candidate. It is not on npm, and there is no git tag.
-Publication stays on the [release process](./docs/releasing-mcp.md). Draft
-notes: [docs/releases/mcp-0.5.0.md](./docs/releases/mcp-0.5.0.md).
+`@lastehr/mcp` `0.5.0` can drive the Epic and Oracle Health sandboxes. It is
+on npm. Git tag
+[`mcp-v0.5.0`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.0).
+npm `latest` is `0.5.1`. Notes:
+[docs/releases/mcp-0.5.0.md](./docs/releases/mcp-0.5.0.md).
 
 - `LASTEHR_BACKEND=epic|oracle|smart` selects a SMART Backend Services
   client (`private_key_jwt`, RS384). `npx @lastehr/mcp init --backend epic|oracle`
@@ -54,7 +54,7 @@ notes: [docs/releases/mcp-0.5.0.md](./docs/releases/mcp-0.5.0.md).
   `@lastehr/mcp` `0.5.1` in that tree. The earlier public file was the
   October 23 take from `f36d05d` / `0.4.0`. This is a persistence walkthrough
   on synthetic HAPI data. It is not a clinical, regulatory, or compliance
-  claim, and `0.5.1` is not an npm publication.
+  claim.
 - Epic and Oracle Health sandbox adapters, still off unless
   `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`. SMART Backend Services
   (`client_credentials`, `private_key_jwt`, RS384) is configured with
