@@ -1,8 +1,13 @@
 # Synthetic browser approval recording — October 23, 2026
 
-[90-second MP4](https://www.lastehr.com/demo/approve-and-decline.mp4)
-· [projected FHIR proof](./demo-approval-2026-10-23.json)
-· [transcript](../quickstart.md#recorded-approval-and-cancellation)
+The public `/demo/approve-and-decline.*` files were replaced on November 6,
+2026. This note describes the October 23 take only. The replacement is
+[demo-approval-2026-11-06.md](./demo-approval-2026-11-06.md). The projected
+report beside this note is the October 23 snapshot; it is not the proof now
+served next to the video.
+
+[Projected FHIR proof for this take](./demo-approval-2026-10-23.json)
+· [current transcript](../quickstart.md#recorded-approval-and-cancellation)
 
 The app ran from a clean, detached checkout of
 `f36d05dde21c6e1c6847f2660a966afd2615c646` (`mcp-v0.4.0`). A separate, disposable

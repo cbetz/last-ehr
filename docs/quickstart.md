@@ -19,11 +19,12 @@ approval card.
 or [view it on the homepage](https://www.lastehr.com/#walkthrough).
 
 This is an edited, sampled screen recording of the fixed local synthetic
-walkthrough, captured October 23, 2026, from clean source
-[`f36d05d`](https://github.com/cbetz/last-ehr/tree/f36d05dde21c6e1c6847f2660a966afd2615c646)
-(MCP package version `0.4.0`). No external model is called. The browser frames
-are actual app captures; the adjoining pane shows separate paginated GET
-snapshots from its disposable local HAPI FHIR store.
+walkthrough, captured November 6, 2026, from clean source
+[`fb24732`](https://github.com/cbetz/last-ehr/tree/fb2473246c5900ec8e714358dacb36a3167d4602)
+(`@lastehr/mcp` `0.5.1` in that tree; not an npm publication). No external
+model is called. The browser frames are actual app captures; the adjoining
+pane shows separate paginated GET snapshots from its disposable local HAPI
+FHIR store.
 
 | Time | Transcript |
 | --- | --- |
@@ -39,13 +40,13 @@ snapshots from its disposable local HAPI FHIR store.
 
 [FHIR proof JSON](https://www.lastehr.com/demo/approve-and-decline.proof.json)
 · [English captions](https://www.lastehr.com/demo/approve-and-decline.vtt)
-· [Capture method and limits](https://github.com/cbetz/last-ehr/blob/main/docs/evidence/demo-approval-2026-10-23.md).
+· [Capture method and limits](https://github.com/cbetz/last-ehr/blob/main/docs/evidence/demo-approval-2026-11-06.md).
 The baseline was read before submitting the first proposal and rechecked
 while its card was waiting. Both snapshots contained the same seven IDs.
 The video uses edited timing and holds captured frames for readability.
 
 To reproduce the recorded app version, use a clean directory and the
-prerequisites below, check out `f36d05dde21c6e1c6847f2660a966afd2615c646`, then run
+prerequisites below, check out `fb2473246c5900ec8e714358dacb36a3167d4602`, then run
 `npm ci` and `npm run demo:local`. Approve once, repeat and cancel, and compare
 all paginated Observation IDs directly in your local FHIR store. Resource IDs
 will differ between seeded stacks.
