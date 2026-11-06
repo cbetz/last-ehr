@@ -1,9 +1,12 @@
 # Last EHR MCP 0.5.1: sandbox write bodies the servers accepted
 
-This is a draft. Merging the version bump does not publish the package,
-cut a tag, or open a GitHub release. npm `latest` stays on the last
-published version until the [release process](../releasing-mcp.md) runs
-on purpose. `0.5.0` was prepared in this checkout and was not published.
+Published November 5, 2026. npm `latest` is `@lastehr/mcp@0.5.1`. The
+Official MCP Registry record for `io.github.cbetz/last-ehr` marks `0.5.1`
+`isLatest`. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.1)
+is tag `mcp-v0.5.1` at
+`fb2473246c5900ec8e714358dacb36a3167d4602`. `0.5.0` is also on npm, with
+tag [`mcp-v0.5.0`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.0);
+it is not `latest`.
 
 This patch is the fixes from
 [PR #219](https://github.com/cbetz/last-ehr/pull/219). A live run of

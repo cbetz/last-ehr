@@ -32,7 +32,7 @@ sandboxes do not support delete, so an approved Observation persists. They
 are not a supported production configuration and not a clinical or
 compliance claim. Setup is in
 [Epic and Oracle Health sandboxes](./adapters/epic-cerner.md) and the
-[0.5.1 draft notes](./releases/mcp-0.5.1.md). The separate checkout-only
+[0.5.1 notes](./releases/mcp-0.5.1.md). The separate checkout-only
 Local Lab below exposes just two read tools against four synthetic patients.
 See the [support matrix](./support.md).
 
@@ -110,19 +110,17 @@ to stdout. Keep the local stack running while the client is connected; use
 
 ## Install and connect
 
-This guide follows the repository's `0.5.1` MCP code, which is prepared and
-not yet published. npm releases are
-published separately. Check the version you installed with
-`npx -y @lastehr/mcp --version`; older releases do not include HTTP transport
-or `doctor --connect`. If a matching release is not yet available on npm,
-use the [checkout instructions](#from-a-checkout). The
-[release process](./releasing-mcp.md) verifies a clean installation before
-publication.
+npm `latest` is `@lastehr/mcp@0.5.1`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks that version `isLatest`. This guide
+describes that release. Confirm it with
+`npx -y @lastehr/mcp@0.5.1 --version`. Older releases do not include HTTP
+transport or `doctor --connect`.
 
 The commands below generate a local stdio configuration. They do not install
 the server into your client or configure remote OAuth automatically.
 Since `0.4.1`, `init` pins the generated package command to its own version,
-so invoking a specific release produces a configuration for that release.
+so these `0.5.1` commands produce a configuration that starts
+`@lastehr/mcp@0.5.1`.
 
 ### Claude Code
 
@@ -130,7 +128,7 @@ Configure a least-privilege Medplum credential using [Auth](#auth), then print
 the registration command:
 
 ```bash
-npx -y @lastehr/mcp init --client claude-code
+npx -y @lastehr/mcp@0.5.1 init --client claude-code
 ```
 
 Run the generated `claude mcp add` command, then launch Claude Code from an
@@ -145,13 +143,13 @@ covers registration, credential configuration, and installation scope.
 Print the Cursor configuration:
 
 ```bash
-npx -y @lastehr/mcp init --client cursor
+npx -y @lastehr/mcp@0.5.1 init --client cursor
 ```
 
 The default command prints the same JSON:
 
 ```bash
-npx -y @lastehr/mcp init
+npx -y @lastehr/mcp@0.5.1 init
 ```
 
 Replace the placeholder with a least-privilege Medplum token, then add the
@@ -168,7 +166,7 @@ for its configuration fields and locations.
     "lastehr": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@lastehr/mcp"],
+      "args": ["-y", "@lastehr/mcp@0.5.1"],
       "env": {
         "MEDPLUM_ACCESS_TOKEN": "<replace-with-a-least-privilege-token>"
       }
@@ -177,7 +175,7 @@ for its configuration fields and locations.
 }
 ```
 
-Start the server directly with `npx -y @lastehr/mcp` when you want to inspect a
+Start the server directly with `npx -y @lastehr/mcp@0.5.1` when you want to inspect a
 stdio connection yourself. These setup commands do not establish write
 compatibility: the optional write profile checks the connected client's
 elicitation capability at runtime.
@@ -204,14 +202,15 @@ Set `MEDPLUM_BASE_URL` for self-hosted Medplum.
 `doctor` validates configuration without making a network request:
 
 ```bash
-npx -y @lastehr/mcp doctor
+npx -y @lastehr/mcp@0.5.1 doctor
 ```
 
-In the `0.4.0` code, add `--connect` to check FHIR R4 metadata and make a
-count-only Patient search with your configured stdio credentials:
+Add `--connect` to check FHIR R4 metadata and make a count-only Patient
+search with your configured stdio credentials. That check has been in the
+package since `0.4.0`:
 
 ```bash
-npx -y @lastehr/mcp doctor --connect
+npx -y @lastehr/mcp@0.5.1 doctor --connect
 ```
 
 The check makes no chart write and prints no patient data or counts. A
@@ -389,7 +388,7 @@ LASTEHR_MCP_OAUTH_JWKS_URI=https://auth.example.org/.well-known/jwks.json
 LASTEHR_MCP_REQUIRED_SCOPES=chart.read
 LASTEHR_MCP_EXCHANGE_CLIENT_ID=<ClientApplication id with the identity provider>
 LASTEHR_MCP_TOKEN_ENDPOINT=https://api.medplum.com/oauth2/token
-npx -y @lastehr/mcp
+npx -y @lastehr/mcp@0.5.1
 ```
 
 The metadata document is served unauthenticated at
