@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "commit": "fb2473246c5900ec8e714358dacb36a3167d4602",
+    "provenance": {
+      "head": "fb2473246c5900ec8e714358dacb36a3167d4602",
+      "trackedClean": true,
+      "untrackedClean": true,
+      "verifiedAt": "2026-11-06T01:27:28.014Z"
+    }
+  },
+  "fhirBaseUrl": "http://127.0.0.1:8080/fhir",
+  "syntheticPatient": {
+    "id": "1059",
+    "identifierSystem": "https://lastehr.com/synthetic",
+    "identifierValue": "synthetic-004"
+  },
+  "startedAt": "2026-11-06T01:27:23.337Z",
+  "updatedAt": "2026-11-06T01:27:28.009Z",
+  "status": "passed",
+  "snapshots": {
+    "baseline": {
+      "phase": "baseline",
+      "capturedAt": "2026-11-06T01:27:23.337Z",
+      "sourceVerifiedAt": "2026-11-06T01:27:23.342Z",
+      "status": "pass",
+      "query": "GET /fhir/Observation?patient=1059&_count=1&_total=accurate",
+      "patientPageCount": 1,
+      "observationPageCount": 7,
+      "patientExactTotal": 1,
+      "observationExactTotal": 7,
+      "observationCount": 7,
+      "observationIds": [
+        "1068",
+        "1069",
+        "1070",
+        "1071",
+        "1072",
+        "1073",
+        "1074"
+      ],
+      "comparedWith": null,
+      "addedIds": [],
+      "removedIds": [],
+      "approvedObservation": null
+    },
+    "pending": {
+      "phase": "pending",
+      "capturedAt": "2026-11-06T01:27:25.051Z",
+      "sourceVerifiedAt": "2026-11-06T01:27:25.056Z",
+      "status": "pass",
+      "query": "GET /fhir/Observation?patient=1059&_count=1&_total=accurate",
+      "patientPageCount": 1,
+      "observationPageCount": 7,
+      "patientExactTotal": 1,
+      "observationExactTotal": 7,
+      "observationCount": 7,
+      "observationIds": [
+        "1068",
+        "1069",
+        "1070",
+        "1071",
+        "1072",
+        "1073",
+        "1074"
+      ],
+      "comparedWith": "baseline",
+      "addedIds": [],
+      "removedIds": [],
+      "approvedObservation": null
+    },
+    "approved": {
+      "phase": "approved",
+      "capturedAt": "2026-11-06T01:27:26.410Z",
+      "sourceVerifiedAt": "2026-11-06T01:27:26.416Z",
+      "status": "pass",
+      "query": "GET /fhir/Observation?patient=1059&_count=1&_total=accurate",
+      "patientPageCount": 1,
+      "observationPageCount": 8,
+      "patientExactTotal": 1,
+      "observationExactTotal": 8,
+      "observationCount": 8,
+      "observationIds": [
+        "1068",
+        "1069",
+        "1070",
+        "1071",
+        "1072",
+        "1073",
+        "1074",
+        "1076"
+      ],
+      "comparedWith": "baseline",
+      "addedIds": [
+        "1076"
+      ],
+      "removedIds": [],
+      "approvedObservation": {
+        "resourceType": "Observation",
+        "id": "1076",
+        "status": "final",
+        "subject": {
+          "reference": "Patient/1059"
+        },
+        "valueQuantity": {
+          "value": 72,
+          "unit": "bpm",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8867-4"
+            }
+          ]
+        },
+        "meta": {
+          "security": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+              "code": "AIAST"
+            }
+          ]
+        }
+      }
+    },
+    "second_pending": {
+      "phase": "second_pending",
+      "capturedAt": "2026-11-06T01:27:27.095Z",
+      "sourceVerifiedAt": "2026-11-06T01:27:27.100Z",
+      "status": "pass",
+      "query": "GET /fhir/Observation?patient=1059&_count=1&_total=accurate",
+      "patientPageCount": 1,
+      "observationPageCount": 8,
+      "patientExactTotal": 1,
+      "observationExactTotal": 8,
+      "observationCount": 8,
+      "observationIds": [
+        "1068",
+        "1069",
+        "1070",
+        "1071",
+        "1072",
+        "1073",
+        "1074",
+        "1076"
+      ],
+      "comparedWith": "approved",
+      "addedIds": [],
+      "removedIds": [],
+      "approvedObservation": {
+        "resourceType": "Observation",
+        "id": "1076",
+        "status": "final",
+        "subject": {
+          "reference": "Patient/1059"
+        },
+        "valueQuantity": {
+          "value": 72,
+          "unit": "bpm",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8867-4"
+            }
+          ]
+        },
+        "meta": {
+          "security": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+              "code": "AIAST"
+            }
+          ]
+        }
+      }
+    },
+    "canceled": {
+      "phase": "canceled",
+      "capturedAt": "2026-11-06T01:27:28.009Z",
+      "sourceVerifiedAt": "2026-11-06T01:27:28.014Z",
+      "status": "pass",
+      "query": "GET /fhir/Observation?patient=1059&_count=1&_total=accurate",
+      "patientPageCount": 1,
+      "observationPageCount": 8,
+      "patientExactTotal": 1,
+      "observationExactTotal": 8,
+      "observationCount": 8,
+      "observationIds": [
+        "1068",
+        "1069",
+        "1070",
+        "1071",
+        "1072",
+        "1073",
+        "1074",
+        "1076"
+      ],
+      "comparedWith": "approved",
+      "addedIds": [],
+      "removedIds": [],
+      "approvedObservation": {
+        "resourceType": "Observation",
+        "id": "1076",
+        "status": "final",
+        "subject": {
+          "reference": "Patient/1059"
+        },
+        "valueQuantity": {
+          "value": 72,
+          "unit": "bpm",
+          "system": "http://unitsofmeasure.org",
+          "code": "/min"
+        },
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "8867-4"
+            }
+          ]
+        },
+        "meta": {
+          "security": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v3-ObservationValue",
+              "code": "AIAST"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

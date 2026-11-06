@@ -7,9 +7,12 @@ from the application workspace.
 
 Use the [local quickstart](../../docs/quickstart.md) in a clean capture checkout.
 Keep HAPI synthetic-only. Record native 1280 × 900 PNG/JPEG frames while
-following the actual browser workflow. The October 23 recording uses clean
-`f36d05dde21c6e1c6847f2660a966afd2615c646` / MCP `0.4.0`, independently of the
-later onboarding patch. See its [capture notes](../../docs/evidence/demo-approval-2026-10-23.md).
+following the actual browser workflow. The public recording uses clean
+`fb2473246c5900ec8e714358dacb36a3167d4602` / MCP `0.5.1` (the package version
+in that tree, not an npm publication). See its
+[capture notes](../../docs/evidence/demo-approval-2026-11-06.md). The October
+23 recording from `f36d05dde21c6e1c6847f2660a966afd2615c646` / MCP `0.4.0`
+remains historical evidence.
 
 From the renderer repository root:
 

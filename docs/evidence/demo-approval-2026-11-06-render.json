@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "width": 1920,
+  "height": 1080,
+  "fps": 5,
+  "durationSeconds": 90,
+  "source": {
+    "commit": "fb2473246c5900ec8e714358dacb36a3167d4602",
+    "packageVersion": "0.5.1",
+    "reportUrl": "https://www.lastehr.com/demo/approve-and-decline.proof.json"
+  },
+  "edited": true,
+  "sampledCapture": true,
+  "noExternalModelCall": true,
+  "proofStatus": "passed",
+  "manifestSha256": "8cd504b328ad42fb4e5d8b792962838d59b0276f5c7282538b37b2e4db411dec",
+  "proofSha256": "c0f0c3828cdcd6128bbebdb0116dfe0532a71208293c8c70b0a475f0036ba316",
+  "video": {
+    "file": "walkthrough.mp4",
+    "bytes": 1595172,
+    "sha256": "c847e84100704e99a02aa413705e341c51d7f557451427dcbbb45b033801cfd6"
+  },
+  "capturedFrames": [
+    {
+      "sha256": "485734cd6371b22bc5ec436e8fed7227583ed20abe42b80ff17ffd3b9bf728c0",
+      "size": 97673,
+      "format": "png"
+    },
+    {
+      "sha256": "52eec64e738e098ebe42cbf6a97f3e37cabbbe7bd25bb8bee312a44a8b3c9033",
+      "size": 92133,
+      "format": "png"
+    },
+    {
+      "sha256": "e44bc323b6851d284ec205f7bbeebb3b684efbbe3985215c02a6ab95652b84e9",
+      "size": 61542,
+      "format": "png"
+    },
+    {
+      "sha256": "1efc871b7833cd5f4ba96a83faf60f9730b8866a12e26a756431ddf2009bd49f",
+      "size": 89760,
+      "format": "png"
+    },
+    {
+      "sha256": "96e94a553464a84d4da38183c1b0364f82c4713ee18ad7f8805ca85d0fe318b3",
+      "size": 84155,
+      "format": "png"
+    },
+    {
+      "sha256": "2a9536fac70be6fd8a93a8ab5e27bdbbfcb012981a5ecdac8ed9d3a8ae77237c",
+      "size": 85200,
+      "format": "png"
+    },
+    {
+      "sha256": "a463da603438b373ed6fdb80eac97c7002e035dd414bb17b507e27b50738e985",
+      "size": 73173,
+      "format": "png"
+    },
+    {
+      "sha256": "7a61980f4db4d491978246e270bb0d6f24cc0ce33376fe22fc333f2b306e8d07",
+      "size": 74850,
+      "format": "png"
+    },
+    {
+      "sha256": "9aef860823a3fb4d974b78e2a3698033ad18ecc2b5c8c102693a1910e06a6e6c",
+      "size": 73300,
+      "format": "png"
+    }
+  ],
+  "posterFrame": 200
+}

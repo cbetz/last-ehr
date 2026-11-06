@@ -49,6 +49,12 @@ notes: [docs/releases/mcp-0.5.0.md](./docs/releases/mcp-0.5.0.md).
 
 ## Unreleased
 
+- The public 90-second synthetic approval recording, poster, captions, and
+  FHIR proof were re-recorded from clean source `fb2473246c59` /
+  `@lastehr/mcp` `0.5.1` in that tree. The earlier public file was the
+  October 23 take from `f36d05d` / `0.4.0`. This is a persistence walkthrough
+  on synthetic HAPI data. It is not a clinical, regulatory, or compliance
+  claim, and `0.5.1` is not an npm publication.
 - Epic and Oracle Health sandbox adapters, still off unless
   `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`. SMART Backend Services
   (`client_credentials`, `private_key_jwt`, RS384) is configured with
@@ -74,8 +80,9 @@ notes: [docs/releases/mcp-0.5.0.md](./docs/releases/mcp-0.5.0.md).
   exclude SMART and scripted sessions.
 - The homepage and quickstart include a 90-second synthetic browser recording
   with captions and independent paginated FHIR proof: one approved
-  Observation and no additional Observation after cancellation. The recording
-  remains pinned to clean source `f36d05d` / MCP `0.4.0`.
+  Observation and no additional Observation after cancellation. At this
+  release the recording was pinned to clean source `f36d05d` / MCP `0.4.0`.
+  A later public recording replaced that file; see Unreleased.
 
 Package publication remains separate from merging; use the
 [release process](./docs/releasing-mcp.md) and public artifact checks.
