@@ -63,23 +63,26 @@ export default function Navbar() {
           ))}
         </div>
 
-        <div className="hidden items-center gap-1 lg:flex">
+        <div className="hidden items-center gap-2 lg:flex">
+          <ModeToggle />
           <Link
             href="https://github.com/cbetz/last-ehr"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-9 items-center gap-2 px-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className={buttonVariants({
+              variant: "outline",
+              size: "sm",
+              className: "rounded-sm px-3",
+            })}
           >
-            <IconGitHub className="h-4 w-4" aria-hidden="true" />
-            GitHub
+            <IconGitHub className="mr-2 h-4 w-4" aria-hidden="true" />
+            Star on GitHub
           </Link>
-          <ModeToggle />
           <Link
             href="/demo"
             className={buttonVariants({
               size: "sm",
-              className:
-                "ml-2 rounded-sm px-4",
+              className: "rounded-sm px-4",
             })}
           >
             Try the demo
@@ -126,15 +129,18 @@ export default function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setIsOpen(false)}
-                  className="mt-3 inline-flex items-center gap-2 px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "mt-4 rounded-sm",
+                  })}
                 >
-                  <IconGitHub className="h-4 w-4" aria-hidden="true" />
-                  View source on GitHub
+                  <IconGitHub className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Star on GitHub
                 </Link>
                 <Link
                   href="/demo"
                   onClick={() => setIsOpen(false)}
-                  className={buttonVariants({ className: "mt-4 rounded-sm" })}
+                  className={buttonVariants({ className: "mt-3 rounded-sm" })}
                 >
                   Try the demo
                 </Link>

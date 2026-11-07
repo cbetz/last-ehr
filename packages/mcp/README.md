@@ -1,5 +1,11 @@
 # @lastehr/mcp
 
+Open-source MCP server for FHIR charts. Read tools are on by default; every write waits for a person to approve it.
+
+[![90-second synthetic walkthrough: approve one write, then decline the next](https://www.lastehr.com/demo/approve-and-decline.jpg)](https://www.lastehr.com/demo/approve-and-decline.mp4)
+
+**[Star this project on GitHub](https://github.com/cbetz/last-ehr)** — the source, issues, and the recording above.
+
 FHIR chart tools for MCP clients, over a Medplum project, the Last EHR
 repository's local HAPI evaluation stack (`FHIR_BACKEND=hapi`, synthetic
 data only), or — with `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` — the Epic and
@@ -20,27 +26,29 @@ alongside each verified npm release.
 
 ## Install
 
+These commands install the published `@lastehr/mcp@0.5.1` release.
+
 ```bash
-npx -y @lastehr/mcp init
+npx -y @lastehr/mcp@0.5.1 init
 ```
 
 The command prints a portable MCP configuration. For Claude Code, print the
 registration command instead:
 
 ```bash
-npx -y @lastehr/mcp init --client claude-code
+npx -y @lastehr/mcp@0.5.1 init --client claude-code
 ```
 
 Start the stdio server with:
 
 ```bash
-npx -y @lastehr/mcp
+npx -y @lastehr/mcp@0.5.1
 ```
 
 Check the installed package version without configuring a backend:
 
 ```bash
-npx -y @lastehr/mcp --version
+npx -y @lastehr/mcp@0.5.1 --version
 ```
 
 ## Configuration
@@ -61,7 +69,7 @@ MEDPLUM_CLIENT_SECRET=...
 Set `MEDPLUM_BASE_URL` for a self-hosted Medplum deployment. For the
 repository's local no-auth HAPI stack, set `FHIR_BACKEND=hapi` and
 `FHIR_BASE_URL` (or `HAPI_BASE_URL`) instead — local, synthetic data only.
-Run `npx -y @lastehr/mcp doctor` to validate configuration without starting
+Run `npx -y @lastehr/mcp@0.5.1 doctor` to validate configuration without starting
 MCP.
 
 In `0.4.0`, `doctor --connect` also checks FHIR R4 metadata and a count-only

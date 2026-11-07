@@ -1,18 +1,26 @@
 import Link from "next/link";
-import { ArrowRight, CircleDotDashed } from "lucide-react";
+import { ArrowRight, CircleDotDashed, Star } from "lucide-react";
+
+import { githubStarCount } from "@/lib/github-stars";
 
 import { buttonVariants } from "./ui/button";
 
-export default function Hero() {
+const GITHUB_REPO = "https://github.com/cbetz/last-ehr";
+
+const walkthroughDescription =
+  "A 90-second edited recording of the fixed local synthetic walkthrough. Approve one proposed Observation, decline the next, and compare separate FHIR reads: one resource added after approval, and no further change after cancellation. No external model is called. Patient data is invented.";
+
+export default async function Hero() {
+  const stars = await githubStarCount();
   const video = {
     "@context": "https://schema.org",
     "@type": "VideoObject",
-    name: "Grok drafts. You approve. Last verifies the save.",
-    description: "A 43-second edited walkthrough from actual Grok Bot and Last screenshots. Grok drafts a follow-up from a synthetic chart, a human approves it in Last, and Grok retrieves the verified FHIR Task receipt. The request needed a connector-name clarification. No patient is contacted.",
-    thumbnailUrl: "https://www.lastehr.com/demo/grok-work.png",
-    contentUrl: "https://www.lastehr.com/demo/grok-work.mp4",
-    uploadDate: "2026-10-25T00:00:00-04:00",
-    duration: "PT43S",
+    name: "Approve one write. Decline the next.",
+    description: walkthroughDescription,
+    thumbnailUrl: "https://www.lastehr.com/demo/approve-and-decline.jpg",
+    contentUrl: "https://www.lastehr.com/demo/approve-and-decline.mp4",
+    uploadDate: "2026-11-06",
+    duration: "PT1M30S",
     inLanguage: "en",
   };
 
@@ -41,13 +49,28 @@ export default function Hero() {
             Last provides the chart tools and review workflow. Connect an
             assistant such as Grok Bot through MCP, or use the web app.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
               href="/demo"
               className={buttonVariants({ size: "lg", className: "h-12 rounded-sm px-5" })}
             >
-              Try the browser demo
+              Try the demo
               <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href={GITHUB_REPO}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={stars === null ? "Star on GitHub" : `Star on GitHub, ${stars} stars`}
+              className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 rounded-sm px-5" })}
+            >
+              <Star className="mr-2 h-4 w-4" aria-hidden="true" />
+              Star on GitHub
+              {stars === null ? null : (
+                <span className="ml-2 border-l border-current/30 pl-2 font-mono tabular-nums">
+                  {stars.toLocaleString("en-US")}
+                </span>
+              )}
             </Link>
             <Link
               href="/docs/grok-bot"
@@ -64,37 +87,35 @@ export default function Hero() {
 
         <figure id="walkthrough" className="min-w-0 scroll-mt-24 border border-border bg-card">
           <figcaption className="border-b border-border px-5 py-4 font-mono text-xs text-muted-foreground">
-            43 seconds · Grok Bot + Last · Synthetic data
+            90 seconds · Approve and decline · Synthetic data
           </figcaption>
           <video
             className="aspect-video w-full bg-black"
             controls
             playsInline
             preload="none"
-            poster="/demo/grok-work.png"
+            poster="/demo/approve-and-decline.jpg"
             width={1920}
             height={1080}
-            aria-label="Grok drafts a follow-up, a human approves it in Last, and Grok retrieves the saved Task receipt"
+            aria-label="Approve one proposed Observation, decline the next, and compare what the local FHIR store kept"
             aria-describedby="walkthrough-description"
           >
-            <source src="/demo/grok-work.mp4" type="video/mp4" />
-            <track kind="captions" src="/demo/grok-work.vtt" srcLang="en" label="English" />
-            <a href="/demo/grok-work.mp4">Download the walkthrough</a>
+            <source src="/demo/approve-and-decline.mp4" type="video/mp4" />
+            <track kind="captions" src="/demo/approve-and-decline.vtt" srcLang="en" label="English" />
+            <a href="/demo/approve-and-decline.mp4">Download the walkthrough</a>
           </video>
           <div className="p-5 sm:p-7">
             <p className="text-xl font-medium leading-8 tracking-tight">
-              Grok drafts. You approve. Last verifies the save.
+              Approve one write. Decline the next.
             </p>
             <p id="walkthrough-description" className="mt-3 text-sm leading-6 text-muted-foreground">
-              Grok wrote the follow-up. A person reviewed it in Last, then
-              Grok checked the saved Task. Edited from actual screenshots;
-              the request needed a connector-name clarification. All patient
-              data is invented. No one was contacted.
+              {walkthroughDescription}
             </p>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 text-sm underline underline-offset-4">
-              <a href="/demo/grok-work.mp4">Watch full size</a>
-              <Link href="/docs/grok-bot#recorded-grok-walkthrough">Transcript and setup</Link>
-              <a href="/demo/grok-work.proof.json">Verification notes (JSON)</a>
+              <a href="/demo/approve-and-decline.mp4">Watch full size</a>
+              <Link href="/docs/quickstart#recorded-approval-and-cancellation">Transcript</Link>
+              <a href="/demo/approve-and-decline.proof.json">FHIR proof (JSON)</a>
+              <a href={GITHUB_REPO}>GitHub repo</a>
             </div>
           </div>
         </figure>

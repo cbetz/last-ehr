@@ -21,7 +21,7 @@ or [view it on the homepage](https://www.lastehr.com/#walkthrough).
 This is an edited, sampled screen recording of the fixed local synthetic
 walkthrough, captured November 6, 2026, from clean source
 [`fb24732`](https://github.com/cbetz/last-ehr/tree/fb2473246c5900ec8e714358dacb36a3167d4602)
-(`@lastehr/mcp` `0.5.1` in that tree; not an npm publication). No external
+(`@lastehr/mcp@0.5.1`, published on npm; git tag `mcp-v0.5.1`). No external
 model is called. The browser frames are actual app captures; the adjoining
 pane shows separate paginated GET snapshots from its disposable local HAPI
 FHIR store.
