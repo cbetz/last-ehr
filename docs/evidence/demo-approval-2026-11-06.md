@@ -5,9 +5,9 @@
 · [transcript](../quickstart.md#recorded-approval-and-cancellation)
 
 The app ran from a clean checkout of
-`fb2473246c5900ec8e714358dacb36a3167d4602`. `@lastehr/mcp` in that tree is
-`0.5.1`. That version is not an npm publication and there is no git tag for
-it. The local stack was this repository's Compose file: HAPI FHIR
+`fb2473246c5900ec8e714358dacb36a3167d4602`, git tag `mcp-v0.5.1`.
+`@lastehr/mcp@0.5.1` is published on npm. The local stack was this
+repository's Compose file: HAPI FHIR
 `v8.10.0-2` and Postgres 17, bound to loopback. Its four synthetic fixture
 patients were seeded before capture. No deployment configuration was copied
 in.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
 import AISection from "@/components/AI";
+import { GrokWalkthrough } from "@/components/GrokWalkthrough";
 import Hero from "@/components/Hero";
 import { CoverageSection } from "@/components/Coverage";
 import { HowItWorks } from "@/components/HowItWorks";
@@ -25,6 +26,7 @@ export default function Home() {
         <CoverageSection />
         <HowItWorks />
         <AISection />
+        <GrokWalkthrough />
 
         <section id="integrations" className="border-b marketing-rule bg-muted/20">
           <div className="container grid gap-10 py-16 sm:py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">

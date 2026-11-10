@@ -51,7 +51,7 @@ npm `latest` is `0.5.1`. Notes:
 
 - The public 90-second synthetic approval recording, poster, captions, and
   FHIR proof were re-recorded from clean source `fb2473246c59` /
-  `@lastehr/mcp` `0.5.1` in that tree. The earlier public file was the
+  published `@lastehr/mcp@0.5.1` (git tag `mcp-v0.5.1`). The earlier public file was the
   October 23 take from `f36d05d` / `0.4.0`. This is a persistence walkthrough
   on synthetic HAPI data. It is not a clinical, regulatory, or compliance
   claim.
