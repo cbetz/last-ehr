@@ -48,5 +48,5 @@ source `f36d05dde21c6e1c6847f2660a966afd2615c646` and MCP `0.4.0`; this
 onboarding patch did not relabel that recording. The public walkthrough was
 later re-recorded from
 [`fb2473246c5900ec8e714358dacb36a3167d4602`](https://github.com/cbetz/last-ehr/tree/fb2473246c5900ec8e714358dacb36a3167d4602)
-/ `@lastehr/mcp` `0.5.1` in that tree. See the
+/ published `@lastehr/mcp@0.5.1` (git tag `mcp-v0.5.1`). See the
 [November 6 capture notes](../evidence/demo-approval-2026-11-06.md).
