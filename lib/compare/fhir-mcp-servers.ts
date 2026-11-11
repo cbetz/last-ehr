@@ -235,7 +235,7 @@ export const fhirMcpServers: FhirMcpServerRow[] = [
   {
     name: "Last EHR",
     href: "https://github.com/cbetz/last-ehr",
-    packageLabel: "@lastehr/mcp 0.5.1",
+    packageLabel: "@lastehr/mcp 0.5.2",
     packageHref: "https://www.npmjs.com/package/@lastehr/mcp",
     language: "TypeScript",
     backends:
