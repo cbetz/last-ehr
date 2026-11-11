@@ -77,6 +77,28 @@ export class McpConfigurationError extends Error {
   }
 }
 
+/**
+ * A tool call could not reach FHIR because the stdio credential is missing
+ * or still a placeholder. The message is static operator guidance: it names
+ * the variable and never includes the value, so it is safe to return to a host.
+ */
+export class McpBackendAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "McpBackendAuthError";
+  }
+}
+
+export type LoadMcpConfigOptions = {
+  /**
+   * stdio normally refuses to load without a Medplum credential. Directory
+   * sandboxes call tools/list with nothing, or with the placeholder `init`
+   * prints. The catalog does not need a backend, so the server passes true
+   * and reports the variable on the first tool call. doctor leaves this off.
+   */
+  allowMissingStdioCredentials?: boolean;
+};
+
 // A plain string map rather than NodeJS.ProcessEnv: Next.js augments
 // ProcessEnv with a required NODE_ENV, which would force every test literal
 // (and any embedding caller) to carry unrelated keys. process.env remains
@@ -146,7 +168,10 @@ function loadHttpConfig(env: EnvValues): McpHttpConfig {
   };
 }
 
-export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
+export function loadMcpConfig(
+  env: EnvValues = process.env,
+  options: LoadMcpConfigOptions = {},
+): McpRuntimeConfig {
   // Read-only is the permanent default. The single accepted opt-in value is
   // "proposal": elicitation-gated, human-approved writes (see docs/mcp.md).
   // Anything else stays rejected loudly, exactly as the 0.1.x line rejected
@@ -293,12 +318,16 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
         "MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET must be set together.",
       );
     }
-  } else if (!accessToken && transport === "stdio") {
-    // Required for stdio, where the process acts as one operator. Under the
-    // remote transport each caller presents their own token and the FHIR
-    // credential is obtained per caller, so a server-held credential is not
-    // just unnecessary — holding one would make this layer, rather than the
-    // FHIR backend, decide what a caller can reach.
+  } else if (
+    !accessToken &&
+    transport === "stdio" &&
+    !options.allowMissingStdioCredentials
+  ) {
+    // Required for doctor and any other strict caller. The stdio server opts
+    // out: it lists tools with no credential and fails the tool call instead.
+    // Under the remote transport each caller presents their own token, so a
+    // server-held credential is not just unnecessary — holding one would make
+    // this layer, rather than the FHIR backend, decide what a caller can reach.
     throw new McpConfigurationError(
       "Set MEDPLUM_ACCESS_TOKEN or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET before starting Last EHR MCP.",
     );
@@ -316,4 +345,54 @@ export function loadMcpConfig(env: EnvValues = process.env): McpRuntimeConfig {
     transport,
     http,
   };
+}
+
+const CREDENTIAL_SETUP_HINT =
+  "Run `npx @lastehr/mcp init` for a config template and `npx @lastehr/mcp doctor` to check it.";
+
+/** True for the angle-bracket slots `init` prints, including a quoted copy. */
+function isUnreplacedPlaceholder(value: string): boolean {
+  const trimmed = value.trim().replace(/^(['"])(.*)\1$/, "$2").trim();
+  return /^<[^>\r\n]+>$/.test(trimmed);
+}
+
+function placeholderMessage(envName: string): string {
+  return `${envName} is invalid. Replace the placeholder value. ${CREDENTIAL_SETUP_HINT}`;
+}
+
+/**
+ * Why a stdio Medplum tool call must not touch FHIR yet. Undefined when this
+ * config may connect: a real token, client credentials, HTTP (per-caller
+ * tokens), a sandbox adapter, or the local HAPI stack.
+ */
+export function medplumCredentialProblem(
+  config: McpRuntimeConfig,
+): string | undefined {
+  if (config.backend !== "medplum" || config.sandbox || config.transport === "http") {
+    return undefined;
+  }
+  if (config.accessToken) {
+    return isUnreplacedPlaceholder(config.accessToken)
+      ? placeholderMessage("MEDPLUM_ACCESS_TOKEN")
+      : undefined;
+  }
+  if (config.clientId && isUnreplacedPlaceholder(config.clientId)) {
+    return placeholderMessage("MEDPLUM_CLIENT_ID");
+  }
+  if (config.clientSecret && isUnreplacedPlaceholder(config.clientSecret)) {
+    return placeholderMessage("MEDPLUM_CLIENT_SECRET");
+  }
+  if (config.clientId && config.clientSecret) return undefined;
+  return (
+    "MEDPLUM_ACCESS_TOKEN is missing. Set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET. " +
+    CREDENTIAL_SETUP_HINT
+  );
+}
+
+/** Login failed at tool-call time. The value and the backend body stay out. */
+export function medplumAuthenticationFailedMessage(config: McpRuntimeConfig): string {
+  const which = config.accessToken
+    ? "MEDPLUM_ACCESS_TOKEN is invalid."
+    : "MEDPLUM_CLIENT_ID or MEDPLUM_CLIENT_SECRET is invalid.";
+  return `${which} Medplum authentication failed. ${CREDENTIAL_SETUP_HINT}`;
 }

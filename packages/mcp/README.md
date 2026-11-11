@@ -56,7 +56,7 @@ npx -y @lastehr/mcp@0.5.1 --version
 
 ## Configuration
 
-Set one authentication method before starting the server:
+Set one authentication method before calling a tool. The stdio server still starts, and `tools/list` still returns the full catalog, when this is missing or still the placeholder from `init`. The first tool call names the missing or invalid variable and points at `npx @lastehr/mcp init` and `npx @lastehr/mcp doctor`. `doctor` still rejects a missing credential.
 
 ```bash
 MEDPLUM_ACCESS_TOKEN=...

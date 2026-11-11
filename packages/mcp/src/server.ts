@@ -15,7 +15,10 @@ import {
 } from "./approval.js";
 import {
   loadMcpConfig,
+  McpBackendAuthError,
   McpConfigurationError,
+  medplumAuthenticationFailedMessage,
+  medplumCredentialProblem,
   type McpRuntimeConfig,
 } from "./config.js";
 import { HapiReadClient } from "./hapi.js";
@@ -145,7 +148,11 @@ export async function callMcpTool(
     // generic message below would tell a model to go check its access policy
     // when the real answer is "Task has no status 'active'; use requested,
     // received, ...". Recognized structurally, not by comparing message text.
-    if (error instanceof ChartReadRefusal || error instanceof SandboxPublicError) {
+    if (
+      error instanceof ChartReadRefusal ||
+      error instanceof SandboxPublicError ||
+      error instanceof McpBackendAuthError
+    ) {
       return {
         isError: true,
         content: [{ type: "text", text: error.message }],
@@ -239,15 +246,108 @@ async function createBackendClient(
   return createMedplumClient(config);
 }
 
-export async function startMcpServer({
+function connectBackend(config: McpRuntimeConfig): Promise<FhirWriteClient> {
+  const problem = medplumCredentialProblem(config);
+  if (problem) return Promise.reject(new McpBackendAuthError(problem));
+  return createBackendClient(config).catch((error: unknown) => {
+    if (error instanceof McpBackendAuthError) throw error;
+    // A Medplum login or client-construction failure is configuration.
+    // Scrubbing it later would hide which variable to fix, and forwarding
+    // the SDK error could quote a response body. HAPI and sandbox errors
+    // keep their own types.
+    if (config.backend === "medplum" && !config.sandbox) {
+      throw new McpBackendAuthError(medplumAuthenticationFailedMessage(config));
+    }
+    throw error;
+  });
+}
+
+/**
+ * A client that connects on the first FHIR call. readResource stays absent
+ * until that connection exists, and stays absent when the backend has none,
+ * so a HAPI write does not pretend it can read the saved resource back.
+ */
+function lazyBackend(connect: () => Promise<FhirWriteClient>): {
+  client: FhirWriteClient;
+  ready: () => Promise<void>;
+} {
+  let pending: Promise<FhirWriteClient> | undefined;
+  let inner: FhirWriteClient | undefined;
+  const ensure = (): Promise<FhirWriteClient> => {
+    if (!pending) {
+      pending = connect().then(
+        (resolved) => {
+          inner = resolved;
+          return resolved;
+        },
+        (error: unknown) => {
+          pending = undefined;
+          throw error;
+        },
+      );
+    }
+    return pending;
+  };
+  const client: FhirWriteClient = {
+    async search(resourceType, params) {
+      return (await ensure()).search(resourceType, params);
+    },
+    async searchResources(resourceType, params) {
+      return (await ensure()).searchResources(resourceType, params);
+    },
+    async createResource(resource) {
+      return (await ensure()).createResource(resource);
+    },
+  };
+  Object.defineProperty(client, "readResource", {
+    configurable: true,
+    enumerable: false,
+    get() {
+      if (!inner?.readResource) return undefined;
+      return inner.readResource.bind(inner);
+    },
+  });
+  return {
+    client,
+    ready: async () => {
+      await ensure();
+    },
+  };
+}
+
+function deferUntilBackendReady<T extends { execute(input: unknown): Promise<unknown> }>(
+  tool: T,
+  ready: () => Promise<void>,
+): T {
+  return {
+    ...tool,
+    // Credential checks run before the tool body. A write therefore never
+    // reaches its approval prompt, and nothing is saved, when config is bad.
+    execute: (input: unknown) => ready().then(() => tool.execute(input)),
+  };
+}
+
+/**
+ * Build the stdio server without connecting a transport and without contacting
+ * the FHIR backend. initialize and tools/list use only this object.
+ */
+export function buildMcpServer({
   env = process.env,
   client,
 }: {
   env?: NodeJS.ProcessEnv;
   client?: FhirReadClient;
-} = {}): Promise<StartedMcpServer> {
-  const config = loadMcpConfig(env);
-  const backendClient = client ?? (await createBackendClient(config));
+} = {}): StartedMcpServer {
+  const config = loadMcpConfig(env, { allowMissingStdioCredentials: true });
+  let backendClient: FhirReadClient;
+  let ready: () => Promise<void> = async () => {};
+  if (client) {
+    backendClient = client;
+  } else {
+    const connected = lazyBackend(() => connectBackend(config));
+    backendClient = connected.client;
+    ready = connected.ready;
+  }
   if (
     config.writePolicy === "proposal" &&
     typeof (backendClient as Partial<FhirWriteClient>).createResource !==
@@ -259,8 +359,10 @@ export async function startMcpServer({
       "LASTEHR_MCP_WRITES=proposal requires a write-capable backend client (createResource).",
     );
   }
+  const gate = <T extends { execute(input: unknown): Promise<unknown> }>(tool: T): T =>
+    client ? tool : deferUntilBackendReady(tool, ready);
   const readLog = new SessionReadLog();
-  const tools = createReadTools(backendClient);
+  const tools = createReadTools(backendClient).map((tool) => gate(tool));
   const server = createMcpServer(tools, {
     readLog,
     writeTools:
@@ -270,17 +372,25 @@ export async function startMcpServer({
               backendClient as FhirWriteClient,
               createElicitationApproval(liveServer),
               { ...writeToolOptionsFromConfig(config), readLog },
-            )
+            ).map((tool) => gate(tool))
         : undefined,
   });
 
-  await server.connect(new StdioServerTransport());
+  return { config, server, tools };
+}
+
+export async function startMcpServer(options?: {
+  env?: NodeJS.ProcessEnv;
+  client?: FhirReadClient;
+}): Promise<StartedMcpServer> {
+  const started = buildMcpServer(options);
+  await started.server.connect(new StdioServerTransport());
   // stdout is reserved for JSON-RPC. Keep lifecycle messages on stderr.
   console.error(
-    config.writePolicy === "proposal"
-      ? `Last EHR MCP server ready: ${tools.length} read-only tools, plus elicitation-gated write proposals when the client supports approvals.`
-      : `Last EHR MCP server ready: ${tools.length} read-only tools.`,
+    started.config.writePolicy === "proposal"
+      ? `Last EHR MCP server ready: ${started.tools.length} read-only tools, plus elicitation-gated write proposals when the client supports approvals.`
+      : `Last EHR MCP server ready: ${started.tools.length} read-only tools.`,
   );
 
-  return { config, server, tools };
+  return started;
 }

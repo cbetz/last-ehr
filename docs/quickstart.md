@@ -176,7 +176,7 @@ for its own processes.
 | `npm warn EBADENGINE` with `required: { node: '^22.18.0 \|\| >=24.2.0' }` | Node is outside `package.json` `engines`. `.nvmrc` is `22.18.0`. Without `engine-strict`, npm warns and still installs. | Install Node 22.18+ or 24.2+, then run `npm install` again. |
 | `Seeding needs write access to your Medplum project.` | `npm run seed` ran without `FHIR_BACKEND=hapi` and without Medplum credentials. `demo:local` sets the HAPI URL itself; a bare `npm run seed` does not. | With the stack up: `FHIR_BACKEND=hapi FHIR_BASE_URL=http://localhost:8080/fhir npm run seed`. Or use `npm run demo:local`. |
 | `FHIR_BACKEND=hapi requires HAPI_BASE_URL or FHIR_BASE_URL (for example http://localhost:8080/fhir).` | HAPI mode is on and the base URL is unset. | `export FHIR_BASE_URL=http://localhost:8080/fhir` (or `HAPI_BASE_URL`) and re-run. |
-| `Set MEDPLUM_ACCESS_TOKEN or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET before starting Last EHR MCP.` | `@lastehr/mcp` started in the default Medplum mode with no credential. | For this stack, set `FHIR_BACKEND=hapi` and `FHIR_BASE_URL=http://localhost:8080/fhir` instead of a Medplum token. |
+| A tool call says `MEDPLUM_ACCESS_TOKEN is missing`. The server still lists its tools. `doctor` reports that the configuration is invalid. | `@lastehr/mcp` is in the default Medplum mode with no credential. Listing tools does not contact the backend. | For this stack, set `FHIR_BACKEND=hapi` and `FHIR_BASE_URL=http://localhost:8080/fhir` instead of a Medplum token. |
 
 ## Medplum-backed demo
 

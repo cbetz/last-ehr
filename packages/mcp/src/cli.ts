@@ -45,6 +45,7 @@ function help() {
     "  npx -y @lastehr/mcp --version       Print the package version",
     "",
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
+    "tools/list succeeds without them. The first tool call names a missing or invalid variable. doctor still rejects a missing credential.",
     "Remote: LASTEHR_MCP_TRANSPORT=http with LASTEHR_MCP_RESOURCE, _OAUTH_ISSUER,",
     "_OAUTH_JWKS_URI, _EXCHANGE_CLIENT_ID, _TOKEN_ENDPOINT (see docs/remote-mcp.md).",
     "Sandboxes: LASTEHR_BACKEND=epic|oracle|smart and LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1.",
@@ -127,12 +128,13 @@ export async function runCli(
   }
 
   if (command === "serve") {
-    const config = loadMcpConfig(env);
+    // Missing stdio credentials do not stop initialize or tools/list. doctor
+    // above still uses the strict loader and reports that configuration.
+    const config = loadMcpConfig(env, { allowMissingStdioCredentials: true });
     if (config.transport === "http") {
       // Loaded only here, so a stdio process never pulls in node:http or the
       // SDK's Node transport. loadMcpConfig is pure, so the second load inside
-      // startMcpServer on the stdio branch is harmless and that call is
-      // byte-identical to what it was.
+      // startMcpServer on the stdio branch is the same allow-missing load.
       const { startRemoteMcpServer } = await import("./remote-server.js");
       await startRemoteMcpServer({ config });
       return;
