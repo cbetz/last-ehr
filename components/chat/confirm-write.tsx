@@ -1,17 +1,21 @@
 "use client";
 
+import { ProposalReview } from "@/components/chat/proposal-review";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CitedEvidence, SessionRead } from "@/packages/mcp/src/proposal-evidence";
 
 // The approval card is the write gate: it must show the user exactly what
 // will be saved, field by field, not a prose summary of it. `fields` is the
 // payload the tool will write, one row per field; `resourceType` names the
-// FHIR resource being created.
+// FHIR resource being created. The diff and the evidence sit beside that
+// list so a proposal can be compared with the resources already read.
 export function ConfirmWrite({
   title,
   resourceType,
   fields,
   preview,
+  evidence,
   blocked,
   onApprove,
   onCancel,
@@ -20,6 +24,11 @@ export function ConfirmWrite({
   resourceType: string;
   fields: { label: string; value: string }[];
   preview?: unknown;
+  evidence?: {
+    cited?: CitedEvidence[];
+    sessionReads?: SessionRead[];
+    readsTruncated?: boolean;
+  };
   /**
    * The vendor profile refused this body. Approve stays hidden so the
    * reviewer cannot accept a write the server will reject.
@@ -58,16 +67,12 @@ export function ConfirmWrite({
             Nothing is saved to the chart until you approve.
           </p>
         )}
-        {preview ? (
-          <details className="rounded-md border bg-background">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-muted-foreground">
-              FHIR preview
-            </summary>
-            <pre className="max-h-56 overflow-auto border-t p-3 text-xs text-muted-foreground">
-              <code>{JSON.stringify(preview, null, 2)}</code>
-            </pre>
-          </details>
-        ) : null}
+        <ProposalReview
+          proposed={preview}
+          cited={evidence?.cited ?? []}
+          sessionReads={evidence?.sessionReads}
+          readsTruncated={evidence?.readsTruncated}
+        />
         <div className="flex justify-end gap-2">
           <Button variant="outline" size="sm" onClick={onCancel}>
             Cancel &amp; revise

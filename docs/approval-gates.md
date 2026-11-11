@@ -23,10 +23,17 @@ When the model calls one of those tools:
 
 1. The SDK pauses before `execute`.
 2. The UI renders an approval card.
-3. The card shows the exact fields the tool proposed.
+3. The card shows the exact fields the tool proposed, a diff of the resource that would be created, and the chart resources available to compare it with.
 4. Cancel drops the proposal.
 5. Approve runs `execute` and writes to the backend.
 6. The backend still enforces its own access policy.
+
+The comparison has two lists, and neither is copied onto the saved resource:
+
+- **Cited evidence.** The write tools take an optional `evidence` or `basedOn` argument: resource references such as `Observation/123`, each with an optional short reason. Calls that omit it still propose the write.
+- **Session reads.** The card also lists resources the conversation already read, even when the agent cites nothing. On the MCP server the same list is kept for that session and included in the approval prompt.
+
+A proposal with no citation is flagged: "No cited evidence." A citation that does not match a resource read in the session is marked that way. The flag is a review cue. It does not check that the proposal follows from those resources, and it does not approve or deny the write.
 
 ## What the gate protects
 
@@ -37,7 +44,7 @@ When the model calls one of those tools:
 ## What the gate does not protect
 
 - Reads. Chart context still goes to the model provider.
-- Hallucinated content that a user approves without reading.
+- Hallucinated content that a user approves without reading. The evidence panel makes a missing citation visible. It does not check that the proposal follows from the resources listed there.
 - Approval fatigue.
 - Backend access control. The backend remains the security boundary.
 

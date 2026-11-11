@@ -151,6 +151,36 @@ describe("agent FHIR tools", () => {
     );
   });
 
+  it("keeps cited evidence off the saved resource and out of a writes-disabled prompt", async () => {
+    createResource.mockResolvedValue({ id: "comm-1" });
+    const tools = buildTools(backend);
+    await (tools.add_note.execute as (input: unknown, opts: unknown) => unknown)(
+      {
+        patientId: "p1",
+        text: "follow up in two weeks",
+        evidence: [{ reference: "Observation/hr-1", reason: "cited only for review" }],
+        basedOn: ["Patient/maria-1"],
+      },
+      {},
+    );
+    const saved = JSON.stringify(createResource.mock.calls.at(-1)?.[0]);
+    expect(saved).not.toContain("cited only for review");
+    expect(saved).not.toContain("Observation/hr-1");
+    expect(saved).not.toContain("basedOn");
+
+    expect(buildSystemPrompt()).toContain("pass evidence");
+    expect(
+      buildSystemPrompt(
+        new Set([
+          "add_note",
+          "record_observation",
+          "record_superseding_observation",
+          "create_task",
+        ]),
+      ),
+    ).not.toContain("pass evidence");
+  });
+
   it("shapes an Epic observation before the write and reports the read-back", async () => {
     const readResource = vi.fn(async () => {
       const sent = createResource.mock.calls.at(-1)?.[0] as {
