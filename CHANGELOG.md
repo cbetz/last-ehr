@@ -5,16 +5,28 @@ self-hosters can tell what moved between pulls.
 
 ## 0.5.2 — prepared, not published
 
-`@lastehr/mcp` `0.5.2` points `init` and `doctor` at the repository from
-stderr ([#226](https://github.com/cbetz/last-ehr/pull/226)). This version
-bump is not on npm, and there is no git tag. npm `latest` stays
+`@lastehr/mcp` `0.5.2` shows a proposed write beside the chart resources the
+agent cited and the ones the session already read
+([#228](https://github.com/cbetz/last-ehr/pull/228)). This version bump is
+not on npm, and there is no git tag. npm `latest` stays
 `@lastehr/mcp@0.5.1`. `mcpName` stays `io.github.cbetz/last-ehr`. Publication
 stays on the [release process](./docs/releasing-mcp.md). Draft notes:
 [docs/releases/mcp-0.5.2.md](./docs/releases/mcp-0.5.2.md).
 
+- Write tools take an optional `evidence` or `basedOn` list of
+  `ResourceType/id` values, each with an optional short reason. Omitting the
+  list still proposes the write. Citations are not stored on the FHIR
+  resource. A missing citation does not approve or deny the write, and it
+  does not check that the proposal follows from the cited resources.
+- The MCP session records chart resources its read tools returned. The
+  approval prompt shows a diff of the proposed resource beside the cited
+  resources and those session reads. A proposal with no citation says
+  "No cited evidence." A citation that was not read in the session is marked
+  that way. The web approval card shows the same comparison.
 - When stderr is a terminal, `init` prints the next `doctor` command, the
-  docs URL, and https://github.com/cbetz/last-ehr. A passing `doctor` prints
-  the repository line. A failing `doctor` points at the issues URL.
+  docs URL, and https://github.com/cbetz/last-ehr
+  ([#226](https://github.com/cbetz/last-ehr/pull/226)). A passing `doctor`
+  prints the repository line. A failing `doctor` points at the issues URL.
   `LASTEHR_QUIET=1` or a non-terminal stderr omits the lines. `init` stdout
   is unchanged. The stdio server does not print them.
 - The site adds an alphabetical, sourced comparison of open-source FHIR MCP
