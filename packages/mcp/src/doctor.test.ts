@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { doctorNextStep, writeDoctorNextStep } from "./cli-hints.js";
 import { loadMcpConfig, type McpRuntimeConfig } from "./config.js";
 import { runDoctor } from "./doctor.js";
 
@@ -322,5 +323,68 @@ describe("MCP doctor", () => {
     expect(report.ok).toBe(false);
     expect(fetchFn).not.toHaveBeenCalled();
     expect(report.lines.join("\n")).not.toMatch(/private-secret|fhir\.example/);
+  });
+
+  it("keeps the report itself free of the repo pointer", async () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    const passing = await runDoctor(medplum);
+    const failing = await runDoctor(hapi, {
+      connect: true,
+      fetchFn: vi.fn<typeof fetch>(async () => {
+        throw new Error("withheld");
+      }),
+    });
+
+    expect(passing.ok).toBe(true);
+    expect(failing.ok).toBe(false);
+    expect(passing.lines.join("\n")).not.toContain("github.com/cbetz/last-ehr");
+    expect(failing.lines.join("\n")).not.toContain("github.com/cbetz/last-ehr");
+    expect(stdout).not.toHaveBeenCalled();
+  });
+});
+
+describe("doctor terminal pointer", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("points a passing run at the repo and a failing run at issues", () => {
+    const passing = doctorNextStep(true);
+    const failing = doctorNextStep(false);
+
+    expect(passing.split("\n").filter((line) => line.length > 0)).toEqual([
+      "Source, issues, and adapter requests: https://github.com/cbetz/last-ehr (a star helps others find it).",
+    ]);
+    expect(failing.split("\n").filter((line) => line.length > 0)).toEqual([
+      "Report this problem: https://github.com/cbetz/last-ehr/issues",
+    ]);
+    expect(passing).not.toContain("/issues");
+    expect(failing).not.toContain("a star helps");
+    expect(`${passing}${failing}`).toMatch(/^[\n\x20-\x7e]*$/);
+    expect(`${passing}${failing}`).not.toMatch(/clinical|compliance|HIPAA|certified/i);
+  });
+
+  it("writes that line only for a TTY, and not when LASTEHR_QUIET=1", () => {
+    const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+
+    for (const ok of [true, false]) {
+      const tty = vi.fn();
+      writeDoctorNextStep(ok, {} as NodeJS.ProcessEnv, { isTTY: true, write: tty });
+      expect(tty).toHaveBeenCalledOnce();
+      expect(tty).toHaveBeenCalledWith(doctorNextStep(ok));
+
+      const quiet = vi.fn();
+      writeDoctorNextStep(ok, { LASTEHR_QUIET: "1" } as NodeJS.ProcessEnv, {
+        isTTY: true,
+        write: quiet,
+      });
+      expect(quiet).not.toHaveBeenCalled();
+
+      const piped = vi.fn();
+      writeDoctorNextStep(ok, {} as NodeJS.ProcessEnv, { isTTY: false, write: piped });
+      expect(piped).not.toHaveBeenCalled();
+    }
+
+    expect(stdout).not.toHaveBeenCalled();
   });
 });

@@ -95,6 +95,7 @@ describe("the built CLI actually runs", () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("No connection attempted");
+    expect(result.stderr).not.toContain("github.com/cbetz/last-ehr");
     expect(result.stderr).not.toContain("private-doctor-token");
   });
 
@@ -106,6 +107,7 @@ describe("the built CLI actually runs", () => {
     expect(result.status).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("Connection check failed");
+    expect(result.stderr).not.toContain("github.com/cbetz/last-ehr");
     expect(result.stderr).not.toMatch(/private-doctor-path|127\.0\.0\.1|TypeError|fetch failed/);
   });
 });
