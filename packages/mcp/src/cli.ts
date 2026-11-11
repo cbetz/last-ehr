@@ -4,6 +4,7 @@ import { config as loadEnv } from "dotenv";
 import { realpathSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+import { writeDoctorNextStep, writeInitNextSteps } from "./cli-hints.js";
 import { McpConfigurationError, loadMcpConfig } from "./config.js";
 import { runDoctor } from "./doctor.js";
 import { isMcpClient, renderInit, sandboxGuide, type McpClient } from "./init.js";
@@ -97,6 +98,7 @@ export async function runCli(
     if (parsed.backend !== "medplum") {
       process.stderr.write(`${sandboxGuide(parsed.backend)}\n`);
     }
+    writeInitNextSteps(env);
     return;
   }
 
@@ -119,6 +121,7 @@ export async function runCli(
     }
     const report = await runDoctor(config, { connect: doctorArgs[0] === "--connect" });
     for (const line of report.lines) console.error(line);
+    writeDoctorNextStep(report.ok, env);
     if (!report.ok) process.exitCode = 1;
     return;
   }

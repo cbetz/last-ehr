@@ -49,6 +49,10 @@ npm `latest` is `0.5.1`. Notes:
 
 ## Unreleased
 
+- `init` and `doctor` print a short stderr pointer to the docs and
+  https://github.com/cbetz/last-ehr when stderr is a terminal. A failing
+  `doctor` points at the issues URL. `LASTEHR_QUIET=1` hides the pointer.
+  `init` stdout is unchanged.
 - The public 90-second synthetic approval recording, poster, captions, and
   FHIR proof were re-recorded from clean source `fb2473246c59` /
   published `@lastehr/mcp@0.5.1` (git tag `mcp-v0.5.1`). The earlier public file was the
