@@ -1,3 +1,5 @@
+import { fhirMcpComparisonMarkdown } from "@/lib/compare/fhir-mcp-servers";
+import { productFaq } from "@/lib/faq";
 import { getDocMarkdown, getMarkdownBody } from "@/lib/docs/content";
 import { rewriteExportLinks } from "@/lib/docs/llms";
 import { docsRegistry } from "@/lib/docs/registry";
@@ -17,7 +19,7 @@ export async function GET() {
   const body = [
     "# Last EHR Documentation",
     "",
-    "Last EHR is an open-source alpha web app and MCP server for FHIR chart reads and human-approved writes. This file contains the complete published guide collection. The support matrix and threat model describe the current operating boundaries and limitations.",
+    "Last EHR is an open-source alpha web app and MCP server for FHIR chart reads and human-approved writes. This file contains the complete published guide collection, the FHIR MCP server comparison, and the public FAQ. The support matrix and threat model describe the current operating boundaries and limitations.",
     "",
     "Project: https://github.com/cbetz/last-ehr",
     "Documentation hub: https://www.lastehr.com/docs",
@@ -25,6 +27,11 @@ export async function GET() {
     "",
     ...guides,
     "",
+    fhirMcpComparisonMarkdown(),
+    "",
+    "# FAQ",
+    "",
+    ...productFaq.flatMap((item) => [`## ${item.q}`, "", item.a, ""]),
   ].join("\n");
 
   return new Response(body, {

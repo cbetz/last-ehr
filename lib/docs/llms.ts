@@ -4,6 +4,8 @@ import { unified } from "unified";
 
 import { resolveDocHref } from "@/lib/docs/links";
 
+import { FHIR_MCP_COMPARISON_URL } from "@/lib/compare/fhir-mcp-servers";
+import { productFaq } from "@/lib/faq";
 import {
   DOCS_REPOSITORY_URL,
   docsGroups,
@@ -32,6 +34,7 @@ export function getLlmsIndex(): string {
     `- [Write approvals](${SITE_URL}/approval-gated-writes): Proposal, review, cancellation, backend permissions, and MCP approval.`,
     `- [Medplum setup](${SITE_URL}/medplum-ai-agent): Connect a Medplum project, use SMART launch, or install MCP tools.`,
     `- [Roadmap](${SITE_URL}/roadmap): Shipped capabilities and remaining work.`,
+    `- [FHIR MCP servers compared](${FHIR_MCP_COMPARISON_URL}): Alphabetical comparison of open-source FHIR MCP servers, checked on 2026-11-11. Not a ranking.`,
     `- [Source repository](${DOCS_REPOSITORY_URL}): Apache-2.0 source, tests, releases, and contributions.`,
     "",
     ...docsGroups.flatMap((group) => [
@@ -48,6 +51,9 @@ export function getLlmsIndex(): string {
     `- [Synthetic demo](${SITE_URL}/demo): Interactive chart tools; the demo uses synthetic patients.`,
     `- [Privacy](${SITE_URL}/privacy): Hosted-site analytics, cookies, signup form, and demo processing.`,
     "",
+    "## FAQ",
+    "",
+    ...productFaq.flatMap((item) => [`### ${item.q}`, "", item.a, ""]),
   ].join("\n");
 }
 

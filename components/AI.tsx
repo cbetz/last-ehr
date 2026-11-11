@@ -46,6 +46,10 @@ export default function AISection() {
               Configure MCP
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
+            <Link href="/compare/fhir-mcp-servers" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold hover:text-primary">
+              Compare FHIR MCP servers
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
           </article>
           <article className="min-w-0 py-7 lg:pl-7">
             <h3 className="text-xl font-semibold">Assistant Work</h3>

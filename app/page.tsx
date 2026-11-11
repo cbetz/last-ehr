@@ -5,11 +5,13 @@ import AISection from "@/components/AI";
 import { GrokWalkthrough } from "@/components/GrokWalkthrough";
 import Hero from "@/components/Hero";
 import { CoverageSection } from "@/components/Coverage";
+import { Faq } from "@/components/faq";
 import { HowItWorks } from "@/components/HowItWorks";
 import Navbar from "@/components/Navbar";
 import { SignupForm } from "@/components/SignupForm";
 import { SiteFooter } from "@/components/site-footer";
 import { buttonVariants } from "@/components/ui/button";
+import { productFaq } from "@/lib/faq";
 
 const backends = [
   ["Medplum", "Authenticated web app, SMART launch, and MCP."],
@@ -98,6 +100,11 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <Faq
+          items={productFaq}
+          heading="Questions about connecting an agent"
+        />
       </main>
       <SiteFooter />
     </>
