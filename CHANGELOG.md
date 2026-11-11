@@ -23,6 +23,12 @@ stays on the [release process](./docs/releasing-mcp.md). Draft notes:
   resources and those session reads. A proposal with no citation says
   "No cited evidence." A citation that was not read in the session is marked
   that way. The web approval card shows the same comparison.
+- The stdio server answers `initialize` and `tools/list` without
+  backend credentials. The first tool call returns an `isError` result
+  that names the missing or invalid variable and points at `init` and
+  `doctor`. Write tools stay hidden unless `LASTEHR_MCP_WRITES=proposal`.
+  The approval gate is unchanged
+  ([#229](https://github.com/cbetz/last-ehr/pull/229)).
 - When stderr is a terminal, `init` prints the next `doctor` command, the
   docs URL, and https://github.com/cbetz/last-ehr
   ([#226](https://github.com/cbetz/last-ehr/pull/226)). A passing `doctor`

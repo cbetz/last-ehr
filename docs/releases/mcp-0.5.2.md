@@ -6,7 +6,8 @@ cut a tag, or open a GitHub release. npm `latest` stays
 on purpose. `mcpName` stays `io.github.cbetz/last-ehr`.
 
 The package changes are
-[PR #228](https://github.com/cbetz/last-ehr/pull/228) and
+[PR #228](https://github.com/cbetz/last-ehr/pull/228),
+[PR #229](https://github.com/cbetz/last-ehr/pull/229), and
 [PR #226](https://github.com/cbetz/last-ehr/pull/226). This is not a
 clinical, regulatory, or compliance claim. The evidence list does not check
 that a proposal follows from the cited resources.
@@ -43,6 +44,14 @@ When stderr is a terminal and `LASTEHR_QUIET` is not `1`:
 A non-terminal stderr omits the lines, so CI and piped output stay quiet.
 The stdio server does not print them. `init` and `doctor` do not contact
 GitHub.
+
+## Catalog before credentials
+
+The stdio server answers `initialize` and `tools/list` without backend
+credentials. The first tool call returns an `isError` result that names
+the missing or invalid variable and points at `init` and `doctor`. Write
+tools stay hidden unless `LASTEHR_MCP_WRITES=proposal`. The approval gate
+is unchanged ([PR #229](https://github.com/cbetz/last-ehr/pull/229)).
 
 ## Since published 0.5.1, outside the package
 
