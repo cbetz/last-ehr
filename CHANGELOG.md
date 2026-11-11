@@ -3,14 +3,16 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## 0.5.2 — prepared, not published
+## 0.5.2 — published (2026-11-11)
 
-`@lastehr/mcp` `0.5.2` shows a proposed write beside the chart resources the
-agent cited and the ones the session already read
-([#228](https://github.com/cbetz/last-ehr/pull/228)). This version bump is
-not on npm, and there is no git tag. npm `latest` stays
-`@lastehr/mcp@0.5.1`. `mcpName` stays `io.github.cbetz/last-ehr`. Publication
-stays on the [release process](./docs/releasing-mcp.md). Draft notes:
+`@lastehr/mcp` `0.5.2` is published. npm `latest` is
+`@lastehr/mcp@0.5.2`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.2` `isLatest`. Git tag
+[`mcp-v0.5.2`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.2)
+is `49744c7ed38da2bb742f8447e3dae40f59c60783`. `mcpName` stays
+`io.github.cbetz/last-ehr`. It shows a proposed write beside the chart
+resources the agent cited and the ones the session already read
+([#228](https://github.com/cbetz/last-ehr/pull/228)). Notes:
 [docs/releases/mcp-0.5.2.md](./docs/releases/mcp-0.5.2.md).
 
 - Write tools take an optional `evidence` or `basedOn` list of

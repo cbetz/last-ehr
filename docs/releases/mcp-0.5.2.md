@@ -1,9 +1,11 @@
 # Last EHR MCP 0.5.2: proposed writes beside cited and read resources
 
-This is a draft. Merging the version bump does not publish the package,
-cut a tag, or open a GitHub release. npm `latest` stays
-`@lastehr/mcp@0.5.1` until the [release process](../releasing-mcp.md) runs
-on purpose. `mcpName` stays `io.github.cbetz/last-ehr`.
+Published November 11, 2026. npm `latest` is `@lastehr/mcp@0.5.2`. The
+Official MCP Registry record for `io.github.cbetz/last-ehr` marks `0.5.2`
+`isLatest`. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.2)
+is tag `mcp-v0.5.2` at
+`49744c7ed38da2bb742f8447e3dae40f59c60783`. `mcpName` stays
+`io.github.cbetz/last-ehr`.
 
 The package changes are
 [PR #228](https://github.com/cbetz/last-ehr/pull/228),

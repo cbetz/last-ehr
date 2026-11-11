@@ -110,17 +110,17 @@ to stdout. Keep the local stack running while the client is connected; use
 
 ## Install and connect
 
-npm `latest` is `@lastehr/mcp@0.5.1`. The Official MCP Registry record for
+npm `latest` is `@lastehr/mcp@0.5.2`. The Official MCP Registry record for
 `io.github.cbetz/last-ehr` marks that version `isLatest`. This guide
 describes that release. Confirm it with
-`npx -y @lastehr/mcp@0.5.1 --version`. Older releases do not include HTTP
+`npx -y @lastehr/mcp@0.5.2 --version`. Older releases do not include HTTP
 transport or `doctor --connect`.
 
 The commands below generate a local stdio configuration. They do not install
 the server into your client or configure remote OAuth automatically.
 Since `0.4.1`, `init` pins the generated package command to its own version,
-so these `0.5.1` commands produce a configuration that starts
-`@lastehr/mcp@0.5.1`.
+so these `0.5.2` commands produce a configuration that starts
+`@lastehr/mcp@0.5.2`.
 
 ### Claude Code
 
@@ -128,7 +128,7 @@ Configure a least-privilege Medplum credential using [Auth](#auth), then print
 the registration command:
 
 ```bash
-npx -y @lastehr/mcp@0.5.1 init --client claude-code
+npx -y @lastehr/mcp@0.5.2 init --client claude-code
 ```
 
 Run the generated `claude mcp add` command, then launch Claude Code from an
@@ -143,19 +143,18 @@ covers registration, credential configuration, and installation scope.
 Print the Cursor configuration:
 
 ```bash
-npx -y @lastehr/mcp@0.5.1 init --client cursor
+npx -y @lastehr/mcp@0.5.2 init --client cursor
 ```
 
-The default command prints the same JSON:
+The default command prints the same server fields without `"type"`:
 
 ```bash
-npx -y @lastehr/mcp@0.5.1 init
+npx -y @lastehr/mcp@0.5.2 init
 ```
 
 Replace the placeholder with a least-privilege Medplum token, then add the
-`lastehr` entry to your client's MCP configuration. The Cursor-specific output
-declares `"type": "stdio"`; add that field if using the generic JSON output.
-Save the configuration in
+`lastehr` entry to your client's MCP configuration. The Cursor output below
+declares `"type": "stdio"`. Save the configuration in
 `~/.cursor/mcp.json` for personal use or `.cursor/mcp.json` for this project.
 See [Cursor's MCP documentation](https://cursor.com/docs/mcp#configuration-locations)
 for its configuration fields and locations.
@@ -166,7 +165,10 @@ for its configuration fields and locations.
     "lastehr": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@lastehr/mcp@0.5.1"],
+      "args": [
+        "-y",
+        "@lastehr/mcp@0.5.2"
+      ],
       "env": {
         "MEDPLUM_ACCESS_TOKEN": "<replace-with-a-least-privilege-token>"
       }
@@ -175,7 +177,7 @@ for its configuration fields and locations.
 }
 ```
 
-Start the server directly with `npx -y @lastehr/mcp@0.5.1` when you want to inspect a
+Start the server directly with `npx -y @lastehr/mcp@0.5.2` when you want to inspect a
 stdio connection yourself. These setup commands do not establish write
 compatibility: the optional write profile checks the connected client's
 elicitation capability at runtime.
@@ -204,7 +206,7 @@ The stdio server answers `initialize` and `tools/list` when these are missing or
 `doctor` validates configuration without making a network request:
 
 ```bash
-npx -y @lastehr/mcp@0.5.1 doctor
+npx -y @lastehr/mcp@0.5.2 doctor
 ```
 
 Add `--connect` to check FHIR R4 metadata and make a count-only Patient
@@ -212,7 +214,7 @@ search with your configured stdio credentials. That check has been in the
 package since `0.4.0`:
 
 ```bash
-npx -y @lastehr/mcp@0.5.1 doctor --connect
+npx -y @lastehr/mcp@0.5.2 doctor --connect
 ```
 
 The check makes no chart write and prints no patient data or counts. A
@@ -397,7 +399,7 @@ LASTEHR_MCP_OAUTH_JWKS_URI=https://auth.example.org/.well-known/jwks.json
 LASTEHR_MCP_REQUIRED_SCOPES=chart.read
 LASTEHR_MCP_EXCHANGE_CLIENT_ID=<ClientApplication id with the identity provider>
 LASTEHR_MCP_TOKEN_ENDPOINT=https://api.medplum.com/oauth2/token
-npx -y @lastehr/mcp@0.5.1
+npx -y @lastehr/mcp@0.5.2
 ```
 
 The metadata document is served unauthenticated at

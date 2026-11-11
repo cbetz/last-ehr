@@ -39,7 +39,7 @@ describe("FHIR MCP server comparison", () => {
 
   it("states Last EHR's approval gate and experimental Epic sandbox without ranking language", () => {
     const last = fhirMcpServers.find((server) => server.name === "Last EHR");
-    expect(last?.packageLabel).toBe("@lastehr/mcp 0.5.1");
+    expect(last?.packageLabel).toBe("@lastehr/mcp 0.5.2");
     expect(last?.humanApproval.startsWith("Yes.")).toBe(true);
     expect(last?.backends).toContain("LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1");
     expect(last?.backends).toContain("public Epic sandbox");
