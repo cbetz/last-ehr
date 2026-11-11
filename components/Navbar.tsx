@@ -25,6 +25,7 @@ const navigation: NavigationItem[] = [
   { href: "/#coverage", label: "What it does" },
   { href: "/#mcp", label: "MCP" },
   { href: "/docs", label: "Docs" },
+  { href: "/compare/fhir-mcp-servers", label: "Compare" },
   { href: "/roadmap", label: "Roadmap" },
 ];
 

@@ -58,6 +58,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${BASE_URL}/compare/fhir-mcp-servers`,
+      lastModified: new Date("2026-11-11"),
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+    {
       url: `${BASE_URL}/demo`,
       lastModified: new Date("2026-07-19"),
       changeFrequency: "monthly",

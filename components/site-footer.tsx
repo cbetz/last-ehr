@@ -12,6 +12,7 @@ const footerGroups = [
       { href: "/chat-with-fhir-data", label: "Chat with FHIR data" },
       { href: "/approval-gated-writes", label: "Write approvals" },
       { href: "/medplum-ai-agent", label: "Medplum setup" },
+      { href: "/compare/fhir-mcp-servers", label: "FHIR MCP servers" },
     ],
   },
   {
