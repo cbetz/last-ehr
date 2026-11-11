@@ -81,7 +81,7 @@ describe("init terminal pointer", () => {
 
     const quiet = vi.fn();
     writeInitNextSteps(
-      { LASTEHR_QUIET: "1" } as NodeJS.ProcessEnv,
+      { LASTEHR_QUIET: "1" } as unknown as NodeJS.ProcessEnv,
       { isTTY: true, write: quiet },
     );
     expect(quiet).not.toHaveBeenCalled();

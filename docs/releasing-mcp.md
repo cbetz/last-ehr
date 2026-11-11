@@ -5,9 +5,12 @@ are separate artifacts. A merged version change does not publish a package.
 `@lastehr/mcp@0.5.1` is published: npm `latest`, Official MCP Registry
 `isLatest` for `io.github.cbetz/last-ehr`, and GitHub release
 [`mcp-v0.5.1`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.1).
-Notes: [docs/releases/mcp-0.5.1.md](./releases/mcp-0.5.1.md). The commands
-below are the `0.4.1` run of this process. Check public registry metadata
-again before calling a later version published.
+Notes: [docs/releases/mcp-0.5.1.md](./releases/mcp-0.5.1.md). This checkout
+prepares `0.5.2` in [docs/releases/mcp-0.5.2.md](./releases/mcp-0.5.2.md).
+That version change does not establish publication. Do not publish, tag, or
+open a GitHub release for 0.5.2 until this process is run on purpose. The
+commands below are the `0.4.1` run of this process. Check public registry
+metadata again before calling a later version published.
 
 ## Verify the package people will install
 
