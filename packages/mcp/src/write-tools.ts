@@ -9,6 +9,13 @@ import type {
 import { z } from "zod";
 
 import type { ApprovalRequest, RequestApproval } from "./approval.js";
+import {
+  EVIDENCE_TOOL_SENTENCE,
+  evidenceFields,
+  formatProposalReview,
+  parseCitedEvidence,
+  type SessionReadLog,
+} from "./proposal-evidence.js";
 import type { FhirReadClient, McpReadTool } from "./read-tools.js";
 import { diffSentVsPersisted } from "./read-back.js";
 import {
@@ -116,6 +123,12 @@ export type WriteToolOptions = {
    * Set from LASTEHR_INCLUDE_META_TAG.
    */
   includeMetaTag?: boolean;
+  /**
+   * Resources this MCP session's read tools already returned. One log per
+   * session; absent for an embedder that does not track reads. The approval
+   * text then omits the read list instead of claiming nothing was read.
+   */
+  readLog?: SessionReadLog;
 };
 
 // Mirrors lib/ai/tools.ts input caps (note ≤1000, label ≤120, value within
@@ -128,6 +141,7 @@ const addNoteSchema = z.object({
     .min(1)
     .max(1000)
     .describe("The note text to add to the chart."),
+  ...evidenceFields(),
 });
 
 // The regex alone admits 2026-02-31; round-trip through UTC Date parts so
@@ -159,6 +173,7 @@ const supersedingObservationSchema = z.object({
     .lte(100_000)
     .describe("The corrected numeric value."),
   unit: z.string().min(1).max(20).describe("The unit, e.g. kg."),
+  ...evidenceFields(),
 });
 
 const createTaskSchema = z.object({
@@ -174,6 +189,7 @@ const createTaskSchema = z.object({
     .refine(isRealCalendarDate, "Not a real calendar date.")
     .optional()
     .describe("Optional due date, YYYY-MM-DD."),
+  ...evidenceFields(),
 });
 
 const recordObservationSchema = z.object({
@@ -206,6 +222,7 @@ const recordObservationSchema = z.object({
     .describe(
       "Practitioner id or Practitioner/{id}. Required on the Oracle Health sandbox; filed as legal authenticator.",
     ),
+  ...evidenceFields(),
 });
 
 const DENIED_RESULT = {
@@ -296,6 +313,17 @@ export function createWriteTools(
   }
 
   const decide = (request: ApprovalRequest) => requestApproval(request);
+
+  // The diff is the clinical body the reviewer is deciding on. Audit tags
+  // and the commit-time clock stay off it; they are stamped at save.
+  const renderApproval = (summary: string, proposed: unknown, input: unknown) =>
+    formatProposalReview({
+      summary,
+      proposed,
+      cited: parseCitedEvidence(input),
+      reads: options.readLog?.snapshot(),
+      readsTruncated: options.readLog?.wasTruncated(),
+    });
 
   const vendorOnlyObservation = (): { saved: false; outcome: string } | undefined => {
     const blocked = vendorBlocksTool(options.vendor, "other");
@@ -392,10 +420,11 @@ export function createWriteTools(
       name: "add_note",
       proposesWrite: true,
       description:
-        "Propose adding a free-text note to a patient's chart. The human operator reviews the exact note in an approval prompt; nothing is saved unless they approve.",
+        `Propose adding a free-text note to a patient's chart. The human operator reviews the exact note in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: addNoteSchema,
       async execute(input: unknown) {
-        const { patientId, text } = addNoteSchema.parse(input);
+        const parsed = addNoteSchema.parse(input);
+        const { patientId, text } = parsed;
         const proposal = {
           toolName: "add_note",
           resourceType: "Communication",
@@ -411,11 +440,21 @@ export function createWriteTools(
           title: "Add this note to the chart?",
           // Free text is JSON-quoted so an embedded newline cannot forge a
           // summary line the reviewer misreads as a separate field.
-          summary: [
-            `Patient: Patient/${patientId}`,
-            `Resource: Communication`,
-            `Note: ${JSON.stringify(text)}`,
-          ].join("\n"),
+          summary: renderApproval(
+            [
+              `Patient: Patient/${patientId}`,
+              `Resource: Communication`,
+              `Note: ${JSON.stringify(text)}`,
+            ].join("\n"),
+            {
+              resourceType: "Communication",
+              status: "completed",
+              subject: { reference: `Patient/${patientId}` },
+              sent: "<server time when approved>",
+              payload: [{ contentString: text }],
+            },
+            parsed,
+          ),
         });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
@@ -446,11 +485,11 @@ export function createWriteTools(
       name: "record_observation",
       proposesWrite: true,
       description:
-        "Propose recording a vital sign or lab value on a patient's chart. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve.",
+        `Propose recording a vital sign or lab value on a patient's chart. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: recordObservationSchema,
       async execute(input: unknown) {
-        const { patientId, label, value, unit, encounter, performer } =
-          recordObservationSchema.parse(input);
+        const parsed = recordObservationSchema.parse(input);
+        const { patientId, label, value, unit, encounter, performer } = parsed;
         const proposal = {
           toolName: "record_observation",
           resourceType: "Observation",
@@ -495,22 +534,31 @@ export function createWriteTools(
           .map((coding) => `${coding.code ?? ""}`)
           .filter(Boolean)
           .join(", ");
+        const observationBody: Record<string, unknown> = { ...resource };
+        delete observationBody.meta;
         const decision = await decide({
           title: "Record this observation?",
-          summary: [
-            `Patient: Patient/${patientId}`,
-            `Resource: Observation`,
-            `Label: ${JSON.stringify(label)}`,
-            `Value: ${value} ${JSON.stringify(resource.valueQuantity?.unit ?? unit)}`,
-            ...(codingSummary ? [`Codes: ${codingSummary}`] : []),
-            ...(resource.encounter?.reference
-              ? [`Encounter: ${resource.encounter.reference}`]
-              : []),
-            ...(resource.performer?.[0]?.reference
-              ? [`Performer: ${resource.performer[0].reference} (legal authenticator)`]
-              : []),
-            "Effective time is set when this is approved.",
-          ].join("\n"),
+          summary: renderApproval(
+            [
+              `Patient: Patient/${patientId}`,
+              `Resource: Observation`,
+              `Label: ${JSON.stringify(label)}`,
+              `Value: ${value} ${JSON.stringify(resource.valueQuantity?.unit ?? unit)}`,
+              ...(codingSummary ? [`Codes: ${codingSummary}`] : []),
+              ...(resource.encounter?.reference
+                ? [`Encounter: ${resource.encounter.reference}`]
+                : []),
+              ...(resource.performer?.[0]?.reference
+                ? [`Performer: ${resource.performer[0].reference} (legal authenticator)`]
+                : []),
+              "Effective time is set when this is approved.",
+            ].join("\n"),
+            {
+              ...observationBody,
+              effectiveDateTime: "<server time when approved>",
+            },
+            parsed,
+          ),
         });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
@@ -535,11 +583,11 @@ export function createWriteTools(
       name: "record_superseding_observation",
       proposesWrite: true,
       description:
-        "Propose a new observation that supersedes an earlier one on the same chart, for when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes; the earlier entry is NOT changed, NOT deleted, and NOT marked as an error. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve.",
+        `Propose a new observation that supersedes an earlier one on the same chart, for when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes; the earlier entry is NOT changed, NOT deleted, and NOT marked as an error. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: supersedingObservationSchema,
       async execute(input: unknown) {
-        const { patientId, supersedes, value, unit } =
-          supersedingObservationSchema.parse(input);
+        const parsed = supersedingObservationSchema.parse(input);
+        const { patientId, supersedes, value, unit } = parsed;
         const proposal = {
           toolName: "record_superseding_observation",
           resourceType: "Observation",
@@ -577,15 +625,37 @@ export function createWriteTools(
           ? `${original.valueQuantity.value ?? ""} ${original.valueQuantity.unit ?? ""}`.trim()
           : "(no value)";
 
+        options.readLog?.noteResource("record_superseding_observation", original);
         const decision = await decide({
           title: "File a superseding observation?",
-          summary: [
-            `Patient: Patient/${patientId}`,
-            `Resource: Observation`,
-            `Supersedes: Observation/${supersedes} — ${JSON.stringify(`${priorLabel} ${priorValue}`)}`,
-            `New value: ${value} ${JSON.stringify(unit)}`,
-            "The earlier entry stays on the chart as a final result. This does not mark it as an error and does not delete it.",
-          ].join("\n"),
+          summary: renderApproval(
+            [
+              `Patient: Patient/${patientId}`,
+              `Resource: Observation`,
+              `Supersedes: Observation/${supersedes} — ${JSON.stringify(`${priorLabel} ${priorValue}`)}`,
+              `New value: ${value} ${JSON.stringify(unit)}`,
+              "The earlier entry stays on the chart as a final result. This does not mark it as an error and does not delete it.",
+            ].join("\n"),
+            {
+              resourceType: "Observation",
+              status: "final",
+              code: original.code ?? { text: priorLabel },
+              ...(original.category ? { category: original.category } : {}),
+              subject: { reference: `Patient/${patientId}` },
+              ...(original.effectiveDateTime
+                ? { effectiveDateTime: original.effectiveDateTime }
+                : {}),
+              issued: "<server time when approved>",
+              valueQuantity: { value, unit },
+              extension: [
+                {
+                  url: OBSERVATION_REPLACES_EXTENSION,
+                  valueReference: { reference: `Observation/${supersedes}` },
+                },
+              ],
+            },
+            parsed,
+          ),
         });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
@@ -637,11 +707,11 @@ export function createWriteTools(
       name: "create_task",
       proposesWrite: true,
       description:
-        "Propose creating a follow-up task on a patient's chart (what needs to happen, optionally by when). The human operator reviews the exact task in an approval prompt; nothing is saved unless they approve.",
+        `Propose creating a follow-up task on a patient's chart (what needs to happen, optionally by when). The human operator reviews the exact task in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: createTaskSchema,
       async execute(input: unknown) {
-        const { patientId, description, dueDate } =
-          createTaskSchema.parse(input);
+        const parsed = createTaskSchema.parse(input);
+        const { patientId, description, dueDate } = parsed;
         const proposal = {
           toolName: "create_task",
           resourceType: "Task",
@@ -653,14 +723,28 @@ export function createWriteTools(
         if (taskBlocked) return taskBlocked;
         const decision = await decide({
           title: "Create this task?",
-          summary: [
-            `Patient: Patient/${patientId}`,
-            `Resource: Task`,
-            `Task: ${JSON.stringify(description)}`,
-            // The exact stored value, so the reviewer sees the end-of-day
-            // UTC normalization rather than discovering it on the chart.
-            ...(dueDate ? [`Due: ${dueDate} (saves as ${dueDate}T23:59:59Z)`] : []),
-          ].join("\n"),
+          summary: renderApproval(
+            [
+              `Patient: Patient/${patientId}`,
+              `Resource: Task`,
+              `Task: ${JSON.stringify(description)}`,
+              // The exact stored value, so the reviewer sees the end-of-day
+              // UTC normalization rather than discovering it on the chart.
+              ...(dueDate ? [`Due: ${dueDate} (saves as ${dueDate}T23:59:59Z)`] : []),
+            ].join("\n"),
+            {
+              resourceType: "Task",
+              status: "requested",
+              intent: "order",
+              description,
+              for: { reference: `Patient/${patientId}` },
+              authoredOn: "<server time when approved>",
+              ...(dueDate
+                ? { restriction: { period: { end: `${dueDate}T23:59:59Z` } } }
+                : {}),
+            },
+            parsed,
+          ),
         });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;

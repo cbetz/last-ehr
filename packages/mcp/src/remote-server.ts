@@ -27,6 +27,7 @@ import {
   createOAuthTokenVerifier,
   type OAuthTokenVerifier,
 } from "./oauth-verifier.js";
+import { SessionReadLog } from "./proposal-evidence.js";
 import { createReadTools } from "./read-tools.js";
 import { buildResourceMetadata } from "./resource-metadata.js";
 import { createMcpServer } from "./server.js";
@@ -895,15 +896,19 @@ export function createRemoteMcpHandler(
       // the process client. The capability gate lives inside createMcpServer
       // and is re-evaluated per request against THIS session's Server, which
       // captured THIS client's declared capabilities at initialize.
+      // One log per caller. A process-wide log would show one session the
+      // resources another caller had read.
+      const readLog = new SessionReadLog();
       const tools = createReadTools(session.fhir.client);
       session.server = createMcpServer(tools, {
+        readLog,
         writeTools:
           config.writePolicy === "proposal"
             ? (liveServer) =>
                 createWriteTools(
                   session.fhir.client,
                   createElicitationApproval(liveServer),
-                  writeToolOptionsFromConfig(config),
+                  { ...writeToolOptionsFromConfig(config), readLog },
                 )
             : undefined,
       });

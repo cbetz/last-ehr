@@ -318,6 +318,13 @@ The profile is a binding of the repository's framework-neutral
 - **What you see is what saves.** The elicitation message contains the exact
   proposed fields; the committed resource is built from the same parsed
   input, with the same caps as the web demo's tools.
+- **Evidence beside the diff.** Each write tool takes an optional `evidence`
+  or `basedOn` list of `ResourceType/id` values, with an optional short
+  reason. Calls that omit it still propose the write. The approval prompt
+  includes a diff of the proposed resource, the cited list, and the
+  resources this session's read tools returned before the proposal. A
+  proposal with no citation says so. Citations are not stored on the
+  resource. A missing citation does not approve or deny the write.
 - **Tagged for audit.** Approved writes carry
   `meta.tag {https://lastehr.com/mcp | approved-proposal}` so operators can
   find every agent-written record with one `_tag` search, plus the standard

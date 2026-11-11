@@ -118,7 +118,9 @@ function textResponse(text: string) {
  * quickstart. It always demonstrates the same synthetic sequence:
  * search Maria Garcia -> propose a heart-rate Observation -> wait for approval
  * -> report the outcome. It is not an LLM and intentionally does not interpret
- * arbitrary chart data or user prompts.
+ * arbitrary chart data or user prompts. The proposal cites no chart resource
+ * on purpose: the only prior read is the name search, so the approval card
+ * flags the missing citation next to that read.
  */
 export function createScriptedDemoModel(
   scenario: ScriptedDemoScenario = {},

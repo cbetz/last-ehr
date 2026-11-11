@@ -11,6 +11,10 @@ import {
   createChartReader,
   toPatientSummary,
 } from "@/packages/mcp/src/chart-read";
+import {
+  EVIDENCE_TOOL_SENTENCE,
+  evidenceFields,
+} from "@/packages/mcp/src/proposal-evidence";
 import { AIAST_LABEL, PROVENANCE_PARTICIPANT_TYPE } from "@/lib/fhir/labels";
 import {
   codeObservation,
@@ -58,7 +62,8 @@ const writeSectionFooter = (enabled: readonly WriteToolName[]): string =>
     .map((name) => WRITE_ACTION_PHRASES[name])
     .join(
       " or ",
-    )}, call the tool directly to propose the write. Do not ask "shall I?" or ask for confirmation in text first: the user is shown a confirmation card and nothing is saved until they approve it there. Only ask the user something if a required detail is missing (which patient, or the value and unit).`;
+    )}, call the tool directly to propose the write. Do not ask "shall I?" or ask for confirmation in text first: the user is shown a confirmation card and nothing is saved until they approve it there. Only ask the user something if a required detail is missing (which patient, or the value and unit).
+- On every proposed write, pass evidence: an array of { reference, reason } for the chart resources you relied on. reference is ResourceType/id copied from a prior tool result in this conversation, for example Observation/123. basedOn is the same list. Do not invent references. If you omit the list, the confirmation card says that no evidence was cited. The card also lists resources already read in the conversation.`;
 
 const WRITES_DISABLED_SECTION =
   "Writing to the chart is disabled in this deployment. If the user asks to save something, explain that writes are turned off here; never pretend a write happened.";
@@ -420,7 +425,7 @@ export function buildTools(
     }),
     add_note: tool({
       description:
-        "Add a free-text clinical note to a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search.",
+        `Add a free-text clinical note to a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: z.object({
         patientId: z
           .string()
@@ -432,6 +437,7 @@ export function buildTools(
           .min(1)
           .max(1000)
           .describe("The note text to add to the chart."),
+        ...evidenceFields(),
       }),
       // A literal true, never a policy function: the SDK enqueues the
       // tool-call chunk before the approval check, so a throw here would
@@ -464,7 +470,7 @@ export function buildTools(
     }),
     record_observation: tool({
       description:
-        "Record a clinical observation (a vital sign or lab value) on a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search.",
+        `Record a clinical observation (a vital sign or lab value) on a patient's chart. Requires user approval before saving. Use the patient's resource id from a prior search. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: z.object({
         patientId: z
           .string()
@@ -504,6 +510,7 @@ export function buildTools(
           .describe(
             "Practitioner id or Practitioner/{id}. Required on the Oracle Health sandbox; filed as legal authenticator (LA).",
           ),
+        ...evidenceFields(),
       }),
       needsApproval: true,
       execute: async ({ patientId, label, value, unit, encounter, performer }) => {
@@ -547,7 +554,7 @@ export function buildTools(
     }),
     record_superseding_observation: tool({
       description:
-        "Propose a new observation that supersedes an earlier one on the same chart — use when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes. The earlier entry is NOT changed, NOT deleted, and NOT marked as an error; it stays on the chart as a final result. Pass the earlier observation's resource id from a prior read. Requires user approval before saving.",
+        `Propose a new observation that supersedes an earlier one on the same chart — use when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes. The earlier entry is NOT changed, NOT deleted, and NOT marked as an error; it stays on the chart as a final result. Pass the earlier observation's resource id from a prior read. Requires user approval before saving. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: z.object({
         patientId: z
           .string()
@@ -571,6 +578,7 @@ export function buildTools(
           .min(1)
           .max(20)
           .describe("The unit for the corrected value, e.g. 'kg'."),
+        ...evidenceFields(),
       }),
       needsApproval: true,
       execute: async ({ patientId, supersedes, value, unit }) => {
@@ -654,7 +662,7 @@ export function buildTools(
     }),
     create_task: tool({
       description:
-        "Create a follow-up task on a patient's chart (what needs to happen, optionally by when). Requires user approval before saving. Use the patient's resource id from a prior search.",
+        `Create a follow-up task on a patient's chart (what needs to happen, optionally by when). Requires user approval before saving. Use the patient's resource id from a prior search. ${EVIDENCE_TOOL_SENTENCE}`,
       inputSchema: z.object({
         patientId: z
           .string()
@@ -672,6 +680,7 @@ export function buildTools(
           .refine(isRealCalendarDate, "Not a real calendar date.")
           .optional()
           .describe("Optional due date, YYYY-MM-DD."),
+        ...evidenceFields(),
       }),
       needsApproval: true,
       execute: async ({ patientId, description, dueDate }) => {

@@ -5,6 +5,7 @@ import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { Resource } from "@medplum/fhirtypes";
 
 import { createElicitationApproval } from "./approval.js";
+import { SessionReadLog } from "./proposal-evidence.js";
 import { createReadTools } from "./read-tools.js";
 import { createMcpServer } from "./server.js";
 import {
@@ -25,10 +26,20 @@ type ElicitAnswer =
   | { action: "decline" }
   | { action: "cancel" };
 
-function fakeWriteClient({ failProvenance = false } = {}) {
+function fakeWriteClient({
+  failProvenance = false,
+  patients = [] as Resource[],
+} = {}) {
   const created: Resource[] = [];
   const client: FhirWriteClient = {
-    async search() {
+    async search(resourceType: string) {
+      if (resourceType === "Patient") {
+        return {
+          resourceType: "Bundle",
+          type: "searchset",
+          entry: patients.map((resource) => ({ resource })),
+        } as never;
+      }
       return { resourceType: "Bundle", type: "searchset" } as never;
     },
     async searchResources(_type: unknown, params?: Record<string, string>) {
@@ -59,16 +70,23 @@ async function connect({
   answer,
   writeOptions,
   failProvenance,
+  patients,
 }: {
   elicitation: boolean;
   answer?: ElicitAnswer | (() => Promise<ElicitAnswer>) | undefined;
   writeOptions?: WriteToolOptions;
   failProvenance?: boolean;
+  patients?: Resource[];
 }) {
-  const { client: fhir, created } = fakeWriteClient({ failProvenance });
+  const { client: fhir, created } = fakeWriteClient({ failProvenance, patients });
+  const readLog = new SessionReadLog();
   const server = createMcpServer(createReadTools(fhir), {
+    readLog,
     writeTools: (liveServer) =>
-      createWriteTools(fhir, createElicitationApproval(liveServer), writeOptions),
+      createWriteTools(fhir, createElicitationApproval(liveServer), {
+        ...writeOptions,
+        readLog,
+      }),
   });
 
   const mcpClient = new Client(
@@ -91,7 +109,7 @@ async function connect({
     server.connect(serverTransport),
     mcpClient.connect(clientTransport),
   ]);
-  return { mcpClient, created, prompts };
+  return { mcpClient, created, prompts, readLog };
 }
 
 const NOTE_ARGS = { patientId: "p1", text: "Patient reports feeling well." };
@@ -175,9 +193,12 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     // Provenance is opt-in; off by default.
     expect(created).toHaveLength(1);
 
-    // The human saw the exact fields that saved.
+    // The human saw the exact fields that saved, the proposed diff, and a
+    // flag because this call cited nothing.
     expect(prompts[0]).toContain(NOTE_ARGS.text);
     expect(prompts[0]).toContain("Patient/p1");
+    expect(prompts[0]).toContain("+++ proposed Communication");
+    expect(prompts[0]).toContain("No cited evidence.");
     expect(prompts[0]).toContain("Nothing is saved unless you approve.");
 
     expect(JSON.parse(result.content[0].text)).toMatchObject({
@@ -526,5 +547,126 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
       saved: true,
       resourceType: "Communication",
     });
+  });
+
+  it("lists evidence on the tool schema without requiring it", async () => {
+    const { mcpClient } = await connect({ elicitation: true });
+    const addNote = (await mcpClient.listTools()).tools.find(
+      (tool) => tool.name === "add_note",
+    );
+    const schema = addNote?.inputSchema as {
+      properties?: Record<string, { description?: string }>;
+      required?: string[];
+    };
+    expect(schema.properties?.evidence?.description).toContain("Observation/123");
+    expect(schema.properties?.basedOn).toBeDefined();
+    expect(schema.required ?? []).not.toContain("evidence");
+    expect(schema.required ?? []).not.toContain("basedOn");
+    expect(addNote?.description).toContain("evidence");
+  });
+
+  it("shows a cited read beside the diff and does not save the citation", async () => {
+    const { mcpClient, created, prompts, readLog } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+    });
+    readLog.record("read_chart_section", {
+      resourceType: "Observation",
+      entries: [
+        {
+          id: "hr-1",
+          text: "<chart_text>Heart rate 72 /min</chart_text>",
+          date: "2026-01-02",
+        },
+      ],
+    });
+    await mcpClient.callTool({
+      name: "add_note",
+      arguments: {
+        ...NOTE_ARGS,
+        evidence: [
+          { reference: "Observation/hr-1", reason: "prior rate on the chart" },
+        ],
+      },
+    });
+    expect(prompts[0]).toContain("+++ proposed Communication");
+    expect(prompts[0]).toContain("Observation/hr-1");
+    expect(prompts[0]).toContain("prior rate on the chart");
+    expect(prompts[0]).toContain("Heart rate 72 /min");
+    expect(prompts[0]).not.toContain("<chart_text>");
+    expect(prompts[0]).not.toContain("No cited evidence.");
+    const saved = JSON.stringify(created[0]);
+    expect(saved).not.toContain("prior rate on the chart");
+    expect(saved).not.toContain("evidence");
+    expect(saved).not.toContain("hr-1");
+  });
+
+  it("accepts basedOn and marks a citation the session did not read", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "decline" },
+    });
+    await mcpClient.callTool({
+      name: "add_note",
+      arguments: { ...NOTE_ARGS, basedOn: ["Observation/made-up"] },
+    });
+    expect(created).toHaveLength(0);
+    expect(prompts[0]).toContain("Observation/made-up");
+    expect(prompts[0]).toContain("Not in this session's reads.");
+    expect(prompts[0]).not.toContain("No cited evidence.");
+  });
+
+  it("rejects a malformed citation before asking for approval", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+    });
+    const result = await mcpClient.callTool({
+      name: "add_note",
+      arguments: {
+        ...NOTE_ARGS,
+        evidence: [{ reference: "not a reference" }],
+      },
+    });
+    expect(result.isError).toBe(true);
+    expect(created).toHaveLength(0);
+    expect(prompts).toHaveLength(0);
+  });
+
+  it("logs a read made through the server onto the next proposal", async () => {
+    const { mcpClient, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "decline" },
+      patients: [
+        {
+          resourceType: "Patient",
+          id: "maria-1",
+          name: [{ family: "Garcia", given: ["Maria"] }],
+        },
+      ],
+    });
+    await mcpClient.callTool({
+      name: "search_patients",
+      arguments: { name: "Maria" },
+    });
+    await mcpClient.callTool({ name: "add_note", arguments: NOTE_ARGS });
+    expect(prompts[0]).toContain("Patient/maria-1");
+    expect(prompts[0]).toContain("Garcia");
+    expect(prompts[0]).toContain("No cited evidence.");
+    expect(prompts[0]).toContain("+++ proposed Communication");
+  });
+
+  it("does not show another session's reads on this proposal", async () => {
+    const first = await connect({ elicitation: true, answer: { action: "decline" } });
+    first.readLog.record("read_chart_section", {
+      resourceType: "Observation",
+      entries: [{ id: "secret-row", text: "Heart rate 72 /min" }],
+    });
+    const second = await connect({ elicitation: true, answer: { action: "decline" } });
+    await second.mcpClient.callTool({ name: "add_note", arguments: NOTE_ARGS });
+    expect(second.prompts[0]).not.toContain("secret-row");
+    expect(second.prompts[0]).toContain(
+      "No chart resources were read in this session before this proposal.",
+    );
   });
 });

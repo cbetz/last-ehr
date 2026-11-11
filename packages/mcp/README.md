@@ -18,8 +18,11 @@ Read-only by default, and the reads are the same ones the Last EHR web agent
 uses: search patients, show a whole chart, read any of 23 patient-scoped chart
 sections with filters, and read a document's text. One opt-in,
 `LASTEHR_MCP_WRITES=proposal`, adds elicitation-gated write proposals a human
-approves per action. Nothing is ever saved without that explicit approval, and
-the write tools are hidden from clients that cannot render approvals.
+approves per action. The approval prompt shows a diff of the proposed
+resource beside any resources the agent cited (`evidence` or `basedOn`) and
+the resources that session already read. A proposal that cites nothing says
+so. Nothing is ever saved without that explicit approval, and the write
+tools are hidden from clients that cannot render approvals.
 
 The registry metadata lives in [`server.json`](./server.json) and is published
 alongside each verified npm release.
