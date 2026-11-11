@@ -197,6 +197,8 @@ MEDPLUM_ACCESS_TOKEN=...
 
 Set `MEDPLUM_BASE_URL` for self-hosted Medplum.
 
+The stdio server answers `initialize` and `tools/list` when these are missing or still the `<replace-...>` placeholder from `init`, so a directory can show the catalog. The first tool call names the missing or invalid variable and points at `npx @lastehr/mcp init` and `npx @lastehr/mcp doctor`. `doctor` still rejects a missing credential. Nothing is written without a valid configuration and a human approval.
+
 ### Check the connection
 
 `doctor` validates configuration without making a network request:

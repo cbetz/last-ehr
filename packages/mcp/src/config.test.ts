@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { McpConfigurationError, loadMcpConfig } from "./config.js";
+import {
+  McpConfigurationError,
+  loadMcpConfig,
+  medplumCredentialProblem,
+} from "./config.js";
 
 describe("MCP runtime configuration", () => {
   it("accepts a single Medplum access token", () => {
@@ -269,6 +273,25 @@ describe("MCP transport selection", () => {
     expect(() => loadMcpConfig({})).toThrow(/MEDPLUM_ACCESS_TOKEN/);
   });
 
+  it("lets the stdio server load with no credential so tools/list can run", () => {
+    expect(loadMcpConfig({}, { allowMissingStdioCredentials: true })).toMatchObject({
+      backend: "medplum",
+      transport: "stdio",
+      accessToken: undefined,
+      clientId: undefined,
+      writePolicy: "read-only",
+    });
+  });
+
+  it("still rejects a bad write policy when the credential check is deferred", () => {
+    expect(() =>
+      loadMcpConfig(
+        { LASTEHR_MCP_WRITES: "yes" },
+        { allowMissingStdioCredentials: true },
+      ),
+    ).toThrow(/only accepted/);
+  });
+
   it("binds loopback unless an operator names another host", () => {
     expect(loadMcpConfig(HTTP_ENV).http?.host).toBe("127.0.0.1");
     expect(
@@ -304,5 +327,62 @@ describe("MCP transport selection", () => {
     expect(
       loadMcpConfig({ ...HTTP_ENV, LASTEHR_MCP_WRITES: "proposal" }).writePolicy,
     ).toBe("proposal");
+  });
+});
+
+describe("stdio credential messages", () => {
+  const placeholder = "<replace-with-a-least-privilege-token>";
+
+  it("names a missing access token and points at init and doctor", () => {
+    const message = medplumCredentialProblem(
+      loadMcpConfig({}, { allowMissingStdioCredentials: true }),
+    );
+    expect(message).toContain("MEDPLUM_ACCESS_TOKEN is missing");
+    expect(message).toContain("npx @lastehr/mcp init");
+    expect(message).toContain("npx @lastehr/mcp doctor");
+  });
+
+  it("names an unreplaced placeholder without echoing it", () => {
+    const message = medplumCredentialProblem(
+      loadMcpConfig({ MEDPLUM_ACCESS_TOKEN: `"${placeholder}"` }),
+    );
+    expect(message).toContain("MEDPLUM_ACCESS_TOKEN is invalid");
+    expect(message).toContain("npx @lastehr/mcp init");
+    expect(message).toContain("npx @lastehr/mcp doctor");
+    expect(message).not.toContain(placeholder);
+  });
+
+  it("leaves a non-placeholder token, client credentials, and HAPI alone", () => {
+    expect(
+      medplumCredentialProblem(loadMcpConfig({ MEDPLUM_ACCESS_TOKEN: "synthetic-token" })),
+    ).toBeUndefined();
+    expect(
+      medplumCredentialProblem(
+        loadMcpConfig({
+          MEDPLUM_CLIENT_ID: "client-id",
+          MEDPLUM_CLIENT_SECRET: "client-secret",
+        }),
+      ),
+    ).toBeUndefined();
+    expect(
+      medplumCredentialProblem(
+        loadMcpConfig({
+          FHIR_BACKEND: "hapi",
+          FHIR_BASE_URL: "http://localhost:8080/fhir",
+        }),
+      ),
+    ).toBeUndefined();
+    expect(
+      medplumCredentialProblem(
+        loadMcpConfig({
+          LASTEHR_MCP_TRANSPORT: "http",
+          LASTEHR_MCP_RESOURCE: "https://mcp.example.test/mcp",
+          LASTEHR_MCP_OAUTH_ISSUER: "https://auth.example.test/",
+          LASTEHR_MCP_OAUTH_JWKS_URI: "https://auth.example.test/jwks.json",
+          LASTEHR_MCP_EXCHANGE_CLIENT_ID: "client",
+          LASTEHR_MCP_TOKEN_ENDPOINT: "https://fhir.example.test/oauth2/token",
+        }),
+      ),
+    ).toBeUndefined();
   });
 });

@@ -78,6 +78,30 @@ describe("MCP CLI transport dispatch", () => {
     expect(startRemoteMcpServer).not.toHaveBeenCalled();
   });
 
+  it("serve with no credential still starts stdio so tools/list can run", async () => {
+    await runCli(["serve"], EMPTY_ENV);
+    expect(startMcpServer).toHaveBeenCalledOnce();
+    expect(startRemoteMcpServer).not.toHaveBeenCalled();
+  });
+
+  it("serve still refuses an incomplete remote transport", async () => {
+    await expect(
+      runCli(["serve"], { LASTEHR_MCP_TRANSPORT: "http" } as unknown as NodeJS.ProcessEnv),
+    ).rejects.toThrow(/LASTEHR_MCP_TRANSPORT=http requires/);
+    expect(startRemoteMcpServer).not.toHaveBeenCalled();
+    expect(startMcpServer).not.toHaveBeenCalled();
+  });
+
+  it("serve still refuses a write policy other than proposal", async () => {
+    await expect(
+      runCli(["serve"], {
+        MEDPLUM_ACCESS_TOKEN: "t",
+        LASTEHR_MCP_WRITES: "yes",
+      } as unknown as NodeJS.ProcessEnv),
+    ).rejects.toThrow(/only accepted/);
+    expect(startMcpServer).not.toHaveBeenCalled();
+  });
+
   it("doctor reports per-caller OAuth for an http configuration", async () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     await runCli(["doctor"], HTTP_ENV);
@@ -161,6 +185,12 @@ describe("MCP CLI doctor", () => {
 
   it.each([{ args: ["--unknown"] }, { args: ["--connect", "--connect"] }])("rejects unsupported doctor arguments", async ({ args }) => {
     await expect(runCli(["doctor", ...args], EMPTY_ENV)).rejects.toThrow("doctor accepts only --connect");
+  });
+
+  it("still rejects a missing credential from doctor", async () => {
+    await expect(runCli(["doctor"], EMPTY_ENV)).rejects.toThrow(
+      /configuration is invalid/,
+    );
   });
 
   it("withholds invalid configuration values from thrown CLI diagnostics", async () => {

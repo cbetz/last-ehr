@@ -1,6 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import {
-  existsSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -10,9 +9,14 @@ import {
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { READ_TOOL_NAMES } from "./read-tools.js";
 import { MCP_SERVER_VERSION } from "./server.js";
+import { WRITE_TOOL_NAMES } from "./write-tools.js";
 
 // The CLI only auto-runs when it IS the process entry point, so importing it
 // for a unit test does not start a server. Getting that check wrong is silent:
@@ -47,16 +51,73 @@ function doctor(args: string[], settings: Record<string, string>) {
   }
 }
 
+const PLACEHOLDER = "<replace-with-a-least-privilege-token>";
+
+function toolText(result: { content?: unknown }): string {
+  if (!Array.isArray(result.content)) return "";
+  return result.content
+    .map((item) =>
+      item && typeof item === "object" && "text" in item && typeof item.text === "string"
+        ? item.text
+        : "",
+    )
+    .join("\n");
+}
+
+/**
+ * Spawn the built CLI the way a directory sandbox does: a clean cwd, so a
+ * checkout .env cannot supply a real token, and an explicit env.
+ */
+async function withSpawnedServer(
+  env: Record<string, string>,
+  elicitation: boolean,
+  run: (
+    client: Client,
+    stderr: () => string,
+    prompts: string[],
+  ) => Promise<void>,
+) {
+  const cwd = mkdtempSync(join(tmpdir(), "lastehr-catalog-"));
+  const stderrChunks: string[] = [];
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: [dist],
+    cwd,
+    env,
+    stderr: "pipe",
+  });
+  transport.stderr?.on("data", (chunk: Buffer | string) => {
+    stderrChunks.push(String(chunk));
+  });
+  const client = new Client(
+    { name: "catalog-spawn", version: "0" },
+    { capabilities: elicitation ? { elicitation: {} } : {} },
+  );
+  const prompts: string[] = [];
+  if (elicitation) {
+    client.setRequestHandler(ElicitRequestSchema, async () => {
+      prompts.push("approval");
+      return { action: "decline" };
+    });
+  }
+  try {
+    await client.connect(transport);
+    await run(client, () => stderrChunks.join(""), prompts);
+  } finally {
+    await client.close().catch(() => {});
+    rmSync(cwd, { recursive: true, force: true });
+  }
+}
+
 describe("the built CLI actually runs", () => {
-  // These exercise the compiled artifact, so they need it to exist. CI runs
-  // `npm test` BEFORE `npm run build`, and a contributor may not have built
-  // either, so the suite builds on demand rather than depending on step order —
-  // skipping instead would make it pass silently in exactly that case.
+  // These exercise the compiled artifact. CI runs `npm test` before
+  // `npm run build`, and a dist left from an older source would hide a
+  // startup exit, so this always rebuilds.
   beforeAll(() => {
-    if (existsSync(dist)) return;
     execFileSync("npm", ["run", "build", "--workspace=@lastehr/mcp"], {
       cwd: resolve(import.meta.dirname, "../../.."),
-      stdio: "ignore",
+      encoding: "utf8",
+      stdio: "pipe",
     });
   }, 120_000);
 
@@ -110,4 +171,75 @@ describe("the built CLI actually runs", () => {
     expect(result.stderr).not.toContain("github.com/cbetz/last-ehr");
     expect(result.stderr).not.toMatch(/private-doctor-path|127\.0\.0\.1|TypeError|fetch failed/);
   });
+
+  it("doctor still rejects a missing credential and still accepts a placeholder until --connect", () => {
+    const missing = doctor([], {});
+    expect(missing.status).toBe(1);
+    expect(missing.stdout).toBe("");
+    expect(missing.stderr).toContain("configuration is invalid");
+
+    const placeholder = doctor([], { MEDPLUM_ACCESS_TOKEN: PLACEHOLDER });
+    expect(placeholder.status).toBe(0);
+    expect(placeholder.stdout).toBe("");
+    expect(placeholder.stderr).toContain("access token");
+    expect(placeholder.stderr).not.toContain(PLACEHOLDER);
+  });
+
+  it.each([
+    { label: "no env", env: {} as Record<string, string>, needle: "MEDPLUM_ACCESS_TOKEN is missing" },
+    {
+      label: "placeholder token",
+      env: { MEDPLUM_ACCESS_TOKEN: PLACEHOLDER },
+      needle: "MEDPLUM_ACCESS_TOKEN is invalid",
+    },
+  ])("stdio tools/list returns every read tool for $label", async ({ env, needle }) => {
+    await withSpawnedServer(env, false, async (client, stderr) => {
+      const { tools } = await client.listTools();
+      expect(tools.map((tool) => tool.name)).toEqual([...READ_TOOL_NAMES]);
+      for (const tool of tools) {
+        expect(tool.description.length).toBeGreaterThan(0);
+        expect(tool.inputSchema).toMatchObject({ type: "object" });
+        expect(tool.inputSchema).toHaveProperty("properties");
+        expect(tool.annotations).toMatchObject({ readOnlyHint: true });
+      }
+
+      const result = await client.callTool({
+        name: "search_patients",
+        arguments: { name: "Ada Lovelace" },
+      });
+      expect(result.isError).toBe(true);
+      const text = toolText(result);
+      expect(text).toContain(needle);
+      expect(text).toContain("npx @lastehr/mcp init");
+      expect(text).toContain("npx @lastehr/mcp doctor");
+      expect(text).not.toContain(PLACEHOLDER);
+      expect(stderr()).toContain("read-only tools");
+      expect(stderr()).not.toContain(PLACEHOLDER);
+    });
+  }, 20_000);
+
+  it("lists write tools over stdio and does not ask for approval without a credential", async () => {
+    await withSpawnedServer({ LASTEHR_MCP_WRITES: "proposal" }, true, async (client, _stderr, prompts) => {
+      const { tools } = await client.listTools();
+      expect(tools.map((tool) => tool.name)).toEqual([
+        ...READ_TOOL_NAMES,
+        ...WRITE_TOOL_NAMES,
+      ]);
+      for (const tool of tools) {
+        const write = (WRITE_TOOL_NAMES as readonly string[]).includes(tool.name);
+        expect(tool.annotations).toMatchObject(
+          write
+            ? { readOnlyHint: false, destructiveHint: false }
+            : { readOnlyHint: true },
+        );
+      }
+      const result = await client.callTool({
+        name: "add_note",
+        arguments: { patientId: "patient-synthetic", text: "Synthetic note." },
+      });
+      expect(result.isError).toBe(true);
+      expect(toolText(result)).toContain("MEDPLUM_ACCESS_TOKEN is missing");
+      expect(prompts).toEqual([]);
+    });
+  }, 20_000);
 });
