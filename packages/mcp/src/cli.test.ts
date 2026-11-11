@@ -224,7 +224,7 @@ describe("CLI terminal pointers", () => {
 
     setTty(true);
     io.clear();
-    await runCli(["init", "--client", "json"], { LASTEHR_QUIET: "1" } as NodeJS.ProcessEnv);
+    await runCli(["init", "--client", "json"], { LASTEHR_QUIET: "1" } as unknown as NodeJS.ProcessEnv);
     const stdout = io.text(io.stdout);
     expect(stdout).toBe(renderInit("json"));
     expect(JSON.parse(stdout).mcpServers.lastehr.command).toBe("npx");
@@ -242,7 +242,7 @@ describe("CLI terminal pointers", () => {
     io.clear();
     await runCli(
       ["init", "--client", "claude-code", "--backend", "epic"],
-      { LASTEHR_QUIET: "1" } as NodeJS.ProcessEnv,
+      { LASTEHR_QUIET: "1" } as unknown as NodeJS.ProcessEnv,
     );
     expect(io.text(io.stdout)).toBe(renderInit("claude-code", "epic"));
     expect(io.text(io.stderr)).toBe(`${sandboxGuide("epic")}\n`);

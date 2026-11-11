@@ -374,7 +374,7 @@ describe("doctor terminal pointer", () => {
       expect(tty).toHaveBeenCalledWith(doctorNextStep(ok));
 
       const quiet = vi.fn();
-      writeDoctorNextStep(ok, { LASTEHR_QUIET: "1" } as NodeJS.ProcessEnv, {
+      writeDoctorNextStep(ok, { LASTEHR_QUIET: "1" } as unknown as NodeJS.ProcessEnv, {
         isTTY: true,
         write: quiet,
       });

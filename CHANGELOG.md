@@ -3,6 +3,30 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.5.2 — prepared, not published
+
+`@lastehr/mcp` `0.5.2` points `init` and `doctor` at the repository from
+stderr ([#226](https://github.com/cbetz/last-ehr/pull/226)). This version
+bump is not on npm, and there is no git tag. npm `latest` stays
+`@lastehr/mcp@0.5.1`. `mcpName` stays `io.github.cbetz/last-ehr`. Publication
+stays on the [release process](./docs/releasing-mcp.md). Draft notes:
+[docs/releases/mcp-0.5.2.md](./docs/releases/mcp-0.5.2.md).
+
+- When stderr is a terminal, `init` prints the next `doctor` command, the
+  docs URL, and https://github.com/cbetz/last-ehr. A passing `doctor` prints
+  the repository line. A failing `doctor` points at the issues URL.
+  `LASTEHR_QUIET=1` or a non-terminal stderr omits the lines. `init` stdout
+  is unchanged. The stdio server does not print them.
+- The site adds an alphabetical, sourced comparison of open-source FHIR MCP
+  servers and a public homepage FAQ
+  ([#225](https://github.com/cbetz/last-ehr/pull/225)).
+- The homepage plays the 90-second approve-and-decline recording
+  ([#224](https://github.com/cbetz/last-ehr/pull/224)). That recording,
+  poster, captions, and FHIR proof were re-captured from clean source
+  `fb2473246c59` / published `@lastehr/mcp@0.5.1`
+  ([#222](https://github.com/cbetz/last-ehr/pull/222)). Synthetic HAPI data.
+- Not a clinical, regulatory, or compliance claim.
+
 ## 0.5.1 — 2026-11-05
 
 `@lastehr/mcp` `0.5.1` is npm `latest`. It corrects the sandbox write bodies
@@ -49,16 +73,6 @@ npm `latest` is `0.5.1`. Notes:
 
 ## Unreleased
 
-- `init` and `doctor` print a short stderr pointer to the docs and
-  https://github.com/cbetz/last-ehr when stderr is a terminal. A failing
-  `doctor` points at the issues URL. `LASTEHR_QUIET=1` hides the pointer.
-  `init` stdout is unchanged.
-- The public 90-second synthetic approval recording, poster, captions, and
-  FHIR proof were re-recorded from clean source `fb2473246c59` /
-  published `@lastehr/mcp@0.5.1` (git tag `mcp-v0.5.1`). The earlier public file was the
-  October 23 take from `f36d05d` / `0.4.0`. This is a persistence walkthrough
-  on synthetic HAPI data. It is not a clinical, regulatory, or compliance
-  claim.
 - Epic and Oracle Health sandbox adapters, still off unless
   `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1`. SMART Backend Services
   (`client_credentials`, `private_key_jwt`, RS384) is configured with
