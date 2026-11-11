@@ -49,25 +49,25 @@ export const TOOL_CATALOG: readonly CatalogTool[] = [
     name: "add_note",
     kind: "proposal",
     detail:
-      "Propose a free-text clinical note; a human approves the exact text before it saves.",
+      "Propose a free-text clinical note. The approval shows the proposed diff beside cited and session-read resources, and flags a proposal that cites none.",
   },
   {
     name: "record_observation",
     kind: "proposal",
     detail:
-      "Propose a measurement. A recognized vital gains LOINC and UCUM coding from a pinned table; an unrecognized label stays honestly uncoded.",
+      "Propose a measurement. A recognized vital gains LOINC and UCUM coding from a pinned table; an unrecognized label stays honestly uncoded. The approval shows that body as a diff beside cited and session-read resources.",
   },
   {
     name: "record_superseding_observation",
     kind: "proposal",
     detail:
-      "Correct a wrong value without an update: the new entry is filed linked to the one it supersedes, and the approval card states that the earlier entry stays on the chart.",
+      "Correct a wrong value without an update: the new entry is filed linked to the one it supersedes, and the approval card states that the earlier entry stays on the chart. The earlier row is listed with the other resources read before the proposal.",
   },
   {
     name: "create_task",
     kind: "proposal",
     detail:
-      "Propose a follow-up task, optionally with a due date, behind the same approval gate.",
+      "Propose a follow-up task, optionally with a due date. The approval shows the proposed diff beside cited and session-read resources, and flags a proposal that cites none.",
   },
 ];
 

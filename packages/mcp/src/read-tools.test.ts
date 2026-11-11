@@ -5,6 +5,7 @@ import {
   type MedplumReadClient,
 } from "./read-tools.js";
 import { createChartReader } from "./chart-read.js";
+import { SessionReadLog } from "./proposal-evidence.js";
 import { buildInstructions, callMcpTool, listMcpTools } from "./server.js";
 
 function createClient(): MedplumReadClient {
@@ -41,6 +42,8 @@ describe("read-only MCP tools", () => {
     expect(buildInstructions(false)).toContain("Read-only FHIR chart tools");
     expect(buildInstructions(true)).not.toContain("Read-only FHIR chart tools");
     expect(buildInstructions(true)).toContain("a human approves");
+    expect(buildInstructions(true)).toContain("pass evidence");
+    expect(buildInstructions(false)).not.toContain("pass evidence");
 
     for (const offersWrites of [false, true]) {
       const text = buildInstructions(offersWrites);
@@ -194,6 +197,27 @@ describe("read-only MCP tools", () => {
       });
     },
   );
+
+  it("records a successful read on the session log", async () => {
+    const log = new SessionReadLog();
+    const client = createClient();
+    (client.search as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      entry: [
+        {
+          resource: {
+            resourceType: "Patient",
+            id: "maria-1",
+            name: [{ family: "Garcia", given: ["Maria"] }],
+          },
+        },
+      ],
+    });
+    await callMcpTool(createReadTools(client), "search_patients", { name: "Maria" }, log);
+    expect(log.snapshot()).toMatchObject([
+      { reference: "Patient/maria-1", tool: "search_patients" },
+    ]);
+    expect(log.snapshot()[0].keyFields[0].value).toContain("Garcia");
+  });
 
   it("searches through Medplum with structured parameters", async () => {
     const client = createClient();

@@ -19,6 +19,10 @@ import {
 } from "@/components/chat";
 import { PatientCard } from "@/components/chat/patient";
 import { ConfirmWrite } from "@/components/chat/confirm-write";
+import {
+  collectSessionReads,
+  parseCitedEvidence,
+} from "@/packages/mcp/src/proposal-evidence";
 import { ApprovedWriteNotice } from "@/components/demo/approved-write-notice";
 import { OBSERVATION_REPLACES_EXTENSION } from "@/lib/fhir/vitals";
 import {
@@ -304,6 +308,17 @@ export function DemoChat() {
     } catch {
       // The conversation was cleared out from under the card; nothing to do.
     }
+  };
+
+  // The card renders before the write executes, so the read log is the tool
+  // results already in this conversation, not a second fetch.
+  const proposalEvidence = (input: unknown, toolCallId: string) => {
+    const recorded = collectSessionReads(messages, toolCallId);
+    return {
+      cited: parseCitedEvidence(input),
+      sessionReads: recorded.reads,
+      readsTruncated: recorded.truncated,
+    };
   };
 
   // Re-arm the server session cookie before every send and approval response.
@@ -673,6 +688,7 @@ export function DemoChat() {
                                   { label: "Note", value: part.input.text },
                                 ]}
                                 blocked={vendorBlocked}
+                                evidence={proposalEvidence(part.input, part.toolCallId)}
                                 preview={
                                   vendorBlocked
                                     ? undefined
@@ -744,6 +760,7 @@ export function DemoChat() {
                                 fields={approval.fields}
                                 preview={approval.preview}
                                 blocked={approval.blocked}
+                                evidence={proposalEvidence(part.input, part.toolCallId)}
                                 onApprove={() =>
                                   respondToApproval(
                                     "record_observation",
@@ -806,8 +823,8 @@ export function DemoChat() {
                                     label: "New value",
                                     value: `${part.input.value} ${part.input.unit}`,
                                   },
-                                  // Stated where the Approve button is, not
-                                  // inside the collapsed FHIR preview.
+                                  // Stated where the Approve button is, beside
+                                  // the proposed diff rather than only inside it.
                                   {
                                     label: "Note",
                                     value:
@@ -815,6 +832,7 @@ export function DemoChat() {
                                   },
                                 ]}
                                 blocked={vendorBlocked}
+                                evidence={proposalEvidence(part.input, part.toolCallId)}
                                 preview={vendorBlocked ? undefined : {
                                   resourceType: "Observation",
                                   status: "final",
@@ -901,6 +919,7 @@ export function DemoChat() {
                                     : []),
                                 ]}
                                 blocked={vendorBlocked}
+                                evidence={proposalEvidence(part.input, part.toolCallId)}
                                 preview={
                                   vendorBlocked
                                     ? undefined

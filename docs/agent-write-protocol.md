@@ -178,15 +178,22 @@ or authorization — see the eval's own boundary statements.
 Two bindings run in this repository today:
 
 - **Web / AI SDK** — the tool declares `needsApproval`; the SDK pauses before
-  execute; the approval card renders the exact fields plus a FHIR-shaped
-  preview; an explicit approve/deny response resumes the flow
+  execute; the approval card renders the exact fields, a diff of the
+  proposed resource, and the resources the agent cited or the conversation
+  already read; an explicit approve/deny response resumes the flow
   (`lib/ai/tools.ts`, `components/chat/confirm-write.tsx`).
 - **MCP** — write tools are offered only to clients declaring form
   elicitation; each call pauses on an elicitation carrying the exact-fields
-  summary and a single "Approve and save?" boolean; only
-  `accept` + `approve: true` commits (`@lastehr/mcp`,
+  summary, the same diff and evidence, and a single "Approve and save?"
+  boolean; only `accept` + `approve: true` commits (`@lastehr/mcp`,
   [docs/mcp.md](./mcp.md)). The decision exchange sits behind one adapter so
   MCP transport revisions change nothing semantic.
+
+Both bindings accept an optional `evidence` or `basedOn` list of
+`ResourceType/id` values on the write tools. Calls without that list still
+propose the write. A proposal that cites nothing is flagged in the review.
+The citation is review metadata: it is not part of the committed resource,
+and the flag does not decide the write.
 
 Other plausible bindings — CDS Hooks cards with suggestion feedback, agent
 frameworks with native approval pauses (e.g. Vercel's eve), LangGraph
