@@ -43,6 +43,7 @@ describe("read-only MCP tools", () => {
     expect(buildInstructions(true)).not.toContain("Read-only FHIR chart tools");
     expect(buildInstructions(true)).toContain("a human approves");
     expect(buildInstructions(true)).toContain("pass evidence");
+    expect(buildInstructions(true)).toContain("read again");
     expect(buildInstructions(false)).not.toContain("pass evidence");
 
     for (const offersWrites of [false, true]) {
@@ -217,6 +218,35 @@ describe("read-only MCP tools", () => {
       { reference: "Patient/maria-1", tool: "search_patients" },
     ]);
     expect(log.snapshot()[0].keyFields[0].value).toContain("Garcia");
+  });
+
+  it("pins the version of a resource the read returned without showing meta", async () => {
+    const log = new SessionReadLog();
+    const client = createClient();
+    (client.search as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      entry: [
+        {
+          resource: {
+            resourceType: "Patient",
+            id: "maria-1",
+            name: [{ family: "Garcia", given: ["Maria"] }],
+            meta: { versionId: "4", lastUpdated: "2026-01-01T00:00:00.000Z" },
+          },
+        },
+      ],
+    });
+    const result = await callMcpTool(
+      createReadTools(client, log),
+      "search_patients",
+      { name: "Maria" },
+      log,
+    );
+    expect(result.content[0].text).not.toContain("versionId");
+    expect(result.content[0].text).not.toContain("lastUpdated");
+    expect(log.evidenceVersionFor("Patient/maria-1")).toEqual({
+      source: "versionId",
+      token: "versionId:4",
+    });
   });
 
   it("searches through Medplum with structured parameters", async () => {

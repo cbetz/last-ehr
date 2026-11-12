@@ -3,6 +3,19 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- Proposal writes re-read cited evidence after approval and before the
+  create. Each citation is pinned, while the proposal is prepared, to
+  `meta.versionId`, then `meta.lastUpdated`, then a SHA-256 of the resource
+  when a backend has neither (the in-process memory store). If a cited
+  resource is missing, deleted, or no longer that version, or the re-read
+  fails, nothing is saved and the tool result names the reference.
+  `record_superseding_observation` re-checks the observation being
+  superseded the same way, cited or not. A proposal with no citation is
+  unchanged. The check does not decide that the proposal follows from the
+  cited rows. Not a clinical, regulatory, or compliance claim.
+
 ## 0.5.3 — published (2026-11-12)
 
 `@lastehr/mcp` `0.5.3` is published. npm `latest` is

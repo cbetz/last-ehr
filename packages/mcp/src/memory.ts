@@ -37,6 +37,8 @@ import type { FhirWriteClient } from "./write-tools.js";
  *   refused in config.
  *
  * Rows live until this process exits. Nothing is written to a FHIR server.
+ * Creates do not set meta.versionId or meta.lastUpdated. A proposal that
+ * cites a row in this store pins a content hash of the resource instead.
  */
 
 const DATE_PATHS: Record<string, readonly string[]> = {

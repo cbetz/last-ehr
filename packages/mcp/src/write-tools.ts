@@ -10,6 +10,12 @@ import { z } from "zod";
 
 import type { ApprovalRequest, RequestApproval } from "./approval.js";
 import {
+  confirmEvidencePins,
+  prepareEvidencePins,
+  type EvidencePin,
+} from "./cited-version.js";
+import { rememberFetchedResource } from "./evidence-version.js";
+import {
   EVIDENCE_TOOL_SENTENCE,
   evidenceFields,
   formatProposalReview,
@@ -37,7 +43,13 @@ import {
 // paused on a human approval before anything executes. The tool builds the
 // EXACT resource it would create, renders those fields for the approval,
 // and commits only on an explicit approve — a denial saves nothing and says
-// so. Every write is tagged so operators can find agent-written records.
+// so. A cited resource, and the observation a supersede would replace, is
+// pinned to the version read for the proposal and read again after approval;
+// a miss or a change commits nothing. Every write is tagged so operators
+// can find agent-written records.
+
+const EVIDENCE_RECHECK_SENTENCE =
+  "After approval, each cited resource is read again. If it is missing or its version changed, nothing is saved.";
 
 export interface FhirWriteClient extends FhirReadClient {
   createResource<T extends Resource>(resource: T): Promise<T & { id: string }>;
@@ -426,12 +438,35 @@ export function createWriteTools(
 
   const disabled = new Set(options.disabledTools ?? []);
 
+  const pinProposal = (
+    input: unknown,
+    extra?: {
+      known?: readonly { reference: string; resource: unknown }[];
+      also?: readonly { reference: string; role: "supersedes" }[];
+    },
+  ) =>
+    prepareEvidencePins({
+      client,
+      cited: parseCitedEvidence(input),
+      readLog: options.readLog,
+      known: extra?.known,
+      also: extra?.also,
+    });
+
+  const recheckPins = async (
+    pins: readonly EvidencePin[],
+  ): Promise<{ saved: false; outcome: string } | undefined> => {
+    const confirmed = await confirmEvidencePins(client, pins);
+    if (confirmed.ok) return undefined;
+    return { saved: false, outcome: confirmed.outcome };
+  };
+
   const tools: McpWriteTool[] = [
     {
       name: "add_note",
       proposesWrite: true,
       description:
-        `Propose adding a free-text note to a patient's chart. The human operator reviews the exact note in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
+        `Propose adding a free-text note to a patient's chart. The human operator reviews the exact note in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: addNoteSchema,
       async execute(input: unknown) {
         const parsed = addNoteSchema.parse(input);
@@ -447,6 +482,8 @@ export function createWriteTools(
         if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
         const noteBlocked = vendorOnlyObservation();
         if (noteBlocked) return noteBlocked;
+        const pinned = await pinProposal(parsed);
+        if (!pinned.ok) return { saved: false, outcome: pinned.outcome };
         const decision = await decide({
           title: "Add this note to the chart?",
           // Free text is JSON-quoted so an embedded newline cannot forge a
@@ -476,6 +513,8 @@ export function createWriteTools(
         if (policyAtCommit.deny) {
           return policyDeniedResult(policyAtCommit.reason);
         }
+        const staleEvidence = await recheckPins(pinned.pins);
+        if (staleEvidence) return staleEvidence;
         // Built AFTER the approval so the timestamp is the moment of the
         // approved save, matching the web demo; every field the human saw
         // comes from the same parsed values.
@@ -501,7 +540,7 @@ export function createWriteTools(
       name: "record_observation",
       proposesWrite: true,
       description:
-        `Propose recording a vital sign or lab value on a patient's chart. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
+        `Propose recording a vital sign or lab value on a patient's chart. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: recordObservationSchema,
       async execute(input: unknown) {
         const parsed = recordObservationSchema.parse(input);
@@ -546,6 +585,8 @@ export function createWriteTools(
           }
           throw error;
         }
+        const pinned = await pinProposal(parsed);
+        if (!pinned.ok) return { saved: false, outcome: pinned.outcome };
         const codingSummary = (resource.code?.coding ?? [])
           .map((coding) => `${coding.code ?? ""}`)
           .filter(Boolean)
@@ -583,6 +624,8 @@ export function createWriteTools(
         if (policyAtCommit.deny) {
           return policyDeniedResult(policyAtCommit.reason);
         }
+        const staleEvidence = await recheckPins(pinned.pins);
+        if (staleEvidence) return staleEvidence;
         resource = { ...resource, effectiveDateTime: new Date().toISOString() };
         const created = await client.createResource(resource);
         await emitWriteProvenance("Observation", created.id);
@@ -600,7 +643,7 @@ export function createWriteTools(
       name: "record_superseding_observation",
       proposesWrite: true,
       description:
-        `Propose a new observation that supersedes an earlier one on the same chart, for when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes; the earlier entry is NOT changed, NOT deleted, and NOT marked as an error. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
+        `Propose a new observation that supersedes an earlier one on the same chart, for when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes; the earlier entry is NOT changed, NOT deleted, and NOT marked as an error. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. The observation being superseded is read again after approval, whether or not it is cited. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: supersedingObservationSchema,
       async execute(input: unknown) {
         const parsed = supersedingObservationSchema.parse(input);
@@ -643,6 +686,13 @@ export function createWriteTools(
           : "(no value)";
 
         options.readLog?.noteResource("record_superseding_observation", original);
+        if (options.readLog) rememberFetchedResource(options.readLog, original);
+        const supersedeReference = `Observation/${supersedes}`;
+        const pinned = await pinProposal(parsed, {
+          known: [{ reference: supersedeReference, resource: original }],
+          also: [{ reference: supersedeReference, role: "supersedes" }],
+        });
+        if (!pinned.ok) return { saved: false, outcome: pinned.outcome };
         const decision = await decide({
           title: "File a superseding observation?",
           summary: renderApproval(
@@ -681,6 +731,8 @@ export function createWriteTools(
         if (policyAtCommit.deny) {
           return policyDeniedResult(policyAtCommit.reason);
         }
+        const staleEvidence = await recheckPins(pinned.pins);
+        if (staleEvidence) return staleEvidence;
         const coded = codeObservation(priorLabel, unit);
         // One create: the supersession link rides the resource, so there is
         // no second write that could fail and leave two contradictory values
@@ -725,7 +777,7 @@ export function createWriteTools(
       name: "create_task",
       proposesWrite: true,
       description:
-        `Propose creating a follow-up task on a patient's chart (what needs to happen, optionally by when). The human operator reviews the exact task in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE}`,
+        `Propose creating a follow-up task on a patient's chart (what needs to happen, optionally by when). The human operator reviews the exact task in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: createTaskSchema,
       async execute(input: unknown) {
         const parsed = createTaskSchema.parse(input);
@@ -739,6 +791,8 @@ export function createWriteTools(
         if (policyBefore.deny) return policyDeniedResult(policyBefore.reason);
         const taskBlocked = vendorOnlyObservation();
         if (taskBlocked) return taskBlocked;
+        const pinned = await pinProposal(parsed);
+        if (!pinned.ok) return { saved: false, outcome: pinned.outcome };
         const decision = await decide({
           title: "Create this task?",
           summary: renderApproval(
@@ -771,6 +825,8 @@ export function createWriteTools(
         if (policyAtCommit.deny) {
           return policyDeniedResult(policyAtCommit.reason);
         }
+        const staleEvidence = await recheckPins(pinned.pins);
+        if (staleEvidence) return staleEvidence;
         // Built AFTER the approval; see the note on add_note above.
         const resource: Task = {
           resourceType: "Task",

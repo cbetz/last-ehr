@@ -341,6 +341,23 @@ The profile is a binding of the repository's framework-neutral
   resources this session's read tools returned before the proposal. A
   proposal with no citation says so. Citations are not stored on the
   resource. A missing citation does not approve or deny the write.
+- **Cited evidence is re-read at commit.** While the proposal is prepared,
+  each cited resource is pinned to the version from this session's read of
+  it. A citation this session has not retained is read then, and that read
+  is the pin. The pin is `meta.versionId` when the resource has one,
+  otherwise `meta.lastUpdated`, otherwise a SHA-256 of the resource's JSON
+  with object keys sorted and array order kept. Medplum, HAPI, and the
+  experimental adapters supply
+  `meta.versionId`. The in-process memory store (`FHIR_BACKEND=memory`)
+  assigns neither meta field, so it uses the content hash. After approval
+  and before the create, each cited resource is read again. If any is
+  missing, deleted, or no longer that version, or the read fails, nothing
+  is saved and the tool result names the reference so the agent can read
+  again and propose again. A proposal with no citation is unchanged.
+  `record_superseding_observation` re-checks the observation it would
+  supersede the same way, whether or not that observation was cited. The
+  check compares versions. It does not decide that the proposal follows
+  from the cited rows.
 - **Tagged for audit.** Approved writes carry
   `meta.tag {https://lastehr.com/mcp | approved-proposal}` so operators can
   find every agent-written record with one `_tag` search, plus the standard

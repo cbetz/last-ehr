@@ -10,6 +10,8 @@ import {
   toPatientSummary,
   type PatientSummary,
 } from "./chart-read.js";
+import { rememberFetchedResource } from "./evidence-version.js";
+import type { SessionReadLog } from "./proposal-evidence.js";
 
 export interface FhirReadClient {
   search<K extends ResourceType>(
@@ -88,8 +90,34 @@ const summarize = (
     entry.resource ? [toPatientSummary(entry.resource)] : [],
   );
 
-export function createReadTools(client: FhirReadClient): McpReadTool[] {
-  const reader = createChartReader(client);
+function observingClient(client: FhirReadClient, readLog: SessionReadLog): FhirReadClient {
+  // The model sees a projection. The version pin needs the resource that
+  // was actually returned, including meta, which the projection drops.
+  const observeBundle = (bundle: { entry?: Array<{ resource?: unknown }> }) => {
+    for (const entry of bundle.entry ?? []) {
+      if (entry.resource) rememberFetchedResource(readLog, entry.resource);
+    }
+  };
+  return {
+    async search(resourceType, params) {
+      const bundle = await client.search(resourceType, params);
+      observeBundle(bundle);
+      return bundle;
+    },
+    async searchResources(resourceType, params) {
+      const rows = await client.searchResources(resourceType, params);
+      for (const row of rows) rememberFetchedResource(readLog, row);
+      return rows;
+    },
+  };
+}
+
+export function createReadTools(
+  client: FhirReadClient,
+  readLog?: SessionReadLog,
+): McpReadTool[] {
+  const source = readLog ? observingClient(client, readLog) : client;
+  const reader = createChartReader(source);
   return [
     {
       name: "search_patients",
@@ -98,7 +126,7 @@ export function createReadTools(client: FhirReadClient): McpReadTool[] {
       inputSchema: searchPatientsSchema,
       async execute(input: unknown) {
         const { name } = searchPatientsSchema.parse(input);
-        const bundle = await client.search("Patient", { name, _count: "20" });
+        const bundle = await source.search("Patient", { name, _count: "20" });
         const entries = bundle.entry ?? [];
         if (entries.length > 0) return { patients: summarize(entries) };
         // R4 defines `name` as matching any PART of a HumanName, and servers
@@ -109,7 +137,7 @@ export function createReadTools(client: FhirReadClient): McpReadTool[] {
         const words = name.trim().split(/\s+/).filter(Boolean).slice(0, 3);
         if (words.length < 2) return { patients: summarize(entries) };
         const perWord = await Promise.all(
-          words.map((word) => client.search("Patient", { name: word, _count: "20" })),
+          words.map((word) => source.search("Patient", { name: word, _count: "20" })),
         );
         const hits = new Map<string, number>();
         const byId = new Map<string, (typeof entries)[number]>();

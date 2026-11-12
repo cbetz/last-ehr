@@ -899,7 +899,7 @@ export function createRemoteMcpHandler(
       // One log per caller. A process-wide log would show one session the
       // resources another caller had read.
       const readLog = new SessionReadLog();
-      const tools = createReadTools(session.fhir.client);
+      const tools = createReadTools(session.fhir.client, readLog);
       session.server = createMcpServer(tools, {
         readLog,
         writeTools:

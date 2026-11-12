@@ -101,12 +101,38 @@ or chart data.
 ### 3. Commit
 
 On approval — and, where the implementation applies policy (section 2),
-only when policy permits — the implementation MUST create **exactly the
-proposed resource** — every field the reviewer saw, unaltered. Fields the reviewer did not see
+only when policy permits, and, where the proposal names chart resources it
+relies on, only when the evidence check below permits — the implementation
+MUST create **exactly the proposed resource** — every field the reviewer saw,
+unaltered. Fields the reviewer did not see
 MUST be limited to mechanical metadata (server-assigned id and version,
 commit-time timestamps, and the audit markers below), and implementations
 SHOULD stamp clinically meaningful timestamps at commit time so they reflect
 the approved save, not the proposal's construction.
+
+Where a proposal names chart resources it relies on — a citation list, or
+the earlier resource a new record supersedes — the implementation MUST
+record a version token for each of them while the proposal is prepared, and
+MUST read each of them again after approval and before the create. The
+token MUST be the resource's `meta.versionId` when the read carries one,
+otherwise `meta.lastUpdated` when that is present, otherwise a content hash
+of the resource as read. This repository uses SHA-256 over JSON with object
+keys sorted and array order preserved. The hash exists because some stores
+persist neither meta field; the in-process memory store is one. The token
+recorded at proposal time MUST come from the read the agent already
+performed in the session when that read is still available; otherwise the
+resource is read while the proposal is prepared. If any named resource is
+missing, deleted, or its token differs, or the re-read fails, the
+implementation MUST NOT create the resource. The result MUST name which
+reference could not be confirmed and MUST say that nothing was saved, so
+the agent can read again and propose again. A read error fails closed,
+because the implementation cannot show that the resource is still the one
+the reviewer saw. A proposal that names no such resource is not subject to
+this check.
+
+The reviewer approves a proposal grounded in those rows. A row that changes
+or disappears while they decide is no longer the evidence they were shown,
+and saving would write against a chart the approval did not cover.
 
 The result returned to the agent MUST state whether the write happened and,
 when it did, the server-assigned id.
@@ -186,8 +212,11 @@ Two bindings run in this repository today:
   elicitation; each call pauses on an elicitation carrying the exact-fields
   summary, the same diff and evidence, and a single "Approve and save?"
   boolean; only `accept` + `approve: true` commits (`@lastehr/mcp`,
-  [docs/mcp.md](./mcp.md)). The decision exchange sits behind one adapter so
-  MCP transport revisions change nothing semantic.
+  [docs/mcp.md](./mcp.md)). After that approval, the server re-reads each
+  cited resource and, for a superseding observation, the observation being
+  replaced, and commits nothing if a version changed or a read failed. The
+  decision exchange sits behind one adapter so MCP transport revisions
+  change nothing semantic.
 
 Both bindings accept an optional `evidence` or `basedOn` list of
 `ResourceType/id` values on the write tools. Calls without that list still
