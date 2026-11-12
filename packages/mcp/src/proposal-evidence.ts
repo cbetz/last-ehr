@@ -10,6 +10,12 @@ export const RESOURCE_REFERENCE =
 
 const MAX_CITATIONS = 8;
 const MAX_READS = 12;
+/**
+ * Versions kept for resources this session actually fetched. The review list
+ * is shorter on purpose. A citation whose read has fallen out of this map is
+ * read again while the proposal is prepared.
+ */
+const MAX_EVIDENCE_VERSIONS = 128;
 const MAX_FIELDS = 4;
 const MAX_FIELD_CHARS = 160;
 const MAX_DIFF_CHARS = 8_000;
@@ -45,6 +51,16 @@ export type SessionRead = {
 export type CitedEvidence = {
   reference: string;
   reason?: string;
+};
+
+/**
+ * Version token for a resource this session fetched. Computed by the server
+ * (see evidence-version.ts). This module does not hash resources: the chat
+ * UI imports it, and a content hash uses Node crypto.
+ */
+export type EvidenceVersion = {
+  source: "versionId" | "lastUpdated" | "content";
+  token: string;
 };
 
 export type CitedReview = CitedEvidence & {
@@ -225,10 +241,34 @@ export function readsFromToolOutput(tool: string, output: unknown): SessionRead[
 export class SessionReadLog {
   private reads: SessionRead[] = [];
   private dropped = false;
+  /** Latest version token per reference, independent of the review-list cap. */
+  private versions = new Map<string, EvidenceVersion>();
 
   record(tool: string, output: unknown): void {
     if (!READ_TOOLS.has(tool)) return;
     for (const read of readsFromToolOutput(tool, output)) this.upsert(read);
+  }
+
+  /**
+   * Remember a version token for a reference this session fetched. The
+   * caller computes the token from the FHIR resource; chart projections
+   * shown to the model do not carry meta.
+   */
+  rememberEvidenceVersion(reference: string, version: EvidenceVersion): void {
+    if (!RESOURCE_REFERENCE.test(reference)) return;
+    this.versions.delete(reference);
+    this.versions.set(reference, { source: version.source, token: version.token });
+    while (this.versions.size > MAX_EVIDENCE_VERSIONS) {
+      const oldest = this.versions.keys().next().value;
+      if (oldest === undefined) break;
+      this.versions.delete(oldest);
+    }
+  }
+
+  /** The version from this session's latest retained read of that reference. */
+  evidenceVersionFor(reference: string): EvidenceVersion | undefined {
+    const version = this.versions.get(reference);
+    return version ? { ...version } : undefined;
   }
 
   /** A FHIR resource fetched while preparing a proposal, such as the row a supersede links to. */

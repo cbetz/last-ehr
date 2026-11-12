@@ -5,6 +5,8 @@ import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { Resource } from "@medplum/fhirtypes";
 
 import { createElicitationApproval } from "./approval.js";
+import { rememberFetchedResource } from "./evidence-version.js";
+import { MemoryFhirClient } from "./memory.js";
 import { SessionReadLog } from "./proposal-evidence.js";
 import { createReadTools } from "./read-tools.js";
 import { createMcpServer } from "./server.js";
@@ -29,8 +31,17 @@ type ElicitAnswer =
 function fakeWriteClient({
   failProvenance = false,
   patients = [] as Resource[],
+  chart = [] as Resource[],
+  failReadsAfter,
+}: {
+  failProvenance?: boolean;
+  patients?: Resource[];
+  chart?: Resource[];
+  /** Throw on a searchResources call after this many successes. 0 throws on the first. */
+  failReadsAfter?: number;
 } = {}) {
   const created: Resource[] = [];
+  let reads = 0;
   const client: FhirWriteClient = {
     async search(resourceType: string) {
       if (resourceType === "Patient") {
@@ -42,13 +53,18 @@ function fakeWriteClient({
       }
       return { resourceType: "Bundle", type: "searchset" } as never;
     },
-    async searchResources(_type: unknown, params?: Record<string, string>) {
+    async searchResources(resourceType: string, params?: Record<string, string>) {
       // The superseding tool fetches the original by _id before asking, so
-      // the fake resolves that lookup from what it has created.
+      // the fake resolves that lookup from what it has created. Chart rows
+      // are resources that already existed, which a citation can name.
+      reads += 1;
+      if (failReadsAfter !== undefined && reads > failReadsAfter) {
+        throw new Error("backend said Patient/secret-row fragment");
+      }
       const id = params?._id;
       if (!id) return [] as never;
-      return created.filter(
-        (resource) => (resource as { id?: string }).id === id,
+      return [...chart, ...created].filter(
+        (resource) => resource.resourceType === resourceType && resource.id === id,
       ) as never;
     },
     async createResource(resource) {
@@ -71,16 +87,27 @@ async function connect({
   writeOptions,
   failProvenance,
   patients,
+  chart,
+  failReadsAfter,
+  client,
+  created,
 }: {
   elicitation: boolean;
   answer?: ElicitAnswer | (() => Promise<ElicitAnswer>) | undefined;
   writeOptions?: WriteToolOptions;
   failProvenance?: boolean;
   patients?: Resource[];
+  chart?: Resource[];
+  failReadsAfter?: number;
+  client?: FhirWriteClient;
+  created?: Resource[];
 }) {
-  const { client: fhir, created } = fakeWriteClient({ failProvenance, patients });
+  const backing = client
+    ? { client, created: created ?? [] }
+    : fakeWriteClient({ failProvenance, patients, chart, failReadsAfter });
+  const fhir = backing.client;
   const readLog = new SessionReadLog();
-  const server = createMcpServer(createReadTools(fhir), {
+  const server = createMcpServer(createReadTools(fhir, readLog), {
     readLog,
     writeTools: (liveServer) =>
       createWriteTools(fhir, createElicitationApproval(liveServer), {
@@ -109,7 +136,7 @@ async function connect({
     server.connect(serverTransport),
     mcpClient.connect(clientTransport),
   ]);
-  return { mcpClient, created, prompts, readLog };
+  return { mcpClient, created: backing.created, prompts, readLog, fhir };
 }
 
 const NOTE_ARGS = { patientId: "p1", text: "Patient reports feeling well." };
@@ -569,6 +596,16 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     const { mcpClient, created, prompts, readLog } = await connect({
       elicitation: true,
       answer: { action: "accept", content: { approve: true } },
+      chart: [
+        {
+          resourceType: "Observation",
+          id: "hr-1",
+          status: "final",
+          code: { text: "Heart rate" },
+          valueQuantity: { value: 72, unit: "/min" },
+          meta: { versionId: "3" },
+        },
+      ],
     });
     readLog.record("read_chart_section", {
       resourceType: "Observation",
@@ -668,5 +705,257 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     expect(second.prompts[0]).toContain(
       "No chart resources were read in this session before this proposal.",
     );
+  });
+
+  it("saves nothing when a cited resource is already missing at approval", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: { ...NOTE_ARGS, evidence: ["Observation/made-up"] },
+    })) as { content: Array<{ text: string }> };
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("Not in this session's reads.");
+    expect(created).toHaveLength(0);
+    const outcome = JSON.parse(result.content[0].text).outcome as string;
+    expect(outcome).toContain("Cited resource Observation/made-up");
+    expect(outcome).toContain("missing");
+    expect(outcome).toContain("Nothing was saved");
+  });
+
+  it("does not ask for approval when a cited resource cannot be read", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      failReadsAfter: 0,
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: { ...NOTE_ARGS, evidence: ["Observation/hr-1"] },
+    })) as { content: Array<{ text: string }> };
+    expect(prompts).toHaveLength(0);
+    expect(created).toHaveLength(0);
+    const outcome = JSON.parse(result.content[0].text).outcome as string;
+    expect(outcome).toContain("could not be read");
+    expect(outcome).toContain("Nothing was saved");
+    expect(outcome).not.toContain("secret-row");
+  });
+
+  it("saves nothing when the re-read after approval fails", async () => {
+    const { mcpClient, created, prompts } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      failReadsAfter: 1,
+      chart: [
+        {
+          resourceType: "Observation",
+          id: "hr-1",
+          status: "final",
+          meta: { versionId: "1" },
+        },
+      ],
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: {
+        ...NOTE_ARGS,
+        evidence: [{ reference: "Observation/hr-1", reason: "prior rate" }],
+      },
+    })) as { content: Array<{ text: string }> };
+    expect(prompts).toHaveLength(1);
+    expect(created).toHaveLength(0);
+    const outcome = JSON.parse(result.content[0].text).outcome as string;
+    expect(outcome).toContain("could not be re-read");
+    expect(outcome).toContain("Nothing was saved");
+    expect(outcome).not.toContain("secret-row");
+  });
+
+  it("pins the session read, so a newer server version still blocks the save", async () => {
+    const created: Resource[] = [];
+    const current: Resource = {
+      resourceType: "Observation",
+      id: "hr-1",
+      status: "final",
+      meta: { versionId: "2" },
+      code: { text: "Heart rate" },
+      valueQuantity: { value: 80, unit: "/min" },
+    };
+    const fhir: FhirWriteClient = {
+      async search() {
+        return { resourceType: "Bundle", type: "searchset" } as never;
+      },
+      async searchResources(resourceType, params) {
+        if (resourceType === "Observation" && params?._id === "hr-1") {
+          return [current] as never;
+        }
+        return [] as never;
+      },
+      async createResource(resource) {
+        const stored = { ...resource, id: "created-1" };
+        created.push(stored);
+        return stored as never;
+      },
+    };
+    const rig = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      client: fhir,
+      created,
+    });
+    rememberFetchedResource(rig.readLog, {
+      resourceType: "Observation",
+      id: "hr-1",
+      status: "final",
+      meta: { versionId: "1" },
+      code: { text: "Heart rate" },
+      valueQuantity: { value: 72, unit: "/min" },
+    });
+    const result = (await rig.mcpClient.callTool({
+      name: "add_note",
+      arguments: {
+        ...NOTE_ARGS,
+        evidence: [{ reference: "Observation/hr-1", reason: "the rate just read" }],
+      },
+    })) as { content: Array<{ text: string }> };
+    expect(created).toHaveLength(0);
+    const outcome = JSON.parse(result.content[0].text).outcome as string;
+    expect(outcome).toContain("Cited resource Observation/hr-1 changed");
+    expect(outcome).toContain("Nothing was saved");
+    expect(outcome).not.toContain("versionId");
+    expect(outcome).not.toContain("80");
+  });
+});
+
+describe("cited evidence on the memory store", () => {
+  const heartRate = {
+    resourceType: "Observation" as const,
+    id: "hr-1",
+    status: "final" as const,
+    code: { text: "Heart rate" },
+    subject: { reference: "Patient/p1" },
+    valueQuantity: { value: 72, unit: "/min" },
+  };
+
+  it("saves when the cited resource is unchanged", async () => {
+    const memory = new MemoryFhirClient();
+    await memory.createResource(heartRate);
+    const { mcpClient } = await connect({
+      elicitation: true,
+      answer: { action: "accept", content: { approve: true } },
+      client: memory,
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: {
+        ...NOTE_ARGS,
+        evidence: [{ reference: "Observation/hr-1", reason: "prior rate" }],
+      },
+    })) as { content: Array<{ text: string }> };
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ saved: true });
+    expect(await memory.searchResources("Communication")).toHaveLength(1);
+  });
+
+  it("saves nothing when cited evidence changes between proposal and approval", async () => {
+    const memory = new MemoryFhirClient();
+    await memory.createResource(heartRate);
+    const { mcpClient, prompts } = await connect({
+      elicitation: true,
+      client: memory,
+      answer: async () => {
+        await memory.deleteResource("Observation", "hr-1");
+        await memory.createResource({
+          ...heartRate,
+          valueQuantity: { value: 90, unit: "/min" },
+        });
+        return { action: "accept", content: { approve: true } };
+      },
+    });
+    const result = (await mcpClient.callTool({
+      name: "add_note",
+      arguments: {
+        ...NOTE_ARGS,
+        evidence: [{ reference: "Observation/hr-1", reason: "prior rate" }],
+      },
+    })) as { content: Array<{ text: string }> };
+    const body = JSON.parse(result.content[0].text) as { saved: boolean; outcome: string };
+    expect(body.saved).toBe(false);
+    expect(body.outcome).toContain("Cited resource Observation/hr-1 changed");
+    expect(body.outcome).toContain("Nothing was saved");
+    expect(body.outcome).not.toContain("90");
+    expect(body.outcome).not.toContain("72");
+    expect(prompts).toHaveLength(1);
+    expect(await memory.searchResources("Communication")).toHaveLength(0);
+    const kept = await memory.searchResources("Observation", { _id: "hr-1" });
+    expect(kept[0]?.valueQuantity?.value).toBe(90);
+  });
+
+  it("saves nothing when a cited resource is deleted before approval", async () => {
+    const memory = new MemoryFhirClient();
+    await memory.createResource(heartRate);
+    const { mcpClient } = await connect({
+      elicitation: true,
+      client: memory,
+      answer: async () => {
+        await memory.deleteResource("Observation", "hr-1");
+        return { action: "accept", content: { approve: true } };
+      },
+    });
+    const result = (await mcpClient.callTool({
+      name: "create_task",
+      arguments: {
+        patientId: "p1",
+        description: "Call about the rate.",
+        evidence: ["Observation/hr-1"],
+      },
+    })) as { content: Array<{ text: string }> };
+    const body = JSON.parse(result.content[0].text) as { saved: boolean; outcome: string };
+    expect(body.saved).toBe(false);
+    expect(body.outcome).toContain("missing or was deleted");
+    expect(body.outcome).toContain("Nothing was saved");
+    expect(await memory.searchResources("Task")).toHaveLength(0);
+  });
+
+  it("re-checks the observation being superseded even when it is not cited", async () => {
+    const memory = new MemoryFhirClient();
+    await memory.createResource({
+      resourceType: "Observation",
+      id: "wt-1",
+      status: "final",
+      code: { text: "Body weight" },
+      subject: { reference: "Patient/p1" },
+      valueQuantity: { value: 70, unit: "kg" },
+    });
+    const { mcpClient, prompts } = await connect({
+      elicitation: true,
+      client: memory,
+      answer: async () => {
+        await memory.deleteResource("Observation", "wt-1");
+        await memory.createResource({
+          resourceType: "Observation",
+          id: "wt-1",
+          status: "final",
+          code: { text: "Body weight" },
+          subject: { reference: "Patient/p1" },
+          valueQuantity: { value: 80, unit: "kg" },
+        });
+        return { action: "accept", content: { approve: true } };
+      },
+    });
+    const result = (await mcpClient.callTool({
+      name: "record_superseding_observation",
+      arguments: { patientId: "p1", supersedes: "wt-1", value: 17, unit: "kg" },
+    })) as { content: Array<{ text: string }> };
+    const body = JSON.parse(result.content[0].text) as { saved: boolean; outcome: string };
+    expect(body.saved).toBe(false);
+    expect(body.outcome).toContain(
+      "Observation/wt-1 changed since this proposal was prepared, so it is no longer the observation this write would supersede.",
+    );
+    expect(body.outcome).toContain("Nothing was saved");
+    expect(prompts[0]).toContain("No cited evidence.");
+    const observations = await memory.searchResources("Observation");
+    expect(observations.map((row) => row.id)).toEqual(["wt-1"]);
+    expect(observations[0]?.valueQuantity?.value).toBe(80);
   });
 });

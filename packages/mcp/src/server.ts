@@ -105,7 +105,7 @@ export function buildInstructions(
     "An empty result is not proof of absence, and these tools tell you why. `truncated` means the server's window was full, so older records may exist beyond it. `codeFilterUnmatched` means the section does hold records but none carry the code you filtered by. `includeUnsupported` means a reference lookup was refused. A document's `unreadable` means it exists and its contents were not read. Never tell a user a patient has no record of something from a reply carrying any of those; say what you could not see, and read again without the filter.",
     ...(offersWriteProposals
       ? [
-          "When you propose a write, pass evidence (or basedOn): a list of ResourceType/id values you read earlier in this session, each with a short reason. A proposal that omits the list still waits for approval. The reviewer sees the proposed diff, anything you cited, the resources this session already read, and a flag when you cited nothing. Do not invent references.",
+          "When you propose a write, pass evidence (or basedOn): a list of ResourceType/id values you read earlier in this session, each with a short reason. A proposal that omits the list still waits for approval. The reviewer sees the proposed diff, anything you cited, the resources this session already read, and a flag when you cited nothing. Do not invent references. After approval, each cited resource is read again, and so is an observation a superseding write would replace. If one is missing or has changed, nothing is saved; read it again and propose again.",
         ]
       : []),
     ...(backend === "memory"
@@ -376,7 +376,7 @@ export function buildMcpServer({
   const gate = <T extends { execute(input: unknown): Promise<unknown> }>(tool: T): T =>
     client ? tool : deferUntilBackendReady(tool, ready);
   const readLog = new SessionReadLog();
-  const tools = createReadTools(backendClient).map((tool) => gate(tool));
+  const tools = createReadTools(backendClient, readLog).map((tool) => gate(tool));
   const offersWrites = config.writePolicy === "proposal";
   const server = createMcpServer(tools, {
     readLog,
