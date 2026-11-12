@@ -261,6 +261,17 @@ describe("CLI terminal pointers", () => {
     expect(io.stderr).not.toHaveBeenCalled();
   });
 
+  it("prints the demo command on stdout and skips the sandbox guide", async () => {
+    setTty(false);
+    const io = capture();
+    await runCli(["init", "--demo", "--client", "claude-code"], EMPTY_ENV);
+    expect(io.text(io.stdout)).toBe(renderInit("claude-code", "memory"));
+    expect(io.text(io.stdout)).toContain("FHIR_BACKEND=memory");
+    expect(io.text(io.stdout)).toContain("LASTEHR_MCP_WRITES=proposal");
+    expect(io.stderr).not.toHaveBeenCalled();
+    expect(io.logged).not.toHaveBeenCalled();
+  });
+
   it("keeps the sandbox guide when quiet and appends next steps only on a TTY", async () => {
     const io = capture();
     setTty(false);
@@ -338,6 +349,9 @@ describe("CLI terminal pointers", () => {
     await runCli(["serve"], tokenEnv);
     await runCli([], tokenEnv);
     await expect(runCli(["init", "--client", "nope"], EMPTY_ENV)).rejects.toThrow(/init accepts/);
+    await expect(runCli(["init", "--demo", "--backend", "epic"], EMPTY_ENV)).rejects.toThrow(
+      /cannot be combined/,
+    );
     await expect(runCli(["nope"], EMPTY_ENV)).rejects.toThrow(/Unknown command/);
 
     expect(io.stderr).not.toHaveBeenCalled();

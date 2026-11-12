@@ -78,6 +78,24 @@ describe("MCP doctor", () => {
     expect(report.lines.join("\n")).not.toMatch(/123456|localhost/);
   });
 
+  it("reports the in-process store ready and does not fetch", async () => {
+    const fetchFn = vi.fn<typeof fetch>();
+    const memory = loadMcpConfig({
+      FHIR_BACKEND: "memory",
+      LASTEHR_MCP_WRITES: "proposal",
+      MEDPLUM_ACCESS_TOKEN: "private-access-token",
+    });
+    for (const connect of [false, true]) {
+      const report = await runDoctor(memory, { connect, fetchFn });
+      expect(report.ok).toBe(true);
+      expect(report.lines.join("\n")).toContain("in-process synthetic store");
+      expect(report.lines.join("\n")).toContain("No network request was made");
+      expect(report.lines.join("\n")).toContain("not a chart on a FHIR server");
+      expect(report.lines.join("\n")).not.toContain("private-access-token");
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
   it("uses the existing Medplum access-token client for both probes", async () => {
     const fetchFn = successfulFetch();
     const report = await runDoctor(medplum, { connect: true, fetchFn });

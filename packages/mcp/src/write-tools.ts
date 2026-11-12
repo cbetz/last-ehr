@@ -129,7 +129,16 @@ export type WriteToolOptions = {
    * text then omits the read list instead of claiming nothing was read.
    */
   readLog?: SessionReadLog;
+  /**
+   * Appended to a saved write when the backend is the in-process store, so
+   * the tool result itself says the row is not on a FHIR server.
+   */
+  memoryNotice?: string;
 };
+
+/** Tool-result text for FHIR_BACKEND=memory. Static; no chart data. */
+export const MEMORY_WRITE_NOTICE =
+  "Stored in this process only. Not a chart on a FHIR server. Gone when the process exits.";
 
 // Mirrors lib/ai/tools.ts input caps (note ≤1000, label ≤120, value within
 // ±100000, unit ≤20); patientId is additionally capped at 64 characters
@@ -271,6 +280,7 @@ export const WRITE_TOOL_NAMES = [
 export function writeToolOptionsFromConfig(config: {
   writeProvenance: boolean;
   disabledWriteTools: string[];
+  backend?: string;
   sandbox?: {
     profile?: "epic" | "oracle";
     encounter?: string;
@@ -291,6 +301,7 @@ export function writeToolOptionsFromConfig(config: {
     encounter: config.sandbox?.encounter,
     performer: config.sandbox?.performer,
     ...(config.sandbox?.includeMetaTag ? { includeMetaTag: true } : {}),
+    ...(config.backend === "memory" ? { memoryNotice: MEMORY_WRITE_NOTICE } : {}),
   };
 }
 
@@ -478,7 +489,12 @@ export function createWriteTools(
         };
         const created = await client.createResource(resource);
         await emitWriteProvenance("Communication", created.id);
-        return { saved: true, resourceType: "Communication", id: created.id };
+        return {
+          saved: true,
+          resourceType: "Communication",
+          id: created.id,
+          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
+        };
       },
     },
     {
@@ -576,6 +592,7 @@ export function createWriteTools(
           resourceType: "Observation",
           id: created.id,
           ...(readBack ? { readBack } : {}),
+          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
         };
       },
     },
@@ -700,6 +717,7 @@ export function createWriteTools(
           id: created.id,
           supersedes,
           outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
+          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
         };
       },
     },
@@ -768,7 +786,12 @@ export function createWriteTools(
         };
         const created = await client.createResource(resource);
         await emitWriteProvenance("Task", created.id);
-        return { saved: true, resourceType: "Task", id: created.id };
+        return {
+          saved: true,
+          resourceType: "Task",
+          id: created.id,
+          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
+        };
       },
     },
   ];

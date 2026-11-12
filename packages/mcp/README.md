@@ -27,6 +27,39 @@ tools are hidden from clients that cannot render approvals.
 The registry metadata lives in [`server.json`](./server.json) and is published
 alongside each verified npm release.
 
+## Zero-setup demo (unreleased)
+
+npm `latest` is `@lastehr/mcp@0.5.2`. That release has no in-memory store
+and no `init --demo`. The next release adds `FHIR_BACKEND=memory`: an
+in-process synthetic FHIR store seeded from this repository's fixtures. No
+Medplum account, no token, no Docker.
+
+From a checkout, after `npm run mcp:build`:
+
+```bash
+node packages/mcp/dist/cli.js init --demo --client claude-code
+```
+
+The printed command sets `FHIR_BACKEND=memory` and
+`LASTEHR_MCP_WRITES=proposal`. Its `npx -y @lastehr/mcp@0.5.2` pin will not
+run this store until a release. Until then, start the built binary with
+only those two variables. `--client cursor` and the default JSON output
+set the same env. Leaving `FHIR_BACKEND` unset still selects Medplum.
+
+Approved writes stay in that process and disappear when it exits. The
+server instructions and the saved-write result say this is not a chart on
+a FHIR server. `doctor` reports the store ready and does not contact a
+server.
+
+The store passes the behavioral backend contract (`meta.tag` persistence,
+`_id`, `identifier`, `_tag`, `_tag:not`, delete). It does not speak HTTP,
+so the REST adapter wire contract does not apply. There is no `Bundle.link`
+next page. `_include` and `_revinclude` are rejected, and the chart reader
+reports `includeUnsupported`. Search parameters outside the chart-read
+subset are rejected rather than ignored. `patient` and `subject` match a
+top-level `subject`, `patient`, `for`, or `beneficiary` reference. A
+multi-word `name` matches when each word is a prefix of some HumanName part.
+
 ## Install
 
 These commands install `@lastehr/mcp@0.5.2`.

@@ -42,11 +42,35 @@ describe("MCP setup output", () => {
     expect(cursor.env).not.toHaveProperty("LASTEHR_MCP_WRITES");
   });
 
+  it("prints a demo config with the memory backend and proposal writes", () => {
+    const json = JSON.parse(renderInit("json", "memory"));
+    expect(json.mcpServers.lastehr.env).toEqual({
+      FHIR_BACKEND: "memory",
+      LASTEHR_MCP_WRITES: "proposal",
+    });
+    expect(json.mcpServers.lastehr.args).toEqual(["-y", "@lastehr/mcp@9.8.7-test.1"]);
+    expect(json.mcpServers.lastehr).not.toHaveProperty("type");
+
+    const cursor = JSON.parse(renderInit("cursor", "memory")).mcpServers.lastehr;
+    expect(cursor.type).toBe("stdio");
+    expect(cursor.env.FHIR_BACKEND).toBe("memory");
+    expect(cursor.env.LASTEHR_MCP_WRITES).toBe("proposal");
+
+    const command = renderInit("claude-code", "memory");
+    const commandLine = command.split("\n").find((line) => line.startsWith("claude mcp add"));
+    expect(commandLine).toBe(
+      "claude mcp add lastehr --env FHIR_BACKEND=memory --env LASTEHR_MCP_WRITES=proposal -- npx -y @lastehr/mcp@9.8.7-test.1",
+    );
+    expect(command).toContain("Not a chart on a FHIR server");
+    expect(command).not.toContain("MEDPLUM_ACCESS_TOKEN");
+  });
+
   it("keeps setup text free of the terminal pointer", () => {
     for (const client of ["json", "claude-code", "cursor"] as const) {
       expect(renderInit(client)).not.toContain("github.com/cbetz/last-ehr");
       expect(renderInit(client)).not.toContain("www.lastehr.com/docs");
       expect(renderInit(client, "epic")).not.toContain("github.com/cbetz/last-ehr");
+      expect(renderInit(client, "memory")).not.toContain("github.com/cbetz/last-ehr");
     }
   });
 });

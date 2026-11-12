@@ -3,6 +3,25 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## Unreleased
+
+- `@lastehr/mcp` can run an in-process synthetic FHIR store with
+  `FHIR_BACKEND=memory`. `init --demo` (with `--client json`, `claude-code`,
+  or `cursor`) prints a config that sets that backend and
+  `LASTEHR_MCP_WRITES=proposal`. No Medplum account, token, or Docker.
+  Startup loads the repository's synthetic fixtures. Approved writes stay
+  in the process and are gone when it exits; tool results and server
+  instructions say so. `doctor` reports the store ready and does not
+  contact a server. The Medplum default is unchanged. Not in npm
+  `@lastehr/mcp@0.5.2`.
+- The store passes the behavioral backend contract, including `meta.tag`
+  and `_tag` / `_tag:not`. It is not an HTTP server, so the REST wire
+  contract does not apply. Search returns one page with no `Bundle.link`,
+  rejects `_include` and `_revinclude`, and rejects parameters outside the
+  chart-read subset. `patient` and `subject` match a top-level reference
+  only.
+- Not a clinical, regulatory, or compliance claim.
+
 ## 0.5.2 — published (2026-11-11)
 
 `@lastehr/mcp` `0.5.2` is published. npm `latest` is

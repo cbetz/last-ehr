@@ -47,7 +47,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
+    "build": "tsx ../../scripts/sync-mcp-synthetic-patients.ts && tsc -p tsconfig.build.json && node -e \"require('fs').chmodSync('dist/cli.js', 0o755)\"",
     "test": "vitest run",
     "prepublishOnly": "npm run build && npm run test"
   },

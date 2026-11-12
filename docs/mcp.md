@@ -25,7 +25,11 @@ write tools.
 
 Use hosted or self-hosted Medplum for the authenticated path. The package also
 supports this repository's no-auth HAPI stack over stdio for local synthetic
-evaluation. `LASTEHR_BACKEND=epic|oracle|smart` with
+evaluation. The next release, not `@lastehr/mcp@0.5.2`, also accepts
+`FHIR_BACKEND=memory`: an in-process synthetic store seeded from this
+repository's fixtures, selected by `init --demo`, with no account, token,
+or Docker. Approved writes stay in that process only.
+`LASTEHR_BACKEND=epic|oracle|smart` with
 `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` selects SMART Backend Services for the
 Epic sandbox, the Oracle Health sandbox, or another token endpoint. Those
 sandboxes do not support delete, so an approved Observation persists. They

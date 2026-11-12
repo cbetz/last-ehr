@@ -102,7 +102,7 @@ describe("MCP FHIR_BACKEND selection", () => {
   it("rejects unknown backends and write flags in every mode", () => {
     expect(() =>
       loadMcpConfig({ FHIR_BACKEND: "firely", FHIR_BASE_URL: "http://x/" }),
-    ).toThrow("Supported values: medplum (default), hapi");
+    ).toThrow("Supported values: medplum (default), hapi, memory");
     expect(() =>
       loadMcpConfig({
         FHIR_BACKEND: "hapi",
@@ -110,6 +110,26 @@ describe("MCP FHIR_BACKEND selection", () => {
         LASTEHR_MCP_WRITES: "true",
       }),
     ).toThrow("read-only by default");
+  });
+
+  it("selects the in-process store without a token, URL, or Docker", () => {
+    const config = loadMcpConfig({ FHIR_BACKEND: "memory" });
+    expect(config).toMatchObject({ backend: "memory", writePolicy: "read-only" });
+    expect(config.baseUrl).toBeUndefined();
+    expect(config.accessToken).toBeUndefined();
+    const withToken = loadMcpConfig({
+      FHIR_BACKEND: "memory",
+      MEDPLUM_ACCESS_TOKEN: "token-value",
+      LASTEHR_MCP_WRITES: "proposal",
+    });
+    expect(withToken).toMatchObject({ backend: "memory", writePolicy: "proposal" });
+    expect(withToken.accessToken).toBeUndefined();
+  });
+
+  it("keeps the default backend on medplum when FHIR_BACKEND is unset", () => {
+    expect(loadMcpConfig({ MEDPLUM_ACCESS_TOKEN: "token-value" }).backend).toBe(
+      "medplum",
+    );
   });
 });
 
@@ -257,6 +277,12 @@ describe("MCP transport selection", () => {
         FHIR_BACKEND: "hapi",
         HAPI_BASE_URL: "http://localhost:8080/fhir",
       }),
+    ).toThrow(/unauthenticated chart API/);
+  });
+
+  it("refuses http combined with the in-process store", () => {
+    expect(() =>
+      loadMcpConfig({ ...HTTP_ENV, FHIR_BACKEND: "memory" }),
     ).toThrow(/unauthenticated chart API/);
   });
 

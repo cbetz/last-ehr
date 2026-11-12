@@ -2,9 +2,37 @@ import { MCP_SERVER_VERSION } from "./server.js";
 import type { SandboxBackend } from "./sandbox-config.js";
 
 export type McpClient = "json" | "claude-code" | "cursor";
-export type InitBackend = "medplum" | SandboxBackend;
+export type InitBackend = "medplum" | "memory" | SandboxBackend;
 
 const packageSpecifier = `@lastehr/mcp@${MCP_SERVER_VERSION}`;
+
+const DEMO_ENV = {
+  FHIR_BACKEND: "memory",
+  LASTEHR_MCP_WRITES: "proposal",
+} as const;
+
+function renderMemoryInit(client: McpClient): string {
+  const server = {
+    command: "npx",
+    args: ["-y", packageSpecifier],
+    env: DEMO_ENV,
+  };
+  if (client === "claude-code") {
+    // --env sits between the server name and `--`, which is the form the
+    // Claude Code docs show. The name must not follow --env directly.
+    return [
+      "# In-process synthetic FHIR (FHIR_BACKEND=memory). No Medplum account, token, or Docker.",
+      "# Fixture records and approved writes last only until the server process exits. Not a chart on a FHIR server.",
+      `claude mcp add lastehr --env FHIR_BACKEND=memory --env LASTEHR_MCP_WRITES=proposal -- npx -y ${packageSpecifier}`,
+      "",
+    ].join("\n");
+  }
+  const config =
+    client === "cursor"
+      ? { mcpServers: { lastehr: { type: "stdio", ...server } } }
+      : { mcpServers: { lastehr: server } };
+  return `${JSON.stringify(config, null, 2)}\n`;
+}
 
 const mcpConfig = {
   mcpServers: {
@@ -80,6 +108,7 @@ export function renderInit(
   client: McpClient = "json",
   backend: InitBackend = "medplum",
 ): string {
+  if (backend === "memory") return renderMemoryInit(client);
   if (backend !== "medplum") {
     const server = {
       command: "npx",
