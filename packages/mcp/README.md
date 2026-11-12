@@ -32,9 +32,8 @@ alongside each verified npm release.
 
 ## Zero-setup demo
 
-npm `latest` stays `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
-`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`. This checkout prepares
-`0.5.4`. That version is not published.
+npm `latest` is `@lastehr/mcp@0.5.4`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.4` `isLatest`.
 
 ```bash
 npx -y @lastehr/mcp@0.5.4 init --demo
