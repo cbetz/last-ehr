@@ -2,7 +2,7 @@ import { readSandboxConfig, type SandboxConfig } from "./sandbox-config.js";
 
 export type McpWritePolicy = "read-only" | "proposal";
 
-export type McpBackend = "medplum" | "hapi" | "epic" | "oracle" | "smart";
+export type McpBackend = "medplum" | "hapi" | "memory" | "epic" | "oracle" | "smart";
 
 /**
  * "stdio" (default) is one operator on one machine, using their own credential
@@ -46,9 +46,10 @@ export type McpHttpConfig = {
 
 export type McpRuntimeConfig = {
   /**
-   * "medplum" (default; token or client-credentials auth) or "hapi" (the
+   * "medplum" (default; token or client-credentials auth), "hapi" (the
    * repository's local, no-auth FHIR evaluation stack — synthetic data on
-   * one machine only, mirroring FHIR_BACKEND in the web app).
+   * one machine only), or "memory" (an in-process synthetic store seeded
+   * from the repository fixtures; nothing is written to a FHIR server).
    */
   backend: McpBackend;
   baseUrl?: string;
@@ -247,10 +248,27 @@ export function loadMcpConfig(
   }
 
   const backend = explicitBackend ?? "medplum";
-  if (backend !== "medplum" && backend !== "hapi") {
+  if (backend !== "medplum" && backend !== "hapi" && backend !== "memory") {
     throw new McpConfigurationError(
-      `Unknown FHIR_BACKEND "${backend}" for @lastehr/mcp. Supported values: medplum (default), hapi.`,
+      `Unknown FHIR_BACKEND "${backend}" for @lastehr/mcp. Supported values: medplum (default), hapi, memory.`,
     );
+  }
+
+  if (backend === "memory") {
+    if (transport === "http") {
+      // Same reason as HAPI: there is no caller token to verify. A remote
+      // transport would publish the in-process store with no authentication.
+      throw new McpConfigurationError(
+        "LASTEHR_MCP_TRANSPORT=http cannot be combined with FHIR_BACKEND=memory. The in-process store has no authentication, so a remote transport in front of it would expose an unauthenticated chart API.",
+      );
+    }
+    return {
+      backend,
+      writePolicy,
+      writeProvenance,
+      disabledWriteTools,
+      transport,
+    };
   }
 
   if (backend === "hapi") {

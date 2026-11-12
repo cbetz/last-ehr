@@ -243,3 +243,137 @@ describe("the built CLI actually runs", () => {
     });
   }, 20_000);
 });
+
+describe("in-process synthetic backend over stdio", () => {
+  function demoEnv(stdout: string): Record<string, string> {
+    const env: Record<string, string> = {};
+    for (const match of stdout.matchAll(/--env ([A-Z0-9_]+)=(\S+)/g)) {
+      const key = match[1];
+      const value = match[2];
+      if (key && value) env[key] = value;
+    }
+    return env;
+  }
+
+  it("init --demo --client claude-code prints a command whose env starts the built server", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "lastehr-demo-init-"));
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [dist, "init", "--demo", "--client", "claude-code"],
+        { cwd, encoding: "utf8", timeout: 15_000 },
+      );
+      expect(result.status).toBe(0);
+      const line = result.stdout.split("\n").find((entry) => entry.startsWith("claude mcp add"));
+      expect(line).toContain("--env FHIR_BACKEND=memory");
+      expect(line).toContain("--env LASTEHR_MCP_WRITES=proposal");
+      expect(line).toContain(`npx -y @lastehr/mcp@${MCP_SERVER_VERSION}`);
+      expect(demoEnv(result.stdout)).toEqual({
+        FHIR_BACKEND: "memory",
+        LASTEHR_MCP_WRITES: "proposal",
+      });
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
+  it("reads a seeded patient and runs approve and decline with only the env init prints", async () => {
+    const cwd = mkdtempSync(join(tmpdir(), "lastehr-memory-"));
+    const init = spawnSync(
+      process.execPath,
+      [dist, "init", "--demo", "--client", "claude-code"],
+      { cwd, encoding: "utf8", timeout: 15_000 },
+    );
+    expect(init.status).toBe(0);
+    const env = demoEnv(init.stdout);
+    expect(env).toEqual({
+      FHIR_BACKEND: "memory",
+      LASTEHR_MCP_WRITES: "proposal",
+    });
+    const prompts: string[] = [];
+    let decisions = 0;
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [dist],
+      cwd,
+      env,
+      stderr: "pipe",
+    });
+    const stderrChunks: string[] = [];
+    transport.stderr?.on("data", (chunk: Buffer | string) => {
+      stderrChunks.push(String(chunk));
+    });
+    const client = new Client(
+      { name: "memory-stdio", version: "0" },
+      { capabilities: { elicitation: {} } },
+    );
+    client.setRequestHandler(ElicitRequestSchema, async (request) => {
+      prompts.push(request.params.message);
+      decisions += 1;
+      if (decisions === 1) return { action: "accept", content: { approve: true } };
+      return { action: "decline" };
+    });
+    try {
+      await client.connect(transport);
+      const { tools } = await client.listTools();
+      expect(tools.map((tool) => tool.name)).toEqual([
+        ...READ_TOOL_NAMES,
+        ...WRITE_TOOL_NAMES,
+      ]);
+
+      const search = await client.callTool({
+        name: "search_patients",
+        arguments: { name: "Maria Garcia" },
+      });
+      expect(search.isError).toBeFalsy();
+      const patients = JSON.parse(toolText(search)).patients as Array<{ id: string; name: string }>;
+      expect(patients).toHaveLength(1);
+      expect(patients[0]?.name).toContain("Garcia");
+      const patientId = patients[0]?.id ?? "";
+
+      const chart = await client.callTool({
+        name: "show_patient_info",
+        arguments: { id: patientId },
+      });
+      expect(chart.isError).toBeFalsy();
+      expect(toolText(chart).toLowerCase()).toContain("asthma");
+
+      const approved = await client.callTool({
+        name: "add_note",
+        arguments: { patientId, text: "Approved synthetic note." },
+      });
+      expect(approved.isError).toBeFalsy();
+      const approvedBody = JSON.parse(toolText(approved)) as {
+        saved: boolean;
+        id?: string;
+        notice?: string;
+      };
+      expect(approvedBody.saved).toBe(true);
+      expect(approvedBody.id).toBeTruthy();
+      expect(approvedBody.notice).toContain("this process only");
+      expect(approvedBody.notice).toContain("Not a chart on a FHIR server");
+
+      const declined = await client.callTool({
+        name: "add_note",
+        arguments: { patientId, text: "Declined synthetic note." },
+      });
+      expect(declined.isError).toBeFalsy();
+      const declinedBody = JSON.parse(toolText(declined)) as { saved: boolean; outcome: string };
+      expect(declinedBody.saved).toBe(false);
+      expect(declinedBody.outcome).toContain("did not approve");
+
+      const after = await client.callTool({
+        name: "show_patient_info",
+        arguments: { id: patientId },
+      });
+      const afterText = toolText(after);
+      expect(afterText).toContain("Approved synthetic note.");
+      expect(afterText).not.toContain("Declined synthetic note.");
+      expect(prompts).toHaveLength(2);
+      expect(stderrChunks.join("")).toContain("until this process exits");
+    } finally {
+      await client.close().catch(() => {});
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  }, 20_000);
+});

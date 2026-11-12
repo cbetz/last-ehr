@@ -20,6 +20,26 @@ approve. Synthetic data only. This is not a clinical or compliance claim.
 npx -y @lastehr/mcp@0.5.2 init
 ```
 
+## Zero-setup demo (unreleased)
+
+npm `latest` is `@lastehr/mcp@0.5.2`. That release has no in-memory demo and no `init --demo`. The next release adds an in-process synthetic FHIR store. No Medplum account, no token, and no Docker.
+
+From a checkout of this commit, after `npm run mcp:build`:
+
+```bash
+node packages/mcp/dist/cli.js init --demo --client claude-code
+```
+
+That prints a `claude mcp add` line whose env is `FHIR_BACKEND=memory` and `LASTEHR_MCP_WRITES=proposal`. The `npx -y @lastehr/mcp@0.5.2` pin in that line does not include this store until a release. Until then, start the built server with only those variables:
+
+```bash
+FHIR_BACKEND=memory LASTEHR_MCP_WRITES=proposal node packages/mcp/dist/cli.js
+```
+
+The process seeds this repository's synthetic fixtures. An approved write stays in that process and is gone when it exits. Tool results and the server instructions say so. This is not a chart on a FHIR server. `--client cursor` and the default JSON config set the same two variables. `doctor` and `doctor --connect` report the store ready and do not contact a server. Leaving `FHIR_BACKEND` unset still selects Medplum.
+
+The store passes the behavioral backend contract (`meta.tag`, `_id`, `identifier`, `_tag`, `_tag:not`, delete). It is not an HTTP server, so the REST wire contract does not apply. Search has no `Bundle.link` page, rejects `_include` / `_revinclude`, and rejects search parameters outside the chart-read subset. `patient` / `subject` match a top-level reference only.
+
 ## Start here
 
 The first step is the published package. It does not create an account.
@@ -33,10 +53,12 @@ npx -y @lastehr/mcp@0.5.2 init --client cursor
 npm `latest` is `@lastehr/mcp@0.5.2`. `init` in 0.5.2 accepts `--client json`
 (the default), `claude-code`, or `cursor`. It prints a client configuration
 and exits. It does not start a server, register the client, or contact a
-FHIR endpoint, and it has no flag that selects a hosted demo. A working
-connection still needs a backend you operate: a Medplum token, or this
-repository's local HAPI stack via `FHIR_BACKEND=hapi` and `FHIR_BASE_URL`
-(Docker required; the first image pull can take several minutes).
+FHIR endpoint, and it has no flag that selects a hosted demo. The unreleased
+in-process store is in [Zero-setup demo](#zero-setup-demo-unreleased); it is
+not part of this 0.5.2 command. A working connection on 0.5.2 still needs a
+backend you operate: a Medplum token, or this repository's local HAPI stack
+via `FHIR_BACKEND=hapi` and `FHIR_BASE_URL` (Docker required; the first image
+pull can take several minutes).
 
 Default output:
 

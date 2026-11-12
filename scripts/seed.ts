@@ -1,21 +1,13 @@
 import { config as loadEnv } from "dotenv";
-import type {
-  AllergyIntolerance,
-  CodeableConcept,
-  Coding,
-  Condition,
-  DocumentReference,
-  Immunization,
-  MedicationRequest,
-  Observation,
-  Patient,
-  Reference,
-} from "@medplum/fhirtypes";
+import type { Patient } from "@medplum/fhirtypes";
 
 import type { FhirBackend } from "../lib/fhir/backend";
+import {
+  bindSubject,
+  syntheticChartResources,
+} from "../packages/mcp/src/synthetic-chart";
 import { createSeedBackend, wipePatient } from "./seed-lib";
 import {
-  SYNTHETIC_SYSTEM,
   patients,
   type SyntheticPatient,
 } from "./fixtures/patients";
@@ -25,188 +17,15 @@ import {
 loadEnv({ path: ".env.local" });
 loadEnv({ path: ".env" });
 
-function codeable(text: string, coding?: Coding): CodeableConcept {
-  return coding ? { text, coding: [{ ...coding, display: text }] } : { text };
-}
-
 async function createChart(
   backend: FhirBackend,
   p: SyntheticPatient,
 ): Promise<number> {
-  const patient = await backend.createResource<Patient>({
-    resourceType: "Patient",
-    identifier: [{ system: SYNTHETIC_SYSTEM, value: p.key }],
-    name: [{ use: "official", family: p.family, given: p.given }],
-    gender: p.gender,
-    birthDate: p.birthDate,
-    telecom: p.email ? [{ system: "email", value: p.email }] : undefined,
-    address: [{ ...p.address, country: "US" }],
-  });
-  const subject: Reference<Patient> = { reference: `Patient/${patient.id}` };
+  const chart = syntheticChartResources(p);
+  const patient = await backend.createResource<Patient>(chart.patient);
   let count = 1;
-
-  for (const c of p.conditions) {
-    await backend.createResource<Condition>({
-      resourceType: "Condition",
-      clinicalStatus: {
-        coding: [
-          {
-            system:
-              "http://terminology.hl7.org/CodeSystem/condition-clinical",
-            code: "active",
-          },
-        ],
-      },
-      verificationStatus: {
-        coding: [
-          {
-            system:
-              "http://terminology.hl7.org/CodeSystem/condition-ver-status",
-            code: "confirmed",
-          },
-        ],
-      },
-      code: codeable(
-        c.text,
-        c.snomed
-          ? { system: "http://snomed.info/sct", code: c.snomed }
-          : undefined,
-      ),
-      subject,
-    });
-    count++;
-  }
-
-  for (const m of p.medications) {
-    await backend.createResource<MedicationRequest>({
-      resourceType: "MedicationRequest",
-      status: "active",
-      intent: "order",
-      medicationCodeableConcept: { text: m.text },
-      subject,
-      dosageInstruction: [{ text: m.dosage }],
-    });
-    count++;
-  }
-
-  for (const a of p.allergies) {
-    await backend.createResource<AllergyIntolerance>({
-      resourceType: "AllergyIntolerance",
-      clinicalStatus: {
-        coding: [
-          {
-            system:
-              "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
-            code: "active",
-          },
-        ],
-      },
-      verificationStatus: {
-        coding: [
-          {
-            system:
-              "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
-            code: "confirmed",
-          },
-        ],
-      },
-      code: codeable(
-        a.text,
-        a.snomed
-          ? { system: "http://snomed.info/sct", code: a.snomed }
-          : undefined,
-      ),
-      patient: subject,
-      criticality: a.criticality || undefined,
-      reaction: a.reaction
-        ? [{ manifestation: [{ text: a.reaction }] }]
-        : undefined,
-    });
-    count++;
-  }
-
-  for (const i of p.immunizations) {
-    await backend.createResource<Immunization>({
-      resourceType: "Immunization",
-      status: "completed",
-      vaccineCode: { text: i.text },
-      patient: subject,
-      occurrenceDateTime: i.date,
-    });
-    count++;
-  }
-
-  for (const o of p.observations) {
-    await backend.createResource<Observation>({
-      resourceType: "Observation",
-      status: "final",
-      category: [
-        {
-          coding: [
-            {
-              system:
-                "http://terminology.hl7.org/CodeSystem/observation-category",
-              code: o.category,
-            },
-          ],
-        },
-      ],
-      code: codeable(o.text, { system: "http://loinc.org", code: o.loinc }),
-      subject,
-      effectiveDateTime: o.date,
-      valueQuantity: {
-        value: o.value,
-        unit: o.unit,
-        ...(o.ucum
-          ? { system: "http://unitsofmeasure.org", code: o.ucum }
-          : {}),
-      },
-    });
-    count++;
-  }
-
-  for (const d of p.documents) {
-    await backend.createResource<DocumentReference>({
-      resourceType: "DocumentReference",
-      status: "current",
-      type: codeable(d.display, { system: "http://loinc.org", code: d.loinc }),
-      // US Core expects a category; "clinical-note" is the one that fits every
-      // fixture here.
-      category: [
-        {
-          coding: [
-            {
-              system:
-                "http://hl7.org/fhir/us/core/CodeSystem/us-core-documentreference-category",
-              code: "clinical-note",
-            },
-          ],
-        },
-      ],
-      subject,
-      date: `${d.date}T00:00:00Z`,
-      description: d.text,
-      content: [
-        {
-          attachment: {
-            contentType: d.contentType,
-            title: d.text,
-            // A small text note is legitimately carried inline. The reader
-            // decodes this without any new outbound request; see
-            // read_document in lib/ai/tools.ts.
-            ...(d.body
-              ? {
-                  data: Buffer.from(d.body, "utf8").toString("base64"),
-                  size: Buffer.byteLength(d.body, "utf8"),
-                }
-              : {}),
-            // A pointer instead of a body, which the reader must report as
-            // unretrievable rather than as an empty document.
-            ...(d.urlPath ? { url: d.urlPath } : {}),
-          },
-        },
-      ],
-    });
+  for (const resource of chart.related) {
+    await backend.createResource(bindSubject(resource, patient.id));
     count++;
   }
 

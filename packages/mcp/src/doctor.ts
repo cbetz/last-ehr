@@ -26,7 +26,9 @@ function configurationSummary(config: McpRuntimeConfig): string {
   const auth =
     config.backend === "hapi"
       ? "local no-auth HAPI"
-      : config.sandbox
+      : config.backend === "memory"
+        ? "in-process synthetic store"
+        : config.sandbox
         ? config.sandbox.accessToken
           ? "pre-minted access token"
           : "SMART private_key_jwt"
@@ -182,6 +184,16 @@ export async function runDoctor(
   options: DoctorOptions = {},
 ): Promise<DoctorReport> {
   const lines = [configurationSummary(config)];
+  if (config.backend === "memory") {
+    // Nothing to dial. --connect stays local too: a metadata probe would
+    // imply a FHIR server that this process does not have.
+    lines.push(
+      "In-process synthetic store is ready. No network request was made.",
+      "Seeded fixture records and approved writes stay in this process only and are gone when it exits. This is not a chart on a FHIR server.",
+      "Not checked: MCP host initialization or the client's approval prompt.",
+    );
+    return { ok: true, lines };
+  }
   if (config.sandbox) {
     const report = await runSandboxDoctor(
       config.sandbox,

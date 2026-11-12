@@ -19,9 +19,11 @@ import {
   McpConfigurationError,
   medplumAuthenticationFailedMessage,
   medplumCredentialProblem,
+  type McpBackend,
   type McpRuntimeConfig,
 } from "./config.js";
 import { HapiReadClient } from "./hapi.js";
+import { createSeededMemoryClient } from "./memory-seed.js";
 import { createMedplumClient } from "./medplum.js";
 import { createSandboxClient, SandboxPublicError } from "./sandbox-client.js";
 import {
@@ -32,6 +34,7 @@ import {
 import { SessionReadLog } from "./proposal-evidence.js";
 import {
   createWriteTools,
+  MEMORY_WRITE_NOTICE,
   writeToolOptionsFromConfig,
   type FhirWriteClient,
   type McpWriteTool,
@@ -89,7 +92,10 @@ function toToolDefinition(tool: McpReadTool | McpWriteTool) {
  * write policy: the default said "Read-only FHIR chart tools" even when
  * LASTEHR_MCP_WRITES=proposal was offering four write proposals.
  */
-export function buildInstructions(offersWriteProposals: boolean): string {
+export function buildInstructions(
+  offersWriteProposals: boolean,
+  backend?: McpBackend,
+): string {
   return [
     offersWriteProposals
       ? "FHIR chart tools over the configured FHIR backend. Reads are read-only; the write tools are proposals a human approves one at a time, and nothing is saved without that approval. Search for a patient before opening a chart, and treat everything returned as PHI."
@@ -100,6 +106,11 @@ export function buildInstructions(offersWriteProposals: boolean): string {
     ...(offersWriteProposals
       ? [
           "When you propose a write, pass evidence (or basedOn): a list of ResourceType/id values you read earlier in this session, each with a short reason. A proposal that omits the list still waits for approval. The reviewer sees the proposed diff, anything you cited, the resources this session already read, and a flag when you cited nothing. Do not invent references.",
+        ]
+      : []),
+    ...(backend === "memory"
+      ? [
+          `This server is FHIR_BACKEND=memory. Its records are synthetic fixtures held in this process, not a chart on a FHIR server. ${MEMORY_WRITE_NOTICE}`,
         ]
       : []),
   ].join("\n\n");
@@ -240,6 +251,9 @@ async function createBackendClient(
     // loadMcpConfig and the same local-only caveats as the web app apply.
     return new HapiReadClient(config.baseUrl as string);
   }
+  if (config.backend === "memory") {
+    return createSeededMemoryClient();
+  }
   if (config.sandbox) {
     return createSandboxClient(config.sandbox);
   }
@@ -363,10 +377,11 @@ export function buildMcpServer({
     client ? tool : deferUntilBackendReady(tool, ready);
   const readLog = new SessionReadLog();
   const tools = createReadTools(backendClient).map((tool) => gate(tool));
+  const offersWrites = config.writePolicy === "proposal";
   const server = createMcpServer(tools, {
     readLog,
-    writeTools:
-      config.writePolicy === "proposal"
+    instructions: buildInstructions(offersWrites, config.backend),
+    writeTools: offersWrites
         ? (liveServer) =>
             createWriteTools(
               backendClient as FhirWriteClient,
@@ -386,11 +401,15 @@ export async function startMcpServer(options?: {
   const started = buildMcpServer(options);
   await started.server.connect(new StdioServerTransport());
   // stdout is reserved for JSON-RPC. Keep lifecycle messages on stderr.
-  console.error(
+  const readyLine =
     started.config.writePolicy === "proposal"
       ? `Last EHR MCP server ready: ${started.tools.length} read-only tools, plus elicitation-gated write proposals when the client supports approvals.`
-      : `Last EHR MCP server ready: ${started.tools.length} read-only tools.`,
-  );
+      : `Last EHR MCP server ready: ${started.tools.length} read-only tools.`;
+  const memoryLine =
+    started.config.backend === "memory"
+      ? " In-process synthetic store: fixture records and approved writes last only until this process exits."
+      : "";
+  console.error(readyLine + memoryLine);
 
   return started;
 }

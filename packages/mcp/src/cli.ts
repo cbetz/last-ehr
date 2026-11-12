@@ -35,11 +35,11 @@ function loadEnvironmentFiles(env: NodeJS.ProcessEnv) {
 
 function help() {
   return [
-    "Last EHR MCP — read-only FHIR chart tools (Medplum, or the local HAPI stack)",
+    "Last EHR MCP — read-only FHIR chart tools (Medplum, the local HAPI stack, or an in-process synthetic store)",
     "",
     "Usage:",
     "  npx -y @lastehr/mcp                 Start the stdio MCP server",
-    "  npx -y @lastehr/mcp init [--client json|claude-code|cursor] [--backend epic|oracle|smart]",
+    "  npx -y @lastehr/mcp init [--client json|claude-code|cursor] [--backend epic|oracle|smart] [--demo]",
     "  npx -y @lastehr/mcp doctor          Validate local configuration",
     "  npx -y @lastehr/mcp doctor --connect  Probe stdio FHIR metadata and count-only Patient search",
     "  npx -y @lastehr/mcp --version       Print the package version",
@@ -51,15 +51,22 @@ function help() {
     "Sandboxes: LASTEHR_BACKEND=epic|oracle|smart and LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1.",
     "Local stack: FHIR_BACKEND=hapi with HAPI_BASE_URL or FHIR_BASE_URL",
     "(no credentials; the local no-auth evaluation stack, synthetic data only).",
+    "In-process demo: FHIR_BACKEND=memory, or init --demo. No account, token, or Docker.",
+    "Synthetic fixtures only. Approved writes last until the process exits.",
   ].join("\n");
 }
 
-function initArgs(args: string[]): { client: McpClient; backend: "medplum" | SandboxBackend } {
+function initArgs(args: string[]): { client: McpClient; backend: "medplum" | "memory" | SandboxBackend } {
   let client: McpClient = "json";
-  let backend: "medplum" | SandboxBackend = "medplum";
+  let backend: "medplum" | "memory" | SandboxBackend = "medplum";
+  let demo = false;
   for (let index = 0; index < args.length; index += 1) {
     const flag = args[index];
     const value = args[index + 1];
+    if (flag === "--demo") {
+      demo = true;
+      continue;
+    }
     if (flag === "--client" && value && isMcpClient(value)) {
       client = value;
       index += 1;
@@ -71,9 +78,15 @@ function initArgs(args: string[]): { client: McpClient; backend: "medplum" | San
       continue;
     }
     throw new McpConfigurationError(
-      "init accepts --client json|claude-code|cursor and --backend medplum|epic|oracle|smart.",
+      "init accepts --client json|claude-code|cursor, --backend medplum|epic|oracle|smart, and --demo.",
     );
   }
+  if (demo && backend !== "medplum") {
+    throw new McpConfigurationError(
+      "init --demo cannot be combined with --backend. --demo selects the in-process synthetic store.",
+    );
+  }
+  if (demo) backend = "memory";
   return { client, backend };
 }
 
@@ -96,7 +109,7 @@ export async function runCli(
   if (command === "init") {
     const parsed = initArgs(args.slice(1));
     process.stdout.write(renderInit(parsed.client, parsed.backend));
-    if (parsed.backend !== "medplum") {
+    if (parsed.backend !== "medplum" && parsed.backend !== "memory") {
       process.stderr.write(`${sandboxGuide(parsed.backend)}\n`);
     }
     writeInitNextSteps(env);
