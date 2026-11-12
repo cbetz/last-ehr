@@ -3,19 +3,21 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## 0.5.3 — prepared, not published
+## 0.5.3 — published (2026-11-12)
 
-`@lastehr/mcp` `0.5.3` adds an in-process synthetic FHIR store
-([#232](https://github.com/cbetz/last-ehr/pull/232)). This version bump is
-not on npm, and there is no git tag. npm `latest` stays
-`@lastehr/mcp@0.5.2`. `mcpName` stays `io.github.cbetz/last-ehr`. Publication
-stays on the [release process](./docs/releasing-mcp.md). Draft notes:
+`@lastehr/mcp` `0.5.3` is published. npm `latest` is
+`@lastehr/mcp@0.5.3`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`. Git tag
+[`mcp-v0.5.3`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.3)
+is `446dc021dc9c796bf9743b05ea92552c807cc3b0`. `mcpName` stays
+`io.github.cbetz/last-ehr`. It adds an in-process synthetic FHIR store
+([#232](https://github.com/cbetz/last-ehr/pull/232)). Notes:
 [docs/releases/mcp-0.5.3.md](./docs/releases/mcp-0.5.3.md).
 
 - `FHIR_BACKEND=memory` seeds the repository's synthetic fixtures in the MCP
   process. `init --demo` (with `--client json`, `claude-code`, or `cursor`)
   prints a config that sets that backend and `LASTEHR_MCP_WRITES=proposal`.
-  No Medplum account, token, or Docker. After publication the command is
+  No Medplum account, token, or Docker. The command is
   `npx -y @lastehr/mcp@0.5.3 init --demo`.
 - Approved writes stay in the process and vanish when it exits. Tool results
   and server instructions say this is not a chart on a FHIR server. `doctor`

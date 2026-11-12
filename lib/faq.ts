@@ -11,7 +11,7 @@ export interface ProductFaqItem {
 export const productFaq: ProductFaqItem[] = [
   {
     q: "How do I connect Claude/Cursor to a FHIR server?",
-    a: "Run npx -y @lastehr/mcp@0.5.2 init --client claude-code, or npx -y @lastehr/mcp@0.5.2 init --client cursor. The Claude Code command prints a claude mcp add line. The Cursor command prints JSON for ~/.cursor/mcp.json or .cursor/mcp.json, including type stdio. Point that server at a FHIR backend you operate: a Medplum access token (MEDPLUM_ACCESS_TOKEN), or MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET, or this repository's local HAPI stack with FHIR_BACKEND=hapi and FHIR_BASE_URL such as http://localhost:8080/fhir. Claude or Cursor supplies the model. The MCP server talks to the FHIR server. Start with synthetic records. Setup: https://www.lastehr.com/docs/mcp",
+    a: "Run npx -y @lastehr/mcp@0.5.3 init --client claude-code, or npx -y @lastehr/mcp@0.5.3 init --client cursor. The Claude Code command prints a claude mcp add line. The Cursor command prints JSON for ~/.cursor/mcp.json or .cursor/mcp.json, including type stdio. Point that server at a FHIR backend you operate: a Medplum access token (MEDPLUM_ACCESS_TOKEN), or MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET, or this repository's local HAPI stack with FHIR_BACKEND=hapi and FHIR_BASE_URL such as http://localhost:8080/fhir. Claude or Cursor supplies the model. The MCP server talks to the FHIR server. Start with synthetic records. Setup: https://www.lastehr.com/docs/mcp",
   },
   {
     q: "Can an AI agent write to Epic?",
