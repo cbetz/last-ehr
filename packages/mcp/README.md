@@ -32,13 +32,14 @@ alongside each verified npm release.
 
 ## Zero-setup demo
 
-npm `latest` is `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
-`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`.
+npm `latest` stays `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`. This checkout prepares
+`0.5.4`. That version is not published.
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 init --demo
-npx -y @lastehr/mcp@0.5.3 init --demo --client claude-code
-npx -y @lastehr/mcp@0.5.3 init --demo --client cursor
+npx -y @lastehr/mcp@0.5.4 init --demo
+npx -y @lastehr/mcp@0.5.4 init --demo --client claude-code
+npx -y @lastehr/mcp@0.5.4 init --demo --client cursor
 ```
 
 `init --demo` runs synthetic seed patients in-process, and approved writes
@@ -65,29 +66,29 @@ multi-word `name` matches when each word is a prefix of some HumanName part.
 
 ## Install
 
-These commands install `@lastehr/mcp@0.5.3`.
+These commands install `@lastehr/mcp@0.5.4`.
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 init
+npx -y @lastehr/mcp@0.5.4 init
 ```
 
 The command prints a portable MCP configuration. For Claude Code, print the
 registration command instead:
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 init --client claude-code
+npx -y @lastehr/mcp@0.5.4 init --client claude-code
 ```
 
 Start the stdio server with:
 
 ```bash
-npx -y @lastehr/mcp@0.5.3
+npx -y @lastehr/mcp@0.5.4
 ```
 
 Check the installed package version without configuring a backend:
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 --version
+npx -y @lastehr/mcp@0.5.4 --version
 ```
 
 ## Configuration
@@ -108,7 +109,7 @@ MEDPLUM_CLIENT_SECRET=...
 Set `MEDPLUM_BASE_URL` for a self-hosted Medplum deployment. For the
 repository's local no-auth HAPI stack, set `FHIR_BACKEND=hapi` and
 `FHIR_BASE_URL` (or `HAPI_BASE_URL`) instead — local, synthetic data only.
-Run `npx -y @lastehr/mcp@0.5.3 doctor` to validate configuration without starting
+Run `npx -y @lastehr/mcp@0.5.4 doctor` to validate configuration without starting
 MCP.
 
 When stderr is a terminal, `init` and a passing `doctor` print a short pointer
