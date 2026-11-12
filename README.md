@@ -16,9 +16,8 @@ approve. Synthetic data only. This is not a clinical or compliance claim.
 
 [![90-second synthetic walkthrough: approve one write, then decline the next](https://www.lastehr.com/demo/approve-and-decline.jpg)](https://www.lastehr.com/demo/approve-and-decline.mp4)
 
-npm `latest` stays `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
-`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`. This checkout prepares
-`0.5.4`. That version is not published.
+npm `latest` is `@lastehr/mcp@0.5.4`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.4` `isLatest`.
 
 ```bash
 npx -y @lastehr/mcp@0.5.4 init --demo

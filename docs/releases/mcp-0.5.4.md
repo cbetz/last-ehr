@@ -1,9 +1,11 @@
 # Last EHR MCP 0.5.4: re-check cited evidence before a write is saved
 
-Pending publication. Merging the version bump does not publish the package,
-cut a tag, or open a GitHub release. npm `latest` stays
-`@lastehr/mcp@0.5.3` until the [release process](../releasing-mcp.md) runs
-on purpose. `mcpName` stays `io.github.cbetz/last-ehr`.
+Published November 12, 2026. npm `latest` is `@lastehr/mcp@0.5.4`. The
+Official MCP Registry record for `io.github.cbetz/last-ehr` marks `0.5.4`
+`isLatest`. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.4)
+is tag `mcp-v0.5.4` at
+`67a6a5cf8022be3a836a8573ab9a23ba9fe81a11`. `mcpName` stays
+`io.github.cbetz/last-ehr`.
 
 The package change is
 [PR #235](https://github.com/cbetz/last-ehr/pull/235), merged as
@@ -34,5 +36,5 @@ A proposal with no citation is unchanged. The check compares versions. It
 does not decide that the proposal follows from the cited rows. Not a
 clinical, regulatory, or compliance claim.
 
-After publication the install pin is `@lastehr/mcp@0.5.4`. `init --demo`
-is unchanged from 0.5.3.
+The install pin is `@lastehr/mcp@0.5.4`. `init --demo` is unchanged from
+0.5.3.
