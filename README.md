@@ -16,13 +16,14 @@ approve. Synthetic data only. This is not a clinical or compliance claim.
 
 [![90-second synthetic walkthrough: approve one write, then decline the next](https://www.lastehr.com/demo/approve-and-decline.jpg)](https://www.lastehr.com/demo/approve-and-decline.mp4)
 
-npm `latest` is `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
-`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`.
+npm `latest` stays `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`. This checkout prepares
+`0.5.4`. That version is not published.
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 init --demo
-npx -y @lastehr/mcp@0.5.3 init --demo --client claude-code
-npx -y @lastehr/mcp@0.5.3 init --demo --client cursor
+npx -y @lastehr/mcp@0.5.4 init --demo
+npx -y @lastehr/mcp@0.5.4 init --demo --client claude-code
+npx -y @lastehr/mcp@0.5.4 init --demo --client cursor
 ```
 
 `init --demo` runs synthetic seed patients in-process, and approved writes vanish when the process exits. Synthetic data only. This is not a clinical or compliance claim.
@@ -32,9 +33,9 @@ npx -y @lastehr/mcp@0.5.3 init --demo --client cursor
 `init` without `--demo` prints a client configuration for a backend you operate and exits. It does not start a server, register the client, or contact a FHIR endpoint.
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 init
-npx -y @lastehr/mcp@0.5.3 init --client claude-code
-npx -y @lastehr/mcp@0.5.3 init --client cursor
+npx -y @lastehr/mcp@0.5.4 init
+npx -y @lastehr/mcp@0.5.4 init --client claude-code
+npx -y @lastehr/mcp@0.5.4 init --client cursor
 ```
 
 `init` accepts `--client json` (the default), `claude-code`, or `cursor`. A Medplum token, or this repository's local HAPI stack via `FHIR_BACKEND=hapi` and `FHIR_BASE_URL`, is below. Docker is required for HAPI; the first image pull can take several minutes.
@@ -48,7 +49,7 @@ Default output:
       "command": "npx",
       "args": [
         "-y",
-        "@lastehr/mcp@0.5.3"
+        "@lastehr/mcp@0.5.4"
       ],
       "env": {
         "MEDPLUM_ACCESS_TOKEN": "<replace-with-a-least-privilege-token>"
@@ -59,7 +60,7 @@ Default output:
 ```
 
 `--client cursor` adds `"type": "stdio"`. `--client claude-code` prints
-`claude mcp add lastehr -- npx -y @lastehr/mcp@0.5.3` plus comments. That
+`claude mcp add lastehr -- npx -y @lastehr/mcp@0.5.4` plus comments. That
 command does not set `LASTEHR_MCP_WRITES`. The generated command is pinned
 to the version that ran `init`.
 
@@ -124,7 +125,7 @@ export FHIR_BASE_URL=http://localhost:8080/fhir
 After HAPI is up, this check prints no patient records:
 
 ```bash
-FHIR_BACKEND=hapi FHIR_BASE_URL=http://localhost:8080/fhir npx -y @lastehr/mcp@0.5.3 doctor --connect
+FHIR_BACKEND=hapi FHIR_BASE_URL=http://localhost:8080/fhir npx -y @lastehr/mcp@0.5.4 doctor --connect
 ```
 
 `doctor --connect` checks FHIR R4 metadata and a count-only Patient
@@ -165,12 +166,12 @@ The card shows flowsheet code `8` and LOINC `8867-4` before anything is
 saved. Oracle uses `FHIR_BACKEND=oracle-health`, `LASTEHR_SCOPES`, and an
 oral temperature (`8331-1`) with `LASTEHR_PERFORMER`.
 
-Those sandboxes are in `@lastehr/mcp@0.5.3`.
+Those sandboxes are in `@lastehr/mcp@0.5.4`.
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 init --backend epic
-npx -y @lastehr/mcp@0.5.3 init --client claude-code --backend oracle
-npx -y @lastehr/mcp@0.5.3 doctor
+npx -y @lastehr/mcp@0.5.4 init --backend epic
+npx -y @lastehr/mcp@0.5.4 init --client claude-code --backend oracle
+npx -y @lastehr/mcp@0.5.4 doctor
 ```
 
 `init --backend epic` or `oracle` prints placeholder env
@@ -414,10 +415,10 @@ shared FHIR credential; each session holds its exchanged token
 ([design and evidence](./docs/remote-mcp.md)).
 
 ```bash
-npx -y @lastehr/mcp@0.5.3 init --client claude-code
+npx -y @lastehr/mcp@0.5.4 init --client claude-code
 ```
 
-Use `npx -y @lastehr/mcp@0.5.3 --version` to check that package version
+Use `npx -y @lastehr/mcp@0.5.4 --version` to check that package version
 without starting the server.
 
 Authenticate with a least-privilege `MEDPLUM_ACCESS_TOKEN`, or
@@ -459,7 +460,7 @@ normal model account and may transmit the synthetic tool output to that model.
 
 ### How do I connect Claude/Cursor to a FHIR server?
 
-Run npx -y @lastehr/mcp@0.5.3 init --client claude-code, or npx -y @lastehr/mcp@0.5.3 init --client cursor. The Claude Code command prints a claude mcp add line. The Cursor command prints JSON for ~/.cursor/mcp.json or .cursor/mcp.json, including type stdio. Point that server at a FHIR backend you operate: a Medplum access token (MEDPLUM_ACCESS_TOKEN), or MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET, or this repository's local HAPI stack with FHIR_BACKEND=hapi and FHIR_BASE_URL such as http://localhost:8080/fhir. Claude or Cursor supplies the model. The MCP server talks to the FHIR server. Start with synthetic records. Setup: https://www.lastehr.com/docs/mcp
+Run npx -y @lastehr/mcp@0.5.4 init --client claude-code, or npx -y @lastehr/mcp@0.5.4 init --client cursor. The Claude Code command prints a claude mcp add line. The Cursor command prints JSON for ~/.cursor/mcp.json or .cursor/mcp.json, including type stdio. Point that server at a FHIR backend you operate: a Medplum access token (MEDPLUM_ACCESS_TOKEN), or MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET, or this repository's local HAPI stack with FHIR_BACKEND=hapi and FHIR_BASE_URL such as http://localhost:8080/fhir. Claude or Cursor supplies the model. The MCP server talks to the FHIR server. Start with synthetic records. Setup: https://www.lastehr.com/docs/mcp
 
 ### Can an AI agent write to Epic?
 
