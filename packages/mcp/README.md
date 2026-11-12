@@ -6,13 +6,16 @@ Open-source MCP server for FHIR charts. Read tools are on by default; every writ
 
 **[Star this project on GitHub](https://github.com/cbetz/last-ehr)** — the source, issues, and the recording above.
 
-FHIR chart tools for MCP clients, over a Medplum project, the Last EHR
-repository's local HAPI evaluation stack (`FHIR_BACKEND=hapi`, synthetic
-data only), or — with `LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` — the Epic and
-Oracle Health sandboxes (`LASTEHR_BACKEND=epic|oracle`) and a generic SMART
-Backend Services server (`LASTEHR_BACKEND=smart`). The sandboxes do not
-support delete, so an approved write persists. This is not a clinical or
-compliance claim.
+FHIR chart tools for MCP clients. `init --demo` runs synthetic seed patients
+in-process (`FHIR_BACKEND=memory`): no Medplum account, token, or Docker, and
+approved writes vanish when the process exits. The same package also talks to
+a Medplum project, the Last EHR repository's local HAPI evaluation stack
+(`FHIR_BACKEND=hapi`, synthetic data only), or — with
+`LASTEHR_EXPERIMENTAL_FHIR_ADAPTERS=1` — the Epic and Oracle Health sandboxes
+(`LASTEHR_BACKEND=epic|oracle`) and a generic SMART Backend Services server
+(`LASTEHR_BACKEND=smart`). The sandboxes do not support delete, so an approved
+write persists. Synthetic data only. This is not a clinical or compliance
+claim.
 
 Read-only by default, and the reads are the same ones the Last EHR web agent
 uses: search patients, show a whole chart, read any of 23 patient-scoped chart
@@ -27,29 +30,26 @@ tools are hidden from clients that cannot render approvals.
 The registry metadata lives in [`server.json`](./server.json) and is published
 alongside each verified npm release.
 
-## Zero-setup demo (unreleased)
-
-npm `latest` is `@lastehr/mcp@0.5.2`. That release has no in-memory store
-and no `init --demo`. The next release adds `FHIR_BACKEND=memory`: an
-in-process synthetic FHIR store seeded from this repository's fixtures. No
-Medplum account, no token, no Docker.
-
-From a checkout, after `npm run mcp:build`:
+## Zero-setup demo
 
 ```bash
-node packages/mcp/dist/cli.js init --demo --client claude-code
+npx -y @lastehr/mcp@0.5.3 init --demo
+npx -y @lastehr/mcp@0.5.3 init --demo --client claude-code
+npx -y @lastehr/mcp@0.5.3 init --demo --client cursor
 ```
 
-The printed command sets `FHIR_BACKEND=memory` and
-`LASTEHR_MCP_WRITES=proposal`. Its `npx -y @lastehr/mcp@0.5.2` pin will not
-run this store until a release. Until then, start the built binary with
-only those two variables. `--client cursor` and the default JSON output
-set the same env. Leaving `FHIR_BACKEND` unset still selects Medplum.
+`init --demo` runs synthetic seed patients in-process, and approved writes
+vanish when the process exits. Synthetic data only. This is not a clinical
+or compliance claim.
 
-Approved writes stay in that process and disappear when it exits. The
-server instructions and the saved-write result say this is not a chart on
-a FHIR server. `doctor` reports the store ready and does not contact a
-server.
+The printed config sets `FHIR_BACKEND=memory` and
+`LASTEHR_MCP_WRITES=proposal`. `--client cursor` adds `"type": "stdio"`.
+The default JSON output and `--client cursor` set the same env. Leaving
+`FHIR_BACKEND` unset still selects Medplum.
+
+Server instructions and the saved-write result say this is not a chart on
+a FHIR server. `doctor` and `doctor --connect` report the store ready and
+do not contact a server. `LASTEHR_MCP_TRANSPORT=http` is refused.
 
 The store passes the behavioral backend contract (`meta.tag` persistence,
 `_id`, `identifier`, `_tag`, `_tag:not`, delete). It does not speak HTTP,
@@ -62,29 +62,29 @@ multi-word `name` matches when each word is a prefix of some HumanName part.
 
 ## Install
 
-These commands install `@lastehr/mcp@0.5.2`.
+These commands install `@lastehr/mcp@0.5.3`.
 
 ```bash
-npx -y @lastehr/mcp@0.5.2 init
+npx -y @lastehr/mcp@0.5.3 init
 ```
 
 The command prints a portable MCP configuration. For Claude Code, print the
 registration command instead:
 
 ```bash
-npx -y @lastehr/mcp@0.5.2 init --client claude-code
+npx -y @lastehr/mcp@0.5.3 init --client claude-code
 ```
 
 Start the stdio server with:
 
 ```bash
-npx -y @lastehr/mcp@0.5.2
+npx -y @lastehr/mcp@0.5.3
 ```
 
 Check the installed package version without configuring a backend:
 
 ```bash
-npx -y @lastehr/mcp@0.5.2 --version
+npx -y @lastehr/mcp@0.5.3 --version
 ```
 
 ## Configuration
@@ -105,7 +105,7 @@ MEDPLUM_CLIENT_SECRET=...
 Set `MEDPLUM_BASE_URL` for a self-hosted Medplum deployment. For the
 repository's local no-auth HAPI stack, set `FHIR_BACKEND=hapi` and
 `FHIR_BASE_URL` (or `HAPI_BASE_URL`) instead — local, synthetic data only.
-Run `npx -y @lastehr/mcp@0.5.2 doctor` to validate configuration without starting
+Run `npx -y @lastehr/mcp@0.5.3 doctor` to validate configuration without starting
 MCP.
 
 When stderr is a terminal, `init` and a passing `doctor` print a short pointer

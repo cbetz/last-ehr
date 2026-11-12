@@ -38,7 +38,7 @@ describe("MCP Registry metadata", () => {
     );
     expect(server.name).toBe("io.github.cbetz/last-ehr");
     expect(server.name).toBe(manifest.mcpName);
-    expect(server.version).toBe("0.5.2");
+    expect(server.version).toBe("0.5.3");
     expect(server.version).toBe(manifest.version);
     expect(MCP_SERVER_VERSION).toBe(manifest.version);
     expect(server.packages).toContainEqual(

@@ -3,24 +3,32 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## Unreleased
+## 0.5.3 — prepared, not published
 
-- `@lastehr/mcp` can run an in-process synthetic FHIR store with
-  `FHIR_BACKEND=memory`. `init --demo` (with `--client json`, `claude-code`,
-  or `cursor`) prints a config that sets that backend and
-  `LASTEHR_MCP_WRITES=proposal`. No Medplum account, token, or Docker.
-  Startup loads the repository's synthetic fixtures. Approved writes stay
-  in the process and are gone when it exits; tool results and server
-  instructions say so. `doctor` reports the store ready and does not
-  contact a server. The Medplum default is unchanged. Not in npm
-  `@lastehr/mcp@0.5.2`.
+`@lastehr/mcp` `0.5.3` adds an in-process synthetic FHIR store
+([#232](https://github.com/cbetz/last-ehr/pull/232)). This version bump is
+not on npm, and there is no git tag. npm `latest` stays
+`@lastehr/mcp@0.5.2`. `mcpName` stays `io.github.cbetz/last-ehr`. Publication
+stays on the [release process](./docs/releasing-mcp.md). Draft notes:
+[docs/releases/mcp-0.5.3.md](./docs/releases/mcp-0.5.3.md).
+
+- `FHIR_BACKEND=memory` seeds the repository's synthetic fixtures in the MCP
+  process. `init --demo` (with `--client json`, `claude-code`, or `cursor`)
+  prints a config that sets that backend and `LASTEHR_MCP_WRITES=proposal`.
+  No Medplum account, token, or Docker. After publication the command is
+  `npx -y @lastehr/mcp@0.5.3 init --demo`.
+- Approved writes stay in the process and vanish when it exits. Tool results
+  and server instructions say this is not a chart on a FHIR server. `doctor`
+  and `doctor --connect` report the store ready and do not contact a server.
+  Leaving `FHIR_BACKEND` unset still selects Medplum.
+  `LASTEHR_MCP_TRANSPORT=http` is refused: the store has no authentication.
 - The store passes the behavioral backend contract, including `meta.tag`
   and `_tag` / `_tag:not`. It is not an HTTP server, so the REST wire
   contract does not apply. Search returns one page with no `Bundle.link`,
   rejects `_include` and `_revinclude`, and rejects parameters outside the
   chart-read subset. `patient` and `subject` match a top-level reference
   only.
-- Not a clinical, regulatory, or compliance claim.
+- Synthetic data only. Not a clinical, regulatory, or compliance claim.
 
 ## 0.5.2 — published (2026-11-11)
 
