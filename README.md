@@ -16,6 +16,9 @@ approve. Synthetic data only. This is not a clinical or compliance claim.
 
 [![90-second synthetic walkthrough: approve one write, then decline the next](https://www.lastehr.com/demo/approve-and-decline.jpg)](https://www.lastehr.com/demo/approve-and-decline.mp4)
 
+npm `latest` is `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`.
+
 ```bash
 npx -y @lastehr/mcp@0.5.3 init --demo
 npx -y @lastehr/mcp@0.5.3 init --demo --client claude-code
@@ -456,7 +459,7 @@ normal model account and may transmit the synthetic tool output to that model.
 
 ### How do I connect Claude/Cursor to a FHIR server?
 
-Run npx -y @lastehr/mcp@0.5.2 init --client claude-code, or npx -y @lastehr/mcp@0.5.2 init --client cursor. The Claude Code command prints a claude mcp add line. The Cursor command prints JSON for ~/.cursor/mcp.json or .cursor/mcp.json, including type stdio. Point that server at a FHIR backend you operate: a Medplum access token (MEDPLUM_ACCESS_TOKEN), or MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET, or this repository's local HAPI stack with FHIR_BACKEND=hapi and FHIR_BASE_URL such as http://localhost:8080/fhir. Claude or Cursor supplies the model. The MCP server talks to the FHIR server. Start with synthetic records. Setup: https://www.lastehr.com/docs/mcp
+Run npx -y @lastehr/mcp@0.5.3 init --client claude-code, or npx -y @lastehr/mcp@0.5.3 init --client cursor. The Claude Code command prints a claude mcp add line. The Cursor command prints JSON for ~/.cursor/mcp.json or .cursor/mcp.json, including type stdio. Point that server at a FHIR backend you operate: a Medplum access token (MEDPLUM_ACCESS_TOKEN), or MEDPLUM_CLIENT_ID and MEDPLUM_CLIENT_SECRET, or this repository's local HAPI stack with FHIR_BACKEND=hapi and FHIR_BASE_URL such as http://localhost:8080/fhir. Claude or Cursor supplies the model. The MCP server talks to the FHIR server. Start with synthetic records. Setup: https://www.lastehr.com/docs/mcp
 
 ### Can an AI agent write to Epic?
 

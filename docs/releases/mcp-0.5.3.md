@@ -1,9 +1,11 @@
 # Last EHR MCP 0.5.3: in-process synthetic FHIR store
 
-Pending publication. Merging the version bump does not publish the package,
-cut a tag, or open a GitHub release. npm `latest` stays
-`@lastehr/mcp@0.5.2` until the [release process](../releasing-mcp.md) runs
-on purpose. `mcpName` stays `io.github.cbetz/last-ehr`.
+Published November 12, 2026. npm `latest` is `@lastehr/mcp@0.5.3`. The
+Official MCP Registry record for `io.github.cbetz/last-ehr` marks `0.5.3`
+`isLatest`. The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.3)
+is tag `mcp-v0.5.3` at
+`446dc021dc9c796bf9743b05ea92552c807cc3b0`. `mcpName` stays
+`io.github.cbetz/last-ehr`.
 
 The package change is
 [PR #232](https://github.com/cbetz/last-ehr/pull/232). Synthetic data only.
@@ -15,8 +17,6 @@ This is not a clinical, regulatory, or compliance claim.
 `init --demo` prints a config that sets that backend and
 `LASTEHR_MCP_WRITES=proposal`. It composes with `--client json` (the
 default), `claude-code`, and `cursor`.
-
-After publication:
 
 ```bash
 npx -y @lastehr/mcp@0.5.3 init --demo

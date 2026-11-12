@@ -32,6 +32,9 @@ alongside each verified npm release.
 
 ## Zero-setup demo
 
+npm `latest` is `@lastehr/mcp@0.5.3`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.3` `isLatest`.
+
 ```bash
 npx -y @lastehr/mcp@0.5.3 init --demo
 npx -y @lastehr/mcp@0.5.3 init --demo --client claude-code
