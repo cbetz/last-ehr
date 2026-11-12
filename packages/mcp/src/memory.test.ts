@@ -105,7 +105,9 @@ describe("memory server wiring", () => {
   });
 
   it("loads with no credential and serves a seeded patient", async () => {
-    const { server } = buildMcpServer({ env: { FHIR_BACKEND: "memory" } });
+    const { server } = buildMcpServer({
+      env: { FHIR_BACKEND: "memory" } as unknown as NodeJS.ProcessEnv,
+    });
     const mcp = new Client({ name: "memory-unit", version: "0" }, { capabilities: {} });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await Promise.all([mcp.connect(clientTransport), server.connect(serverTransport)]);

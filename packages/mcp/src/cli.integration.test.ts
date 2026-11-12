@@ -53,9 +53,11 @@ function doctor(args: string[], settings: Record<string, string>) {
 
 const PLACEHOLDER = "<replace-with-a-least-privilege-token>";
 
-function toolText(result: { content?: unknown }): string {
-  if (!Array.isArray(result.content)) return "";
-  return result.content
+function toolText(result: unknown): string {
+  if (!result || typeof result !== "object" || !("content" in result)) return "";
+  const { content } = result;
+  if (!Array.isArray(content)) return "";
+  return content
     .map((item) =>
       item && typeof item === "object" && "text" in item && typeof item.text === "string"
         ? item.text
@@ -197,7 +199,7 @@ describe("the built CLI actually runs", () => {
       const { tools } = await client.listTools();
       expect(tools.map((tool) => tool.name)).toEqual([...READ_TOOL_NAMES]);
       for (const tool of tools) {
-        expect(tool.description.length).toBeGreaterThan(0);
+        expect((tool.description ?? "").length).toBeGreaterThan(0);
         expect(tool.inputSchema).toMatchObject({ type: "object" });
         expect(tool.inputSchema).toHaveProperty("properties");
         expect(tool.annotations).toMatchObject({ readOnlyHint: true });

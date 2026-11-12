@@ -12,9 +12,11 @@ const NOTE = { patientId: "patient-synthetic", text: "Synthetic note. Nothing cl
 
 type ToolResult = { isError?: boolean; content?: unknown };
 
-function textOf(result: ToolResult): string {
-  if (!Array.isArray(result.content)) return "";
-  return result.content
+function textOf(result: unknown): string {
+  if (!result || typeof result !== "object" || !("content" in result)) return "";
+  const { content } = result;
+  if (!Array.isArray(content)) return "";
+  return content
     .map((item) =>
       item && typeof item === "object" && "text" in item && typeof item.text === "string"
         ? item.text
@@ -55,13 +57,13 @@ describe("tool catalog without a usable Medplum credential", () => {
       throw new Error("tools/list contacted the network");
     });
     vi.stubGlobal("fetch", fetchFn);
-    const { mcpClient } = await connect({} as NodeJS.ProcessEnv, false);
+    const { mcpClient } = await connect({} as unknown as NodeJS.ProcessEnv, false);
 
     const { tools } = await mcpClient.listTools();
 
     expect(tools.map((tool) => tool.name)).toEqual([...READ_TOOL_NAMES]);
     for (const tool of tools) {
-      expect(tool.description.length).toBeGreaterThan(0);
+      expect((tool.description ?? "").length).toBeGreaterThan(0);
       expect(tool.inputSchema).toMatchObject({ type: "object" });
       expect(tool.inputSchema).toHaveProperty("properties");
       expect(tool.annotations).toMatchObject({ readOnlyHint: true });
@@ -72,12 +74,12 @@ describe("tool catalog without a usable Medplum credential", () => {
   it.each([
     {
       label: "no env",
-      env: {} as NodeJS.ProcessEnv,
+      env: {} as unknown as NodeJS.ProcessEnv,
       needle: "MEDPLUM_ACCESS_TOKEN is missing",
     },
     {
       label: "placeholder token",
-      env: { MEDPLUM_ACCESS_TOKEN: PLACEHOLDER } as NodeJS.ProcessEnv,
+      env: { MEDPLUM_ACCESS_TOKEN: PLACEHOLDER } as unknown as NodeJS.ProcessEnv,
       needle: "MEDPLUM_ACCESS_TOKEN is invalid",
     },
   ])("returns a tool error for $label and does not call FHIR", async ({ env, needle }) => {
@@ -103,7 +105,7 @@ describe("tool catalog without a usable Medplum credential", () => {
 
   it("hides write tools from a client that cannot approve", async () => {
     const { mcpClient } = await connect(
-      { LASTEHR_MCP_WRITES: "proposal" } as NodeJS.ProcessEnv,
+      { LASTEHR_MCP_WRITES: "proposal" } as unknown as NodeJS.ProcessEnv,
       false,
     );
     const { tools } = await mcpClient.listTools();
@@ -120,7 +122,7 @@ describe("tool catalog without a usable Medplum credential", () => {
     });
     vi.stubGlobal("fetch", fetchFn);
     const { mcpClient, prompts } = await connect(
-      { LASTEHR_MCP_WRITES: "proposal" } as NodeJS.ProcessEnv,
+      { LASTEHR_MCP_WRITES: "proposal" } as unknown as NodeJS.ProcessEnv,
       true,
     );
 
@@ -156,7 +158,7 @@ describe("tool catalog without a usable Medplum credential", () => {
         FHIR_BACKEND: "hapi",
         FHIR_BASE_URL: "http://127.0.0.1:9/fhir",
         LASTEHR_MCP_WRITES: "proposal",
-      } as NodeJS.ProcessEnv,
+      } as unknown as NodeJS.ProcessEnv,
     });
     const prompts: string[] = [];
     const mcpClient = new Client(
@@ -200,7 +202,7 @@ describe("tool catalog without a usable Medplum credential", () => {
         FHIR_BACKEND: "hapi",
         FHIR_BASE_URL: "http://127.0.0.1:9/fhir",
         LASTEHR_MCP_WRITES: "proposal",
-      } as NodeJS.ProcessEnv,
+      } as unknown as NodeJS.ProcessEnv,
     });
     const mcpClient = new Client(
       { name: "catalog-test", version: "0" },
