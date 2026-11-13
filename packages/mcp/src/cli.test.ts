@@ -8,6 +8,7 @@ vi.mock("./server.js", async (importOriginal) => {
   return { ...actual, startMcpServer: vi.fn(async () => ({})) };
 });
 
+import { runBenchCommand } from "./bench-command.js";
 import { doctorNextStep, initNextSteps } from "./cli-hints.js";
 import { runCli } from "./cli.js";
 import { loadMcpConfig } from "./config.js";
@@ -357,5 +358,33 @@ describe("CLI terminal pointers", () => {
     expect(io.stderr).not.toHaveBeenCalled();
     expect(io.text(io.stdout)).not.toContain("github.com/cbetz/last-ehr");
     expect(startMcpServer).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("MCP CLI bench command", () => {
+  const originalExitCode = process.exitCode;
+
+  afterEach(() => {
+    process.exitCode = originalExitCode;
+    vi.restoreAllMocks();
+  });
+
+  it("documents the checkout benchmark in help", async () => {
+    const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    await runCli(["--help"], EMPTY_ENV);
+    expect(String(write.mock.calls[0]?.[0])).toContain("write-safety benchmark");
+    expect(String(write.mock.calls[0]?.[0])).not.toContain("github.com");
+  });
+
+  it("outside a checkout, bench does not start a server", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    const before = vi.mocked(startMcpServer).mock.calls.length;
+    await runBenchCommand([], { startDir: "/tmp/lastehr-bench-missing-9c66" });
+    expect(process.exitCode).toBe(1);
+    expect(err.mock.calls.map((call) => String(call[0])).join("\n")).toContain("npm run bench");
+    expect(err.mock.calls.map((call) => String(call[0])).join("\n")).toContain(
+      "does not score clinical correctness",
+    );
+    expect(vi.mocked(startMcpServer).mock.calls.length).toBe(before);
   });
 });
