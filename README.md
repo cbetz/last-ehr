@@ -299,6 +299,8 @@ The published MCP package and the no-account local HAPI stack are in
 Vercel deploy, and a local web app. Longer local-lab notes, including
 failures, are in [docs/quickstart.md](./docs/quickstart.md).
 
+Write-safety benchmark, synthetic data, no API key: `npm run bench`. It scores approval gating and protocol behavior, not clinical correctness. See [bench/README.md](./bench/README.md).
+
 **Hosted synthetic demo** (browser, no install): [lastehr.com/demo](https://www.lastehr.com/demo). Synthetic data, no account.
 
 **Deploy with Vercel** and your own keys:

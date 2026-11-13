@@ -42,6 +42,7 @@ function help() {
     "  npx -y @lastehr/mcp init [--client json|claude-code|cursor] [--backend epic|oracle|smart] [--demo]",
     "  npx -y @lastehr/mcp doctor          Validate local configuration",
     "  npx -y @lastehr/mcp doctor --connect  Probe stdio FHIR metadata and count-only Patient search",
+    "  npx -y @lastehr/mcp bench           Run the write-safety benchmark when this checkout includes bench/",
     "  npx -y @lastehr/mcp --version       Print the package version",
     "",
     "Auth: set MEDPLUM_ACCESS_TOKEN, or MEDPLUM_CLIENT_ID plus MEDPLUM_CLIENT_SECRET.",
@@ -103,6 +104,12 @@ export async function runCli(
 
   if (command === "--version" || command === "-v") {
     process.stdout.write(`${MCP_SERVER_VERSION}\n`);
+    return;
+  }
+
+  if (command === "bench") {
+    const { runBenchCommand } = await import("./bench-command.js");
+    await runBenchCommand(args.slice(1));
     return;
   }
 

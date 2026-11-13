@@ -21,6 +21,16 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - name: Run the write-safety benchmark
+        run: npm run bench -- --report artifacts/write-safety-bench.json --markdown artifacts/write-safety-bench.md
+      - name: Upload write-safety benchmark scorecard
+        uses: actions/upload-artifact@v4
+        with:
+          name: write-safety-bench
+          path: |
+            artifacts/write-safety-bench.json
+            artifacts/write-safety-bench.md
+          if-no-files-found: error
       - run: npm run build
       - name: Verify the installable MCP tarball
         run: npm run mcp:pack:check
