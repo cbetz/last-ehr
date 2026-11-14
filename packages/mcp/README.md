@@ -111,12 +111,16 @@ repository's local no-auth HAPI stack, set `FHIR_BACKEND=hapi` and
 Run `npx -y @lastehr/mcp@0.5.4 doctor` to validate configuration without starting
 MCP.
 
-When stderr is a terminal, `init` and a passing `doctor` print a short pointer
-there: the docs (https://www.lastehr.com/docs/mcp) and the source
-(https://github.com/cbetz/last-ehr). A failing `doctor` points at
-https://github.com/cbetz/last-ehr/issues. `LASTEHR_QUIET=1` hides the pointer.
-A non-terminal stderr hides it too, so CI stays quiet. The stdio server does
-not print the pointer. `init` stdout stays the configuration text.
+When stdout and stderr are both terminals, `init` prints next steps on
+stderr: a read prompt for synthetic patient Maria Garcia (seeded by
+`init --demo`), a write prompt that reaches the approval gate, the
+repository (https://github.com/cbetz/last-ehr), and
+https://github.com/cbetz/last-ehr/issues. `LASTEHR_QUIET=1`, `CI=true`, or a
+non-terminal stdout or stderr omits that block. A passing `doctor` prints
+the repository line when stderr is a terminal. A failing `doctor` points at
+the issues URL. `LASTEHR_QUIET=1` or a non-terminal stderr hides the doctor
+line. The stdio server does not print either. `init` stdout stays the
+configuration text, including `--client json`.
 
 In `0.4.0`, `doctor --connect` also checks FHIR R4 metadata and a count-only
 Patient search for the stdio backend. It makes no chart write and prints no

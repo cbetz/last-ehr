@@ -205,18 +205,32 @@ describe("MCP CLI doctor", () => {
 
 describe("CLI terminal pointers", () => {
   const originalExitCode = process.exitCode;
-  const originalTty = Object.getOwnPropertyDescriptor(process.stderr, "isTTY");
+  const originalStderrTty = Object.getOwnPropertyDescriptor(process.stderr, "isTTY");
+  const originalStdoutTty = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
   const tokenEnv = { MEDPLUM_ACCESS_TOKEN: "private-token" } as unknown as NodeJS.ProcessEnv;
 
   afterEach(() => {
     process.exitCode = originalExitCode;
-    if (originalTty) Object.defineProperty(process.stderr, "isTTY", originalTty);
-    else Reflect.deleteProperty(process.stderr, "isTTY");
+    restoreTty(process.stderr, originalStderrTty);
+    restoreTty(process.stdout, originalStdoutTty);
     vi.restoreAllMocks();
   });
 
+  function restoreTty(
+    stream: NodeJS.WriteStream,
+    descriptor: PropertyDescriptor | undefined,
+  ) {
+    if (descriptor) Object.defineProperty(stream, "isTTY", descriptor);
+    else Reflect.deleteProperty(stream, "isTTY");
+  }
+
   function setTty(isTTY: boolean) {
     Object.defineProperty(process.stderr, "isTTY", { configurable: true, value: isTTY });
+    Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: isTTY });
+  }
+
+  function setStreamTty(stream: NodeJS.WriteStream, isTTY: boolean) {
+    Object.defineProperty(stream, "isTTY", { configurable: true, value: isTTY });
   }
 
   function capture() {
@@ -259,6 +273,40 @@ describe("CLI terminal pointers", () => {
     const stdout = io.text(io.stdout);
     expect(stdout).toBe(renderInit("json"));
     expect(JSON.parse(stdout).mcpServers.lastehr.command).toBe("npx");
+    expect(io.stderr).not.toHaveBeenCalled();
+  });
+
+  it("prints next steps after init --demo on a TTY and omits them for CI or a non-TTY stdout", async () => {
+    setTty(true);
+    const io = capture();
+    await runCli(["init", "--demo"], EMPTY_ENV);
+
+    const stdout = io.text(io.stdout);
+    expect(stdout).toBe(renderInit("json", "memory"));
+    expect(JSON.parse(stdout).mcpServers.lastehr.env).toEqual({
+      FHIR_BACKEND: "memory",
+      LASTEHR_MCP_WRITES: "proposal",
+    });
+    expect(stdout).not.toContain("Next steps:");
+    expect(stdout).not.toContain("github.com/cbetz/last-ehr");
+    expect(io.text(io.stderr)).toBe(initNextSteps());
+    expect(io.text(io.stderr)).toContain("Search for synthetic patient Maria Garcia");
+    expect(io.text(io.stderr)).toContain("approve it before anything is saved");
+    expect(io.text(io.stderr)).toContain(
+      "Issues, benchmark, and roadmap: https://github.com/cbetz/last-ehr (a star helps other people find it).",
+    );
+    expect(io.text(io.stderr)).toContain("https://github.com/cbetz/last-ehr/issues");
+
+    io.clear();
+    await runCli(["init", "--demo"], { CI: "true" } as unknown as NodeJS.ProcessEnv);
+    expect(io.text(io.stdout)).toBe(renderInit("json", "memory"));
+    expect(io.stderr).not.toHaveBeenCalled();
+
+    setStreamTty(process.stdout, false);
+    setStreamTty(process.stderr, true);
+    io.clear();
+    await runCli(["init", "--demo"], EMPTY_ENV);
+    expect(io.text(io.stdout)).toBe(renderInit("json", "memory"));
     expect(io.stderr).not.toHaveBeenCalled();
   });
 
