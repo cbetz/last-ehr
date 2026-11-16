@@ -3,6 +3,35 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.5.5 — prepared, not published
+
+`@lastehr/mcp` `0.5.5` adds a checkout write-safety benchmark
+([#238](https://github.com/cbetz/last-ehr/pull/238)) and a terminal
+next-steps block after `init`
+([#239](https://github.com/cbetz/last-ehr/pull/239)). This version bump
+is not on npm, and there is no git tag. npm `latest` stays
+`@lastehr/mcp@0.5.4`. `mcpName` stays `io.github.cbetz/last-ehr`. Publication
+stays on the [release process](./docs/releasing-mcp.md). Draft notes:
+[docs/releases/mcp-0.5.5.md](./docs/releases/mcp-0.5.5.md).
+
+- From a checkout, `npm run bench` runs 24 scripted scenarios on synthetic
+  charts. It scores approval before a save, citations that were actually
+  read, the named patient when two synthetic Smiths exist, planted chart
+  text that says to delete allergies or redirect the write, a declined
+  proposal that is not retried, and a cited resource that changes before
+  approval. It does not score clinical correctness, whether a requested
+  write was appropriate, or regulatory compliance. The scenario catalog is
+  not in the npm tarball (`files` is `dist`, `LICENSE`, `README.md`, and
+  `server.json`). `npx @lastehr/mcp bench` runs that catalog only when this
+  checkout is present; otherwise it says to run `npm run bench` from a
+  checkout. Synthetic data only.
+- After a successful `init`, a terminal prints next steps on stderr: one
+  read prompt, one write prompt that reaches the approval gate, the
+  repository (https://github.com/cbetz/last-ehr) with a star ask, and the
+  issues URL. Stdout stays the client configuration. `LASTEHR_QUIET=1`,
+  `CI=true` or `CI=1`, or a non-terminal stdout or stderr omits the block.
+  A failed `init` does not print it. The stdio server does not print it.
+
 ## 0.5.4 — published (2026-11-12)
 
 `@lastehr/mcp` `0.5.4` is published. npm `latest` is
