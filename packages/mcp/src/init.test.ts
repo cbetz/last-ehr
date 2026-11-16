@@ -76,30 +76,36 @@ describe("MCP setup output", () => {
 });
 
 describe("init terminal pointer", () => {
+  const terminal = { isTTY: true };
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("is three plain lines and stays off stdout", () => {
+  it("is at most six plain lines and stays off stdout", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const text = initNextSteps();
     const lines = text.split("\n").filter((line) => line.length > 0);
 
     expect(lines).toEqual([
-      "Next: run `npx @lastehr/mcp doctor` to check the connection.",
-      "Docs: https://www.lastehr.com/docs/mcp",
-      "Source, issues, and adapter requests: https://github.com/cbetz/last-ehr (a star helps others find it).",
+      "Next steps:",
+      'Read: "Search for synthetic patient Maria Garcia and show her chart." init --demo seeds her.',
+      'Write: "Propose a note that says this chart was reviewed."',
+      "The client asks you to approve it before anything is saved. init --demo sets `LASTEHR_MCP_WRITES=proposal`.",
+      "Issues, benchmark, and roadmap: https://github.com/cbetz/last-ehr (a star helps other people find it).",
+      "Issues: https://github.com/cbetz/last-ehr/issues",
     ]);
+    expect(lines.length).toBeLessThanOrEqual(6);
     expect(text.endsWith("\n")).toBe(true);
     expect(text).toMatch(/^[\n\x20-\x7e]*$/);
     expect(text).not.toMatch(/clinical|compliance|HIPAA|certified/i);
     expect(stdout).not.toHaveBeenCalled();
   });
 
-  it("writes the pointer only for a TTY, and not when LASTEHR_QUIET=1", () => {
+  it("writes the pointer only for a TTY, and not when LASTEHR_QUIET=1 or CI=true", () => {
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const tty = vi.fn();
-    writeInitNextSteps({} as NodeJS.ProcessEnv, { isTTY: true, write: tty });
+    writeInitNextSteps({} as NodeJS.ProcessEnv, { isTTY: true, write: tty }, terminal);
     expect(tty).toHaveBeenCalledOnce();
     expect(tty).toHaveBeenCalledWith(initNextSteps());
 
@@ -107,15 +113,48 @@ describe("init terminal pointer", () => {
     writeInitNextSteps(
       { LASTEHR_QUIET: "1" } as unknown as NodeJS.ProcessEnv,
       { isTTY: true, write: quiet },
+      terminal,
     );
     expect(quiet).not.toHaveBeenCalled();
 
+    const ci = vi.fn();
+    writeInitNextSteps(
+      { CI: "true" } as unknown as NodeJS.ProcessEnv,
+      { isTTY: true, write: ci },
+      terminal,
+    );
+    expect(ci).not.toHaveBeenCalled();
+
+    const ciNumeric = vi.fn();
+    writeInitNextSteps(
+      { CI: "1" } as unknown as NodeJS.ProcessEnv,
+      { isTTY: true, write: ciNumeric },
+      terminal,
+    );
+    expect(ciNumeric).not.toHaveBeenCalled();
+
+    const ciOff = vi.fn();
+    writeInitNextSteps(
+      { CI: "false" } as unknown as NodeJS.ProcessEnv,
+      { isTTY: true, write: ciOff },
+      terminal,
+    );
+    expect(ciOff).toHaveBeenCalledWith(initNextSteps());
+
     const piped = vi.fn();
-    writeInitNextSteps({} as NodeJS.ProcessEnv, { isTTY: false, write: piped });
+    writeInitNextSteps({} as NodeJS.ProcessEnv, { isTTY: false, write: piped }, terminal);
     expect(piped).not.toHaveBeenCalled();
 
+    const stdoutPiped = vi.fn();
+    writeInitNextSteps(
+      {} as NodeJS.ProcessEnv,
+      { isTTY: true, write: stdoutPiped },
+      { isTTY: false },
+    );
+    expect(stdoutPiped).not.toHaveBeenCalled();
+
     const unset = vi.fn();
-    writeInitNextSteps({} as NodeJS.ProcessEnv, { write: unset });
+    writeInitNextSteps({} as NodeJS.ProcessEnv, { write: unset }, terminal);
     expect(unset).not.toHaveBeenCalled();
 
     expect(stdout).not.toHaveBeenCalled();

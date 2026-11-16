@@ -27,6 +27,8 @@ npx -y @lastehr/mcp@0.5.4 init --demo --client cursor
 
 `init --demo` runs synthetic seed patients in-process, and approved writes vanish when the process exits. Synthetic data only. This is not a clinical or compliance claim.
 
+On a terminal, `init` and `init --demo` then print next steps on stderr: one read prompt, one write prompt that reaches the approval gate, https://github.com/cbetz/last-ehr, and https://github.com/cbetz/last-ehr/issues. `LASTEHR_QUIET=1`, `CI=true`, or a non-terminal stdout or stderr omits them. The configuration stays on stdout. The stdio server does not print them.
+
 ## Start here
 
 `init` without `--demo` prints a client configuration for a backend you operate and exits. It does not start a server, register the client, or contact a FHIR endpoint.
@@ -57,6 +59,8 @@ Default output:
   }
 }
 ```
+
+That JSON is stdout. On a terminal, stderr adds the next steps described above. Those lines are not part of the configuration.
 
 `--client cursor` adds `"type": "stdio"`. `--client claude-code` prints
 `claude mcp add lastehr -- npx -y @lastehr/mcp@0.5.4` plus comments. That
