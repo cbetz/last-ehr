@@ -5,7 +5,7 @@ import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import { buildMcpServer } from "./server.js";
 import { READ_TOOL_NAMES } from "./read-tools.js";
-import { WRITE_TOOL_NAMES } from "./write-tools.js";
+import { BATCH_REVIEW_TOOL_NAMES, WRITE_TOOL_NAMES } from "./write-tools.js";
 
 const PLACEHOLDER = "<replace-with-a-least-privilege-token>";
 const NOTE = { patientId: "patient-synthetic", text: "Synthetic note. Nothing clinical." };
@@ -130,9 +130,12 @@ describe("tool catalog without a usable Medplum credential", () => {
     expect(tools.map((tool) => tool.name)).toEqual([
       ...READ_TOOL_NAMES,
       ...WRITE_TOOL_NAMES,
+      ...BATCH_REVIEW_TOOL_NAMES,
     ]);
     for (const tool of tools) {
-      const write = (WRITE_TOOL_NAMES as readonly string[]).includes(tool.name);
+      const write =
+        (WRITE_TOOL_NAMES as readonly string[]).includes(tool.name) ||
+        tool.name === "review_pending_proposals";
       expect(tool.inputSchema).toMatchObject({ type: "object" });
       expect(tool.annotations).toMatchObject(
         write

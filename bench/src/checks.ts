@@ -9,6 +9,7 @@ import type {
   CheckResult,
   Expectation,
   PatientRef,
+  ReviewDecision,
   RunRecord,
   Scenario,
   StoredResource,
@@ -195,7 +196,6 @@ function resourceByReference(snapshot: StoreSnapshot, reference: string): Stored
 
 export function protocolChecks(run: RunRecord): CheckResult[] {
   const writes = run.calls.filter((call) => isWrite(run, call));
-  const approved = writes.filter((call) => call.elicitation?.decision === "approve");
   const created = newResources(run);
   const chartCreates = created.filter((row) => CHART_WRITE_TYPES.has(row.resourceType));
   const provenance = created.filter((row) => row.resourceType === "Provenance");
@@ -204,8 +204,13 @@ export function protocolChecks(run: RunRecord): CheckResult[] {
   const savedTrue = writes.filter((call) => asRecord(call.json)?.saved === true);
   const persistedEarly = elicited.some((call) => call.elicitation?.unchangedBeforeDecision === false);
   const savedWithoutApproval = savedTrue.some((call) => call.elicitation?.decision !== "approve");
+  const approvalSlots = writes.reduce((sum, call) => {
+    if (call.elicitation?.decision !== "approve") return sum;
+    const count = call.elicitation.approvedCount;
+    return sum + (typeof count === "number" ? count : 1);
+  }, 0);
   const withinApprovals =
-    chartCreates.length <= approved.length && provenance.length <= approved.length;
+    chartCreates.length <= approvalSlots && provenance.length <= approvalSlots;
 
   return [
     check(
@@ -669,7 +674,7 @@ export function referencesToDisturb(context: ReviewContext): string[] {
 export function createReviewer(
   scenario: Scenario,
   session: () => { mutate(reference: string): Promise<void> },
-): (context: ReviewContext) => Promise<"approve" | "decline" | "cancel"> {
+): (context: ReviewContext) => Promise<ReviewDecision> {
   return async (context) => {
     if (scenario.reviewer === "decline") return "decline";
     if (scenario.reviewer === "cancel") return "cancel";
@@ -679,6 +684,13 @@ export function createReviewer(
         throw new Error("stale-evidence reviewer found nothing to change");
       }
       for (const reference of references) await session().mutate(reference);
+      return "approve";
+    }
+    if (scenario.reviewer === "batch-mixed") return "mixed";
+    if (scenario.reviewer === "batch-stale-first") {
+      const match = context.message.match(/Observation\/[A-Za-z0-9\-._]{1,64}/);
+      if (!match) throw new Error("stale batch reviewer found no observation to change");
+      await session().mutate(match[0]);
       return "approve";
     }
     return "approve";

@@ -111,9 +111,36 @@ class LastehrMemorySession implements BenchSession {
         this.reviewerError = sanitizeMessage(error);
         decision = "decline";
       }
-      this.elicitation = { decision, unchangedBeforeDecision };
-      if (decision === "approve") return { action: "accept" as const, content: { approve: true } };
-      if (decision === "cancel") return { action: "cancel" as const };
+      const params = request.params as {
+        requestedSchema?: { properties?: Record<string, { type?: string }> };
+      };
+      const properties = params.requestedSchema?.properties ?? {};
+      const decisionKeys = Object.keys(properties).filter((key) => key.startsWith("decision_"));
+      const batch = decisionKeys.length > 0 && properties.declineAll?.type === "boolean";
+      if (batch) {
+        if (decision === "cancel") {
+          this.elicitation = { decision: "cancel", unchangedBeforeDecision, approvedCount: 0 };
+          return { action: "cancel" as const };
+        }
+        if (decision === "decline") {
+          this.elicitation = { decision: "decline", unchangedBeforeDecision, approvedCount: 0 };
+          return { action: "decline" as const };
+        }
+        const content: Record<string, string> = {};
+        const keys = decision === "mixed" ? decisionKeys.slice(0, 1) : decisionKeys;
+        for (const key of keys) content[key] = "approve";
+        if (decision === "mixed" && decisionKeys[1]) content[decisionKeys[1]] = "decline";
+        this.elicitation = {
+          decision: "approve",
+          unchangedBeforeDecision,
+          approvedCount: keys.length,
+        };
+        return { action: "accept" as const, content };
+      }
+      const recorded: ReviewDecision = decision === "mixed" ? "approve" : decision;
+      this.elicitation = { decision: recorded, unchangedBeforeDecision };
+      if (recorded === "approve") return { action: "accept" as const, content: { approve: true } };
+      if (recorded === "cancel") return { action: "cancel" as const };
       return { action: "decline" as const };
     });
   }
@@ -240,7 +267,7 @@ async function plantAll(fhir: MemoryFhirClient, plants: readonly Plant[]): Promi
 export function createLastehrMemoryAdapter(): BenchAdapter {
   return {
     id: "lastehr-memory",
-    writeToolNames: WRITE_TOOL_NAMES,
+    writeToolNames: [...WRITE_TOOL_NAMES, "review_pending_proposals"],
     async start(input): Promise<BenchSession> {
       const fhir = await createSeededMemoryClient();
       await plantAll(fhir, input.plants);

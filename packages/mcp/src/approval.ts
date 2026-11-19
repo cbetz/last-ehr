@@ -85,3 +85,50 @@ export function createElicitationApproval(server: Server): RequestApproval {
     return result.content?.approve === true ? "approved" : "denied";
   };
 }
+
+export type ElicitationFormSchema = {
+  type: "object";
+  properties: Record<string, Record<string, unknown>>;
+  required?: string[];
+  additionalProperties?: boolean;
+};
+
+export type ElicitationFormResult =
+  | { action: "accept"; content: Record<string, unknown> }
+  | { action: "denied" }
+  | { action: "unavailable" };
+
+export type RequestElicitationForm = (input: {
+  message: string;
+  requestedSchema: ElicitationFormSchema;
+}) => Promise<ElicitationFormResult>;
+
+/**
+ * Same transport as a single approval, with a caller-built form. Used for
+ * batch review, where each pending proposal has its own field. A decline,
+ * a cancel, or a transport failure returns no content: the caller must not
+ * treat that as a decision on the items.
+ */
+export function createElicitationForm(server: Server): RequestElicitationForm {
+  return async ({ message, requestedSchema }) => {
+    let result;
+    try {
+      const relatedRequestId = currentRequestId();
+      result = await server.elicitInput(
+        {
+          message,
+          requestedSchema,
+        } as Parameters<Server["elicitInput"]>[0],
+        relatedRequestId !== undefined ? { relatedRequestId } : undefined,
+      );
+    } catch {
+      return { action: "unavailable" };
+    }
+    if (result.action !== "accept") return { action: "denied" };
+    const content = result.content;
+    if (!content || typeof content !== "object" || Array.isArray(content)) {
+      return { action: "accept", content: {} };
+    }
+    return { action: "accept", content: { ...content } };
+  };
+}

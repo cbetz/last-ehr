@@ -381,6 +381,24 @@ The profile is a binding of the repository's framework-neutral
   replaces server-initiated elicitation with Multi Round-Trip Requests, and
   only that adapter changes when it lands.
 
+### Batch review
+
+A single write still asks for approval on that call. To hold several
+proposals for one review, pass `holdForReview: true` on each write. Nothing
+is saved. `list_pending_proposals` returns the queue grouped by patient,
+with the same diff and citation flag as a single prompt. A proposal that
+cites nothing is marked that way. The flag does not approve or deny the
+write.
+
+`review_pending_proposals` asks the person to decide each held proposal.
+The form has one approve-or-decline field per proposal, plus a control that
+declines every proposal left unset. There is no approve-all. Submit saves
+only the proposals set to approve. A proposal left unset stays pending.
+Each approved item is checked again at that moment: policy, the cited-version
+re-read, and the attribution tag. One item failing does not save or block
+the others. The result lists each item on its own. Decisions come from the
+person's form, not from the tool arguments.
+
 The same data caveats as reads apply, doubled: only enable writes against a
 project whose access policy you have scoped, and never against real data you
 are not authorized to modify. The elicitation exchange requests a decision,

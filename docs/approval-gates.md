@@ -99,6 +99,6 @@ The approval experience should become more inspectable without becoming noisy:
 
 - Editable draft proposals with explicit re-review before save.
 - Approval policies by resource type, environment, user role, or SMART scope.
-- Batch review for low-risk resources, if it can avoid approval fatigue.
+- Batch review is available: several pending proposals are listed together, and the reviewer decides each one. There is no approve-all. A proposal left unset stays pending.
 
 High-risk resource types need stronger review than one confirm button.

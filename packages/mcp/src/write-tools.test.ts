@@ -156,6 +156,8 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
       "record_observation",
       "record_superseding_observation",
       "create_task",
+      "list_pending_proposals",
+      "review_pending_proposals",
     ]);
 
     const withoutApprovals = await connect({ elicitation: false });
@@ -185,13 +187,16 @@ describe("MCP write profile (elicitation-gated proposals)", () => {
     // Derived from WRITE_TOOL_NAMES, not a hand-listed pair of reads: a new
     // read tool is then annotated correctly by construction instead of by
     // someone remembering to extend this test.
-    const writeNames = WRITE_TOOL_NAMES as readonly string[];
-    expect(tools.length).toBeGreaterThan(writeNames.length);
+    const writeNames = new Set<string>([
+      ...WRITE_TOOL_NAMES,
+      "review_pending_proposals",
+    ]);
+    expect(tools.length).toBeGreaterThan(writeNames.size);
     for (const tool of tools) {
       expect(
         tool.annotations?.readOnlyHint,
         `${tool.name} carries the wrong read-only hint`,
-      ).toBe(!writeNames.includes(tool.name));
+      ).toBe(!writeNames.has(tool.name));
     }
   });
 

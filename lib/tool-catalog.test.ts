@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { buildTools } from "@/lib/ai/tools";
-import { TOOL_CATALOG, READ_TOOLS, PROPOSAL_TOOLS } from "@/lib/tool-catalog";
+import { TOOL_CATALOG, READ_TOOLS, PROPOSAL_TOOLS, MCP_BATCH_REVIEW_TOOLS } from "@/lib/tool-catalog";
 import type { FhirBackend } from "@/lib/fhir/backend";
 import { READ_TOOL_NAMES } from "../packages/mcp/src/read-tools";
-import { WRITE_TOOL_NAMES } from "../packages/mcp/src/write-tools";
+import { BATCH_REVIEW_TOOL_NAMES, WRITE_TOOL_NAMES } from "../packages/mcp/src/write-tools";
 
 // The catalog is the published description of the agent's surface (homepage
 // manifest, docs). These tests are the reason it can be trusted: a new tool
@@ -25,9 +25,13 @@ describe("tool catalog", () => {
   });
 
   it("describes exactly the tools the MCP package registers", () => {
-    const mcp = [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES].sort();
-    const described = TOOL_CATALOG.map((t) => t.name).sort();
+    const mcp = [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES, ...BATCH_REVIEW_TOOL_NAMES].sort();
+    const described = [
+      ...TOOL_CATALOG.map((t) => t.name),
+      ...MCP_BATCH_REVIEW_TOOLS.map((t) => t.name),
+    ].sort();
     expect(described).toEqual(mcp);
+    expect(new Set(described).size).toBe(described.length);
   });
 
   it("classifies every MCP write tool as a proposal, never a read", () => {

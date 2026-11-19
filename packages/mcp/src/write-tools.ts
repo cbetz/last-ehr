@@ -8,7 +8,8 @@ import type {
 } from "@medplum/fhirtypes";
 import { z } from "zod";
 
-import type { ApprovalRequest, RequestApproval } from "./approval.js";
+import type { ApprovalRequest, RequestApproval, RequestElicitationForm } from "./approval.js";
+import { ProposalInbox } from "./batch-review.js";
 import {
   confirmEvidencePins,
   prepareEvidencePins,
@@ -50,6 +51,18 @@ import {
 
 const EVIDENCE_RECHECK_SENTENCE =
   "After approval, each cited resource is read again. If it is missing or its version changed, nothing is saved.";
+
+const HOLD_FOR_REVIEW_SENTENCE =
+  "Pass holdForReview true to hold this proposal for batch review instead of asking now. Nothing is saved until a person decides it.";
+
+const holdForReviewField = {
+  holdForReview: z
+    .boolean()
+    .optional()
+    .describe(
+      "Set true to hold this proposal for batch review instead of asking for a decision now. Nothing is saved. Omit it to ask for approval of this proposal alone.",
+    ),
+};
 
 export interface FhirWriteClient extends FhirReadClient {
   createResource<T extends Resource>(resource: T): Promise<T & { id: string }>;
@@ -146,6 +159,11 @@ export type WriteToolOptions = {
    * the tool result itself says the row is not on a FHIR server.
    */
   memoryNotice?: string;
+  /**
+   * Batch-review form. Absent only for an embedder that has not wired
+   * elicitation; review_pending_proposals then leaves every proposal pending.
+   */
+  requestForm?: RequestElicitationForm;
 };
 
 /** Tool-result text for FHIR_BACKEND=memory. Static; no chart data. */
@@ -163,6 +181,7 @@ const addNoteSchema = z.object({
     .max(1000)
     .describe("The note text to add to the chart."),
   ...evidenceFields(),
+  ...holdForReviewField,
 });
 
 // The regex alone admits 2026-02-31; round-trip through UTC Date parts so
@@ -195,6 +214,7 @@ const supersedingObservationSchema = z.object({
     .describe("The corrected numeric value."),
   unit: z.string().min(1).max(20).describe("The unit, e.g. kg."),
   ...evidenceFields(),
+  ...holdForReviewField,
 });
 
 const createTaskSchema = z.object({
@@ -211,6 +231,7 @@ const createTaskSchema = z.object({
     .optional()
     .describe("Optional due date, YYYY-MM-DD."),
   ...evidenceFields(),
+  ...holdForReviewField,
 });
 
 const recordObservationSchema = z.object({
@@ -244,6 +265,7 @@ const recordObservationSchema = z.object({
       "Practitioner id or Practitioner/{id}. Required on the Oracle Health sandbox; filed as legal authenticator.",
     ),
   ...evidenceFields(),
+  ...holdForReviewField,
 });
 
 const DENIED_RESULT = {
@@ -272,10 +294,20 @@ export type McpWriteTool = Omit<McpReadTool, "name"> & {
     | "add_note"
     | "record_observation"
     | "record_superseding_observation"
-    | "create_task";
-  /** Marks the tool as a proposal-shaped write for annotations/docs. */
-  proposesWrite: true;
+    | "create_task"
+    | "list_pending_proposals"
+    | "review_pending_proposals";
+  /**
+   * Marks a tool that can create a chart resource. list_pending_proposals
+   * omits it: listing the queue does not write.
+   */
+  proposesWrite?: true;
 };
+
+export const BATCH_REVIEW_TOOL_NAMES = [
+  "list_pending_proposals",
+  "review_pending_proposals",
+] as const;
 
 export const WRITE_TOOL_NAMES = [
   "add_note",
@@ -336,6 +368,45 @@ export function createWriteTools(
   }
 
   const decide = (request: ApprovalRequest) => requestApproval(request);
+  const inbox = new ProposalInbox();
+
+  // Shared with batch review so a held proposal runs the same checks at
+  // apply time as a proposal approved on its own.
+  const commitPrepared = async (
+    proposal: WriteProposalContext,
+    pins: readonly EvidencePin[],
+    save: () => Promise<Record<string, unknown>>,
+  ): Promise<Record<string, unknown>> => {
+    const policyAtCommit = await checkWritePolicy(proposal);
+    if (policyAtCommit.deny) return policyDeniedResult(policyAtCommit.reason);
+    const staleEvidence = await recheckPins(pins);
+    if (staleEvidence) return staleEvidence;
+    return save();
+  };
+
+  const holdForBatch = (
+    parsed: { holdForReview?: boolean },
+    view: {
+      patientId: string;
+      toolName: (typeof WRITE_TOOL_NAMES)[number];
+      resourceType: string;
+      title: string;
+      summary: string;
+      uncited: boolean;
+      pins: readonly EvidencePin[];
+    },
+    commit: () => Promise<Record<string, unknown>>,
+  ) => {
+    if (parsed.holdForReview !== true) return undefined;
+    const proposalId = inbox.hold({ ...view, commit });
+    return {
+      saved: false as const,
+      pending: true as const,
+      proposalId,
+      outcome:
+        "Held for batch review. Nothing was saved. A person decides each held proposal in review_pending_proposals. A proposal left unset stays pending.",
+    };
+  };
 
   // The diff is the clinical body the reviewer is deciding on. Audit tags
   // and the commit-time clock stay off it; they are stamped at save.
@@ -466,7 +537,7 @@ export function createWriteTools(
       name: "add_note",
       proposesWrite: true,
       description:
-        `Propose adding a free-text note to a patient's chart. The human operator reviews the exact note in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
+        `Propose adding a free-text note to a patient's chart. The human operator reviews the exact note in an approval prompt; nothing is saved unless they approve. ${HOLD_FOR_REVIEW_SENTENCE} ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: addNoteSchema,
       async execute(input: unknown) {
         const parsed = addNoteSchema.parse(input);
@@ -484,63 +555,72 @@ export function createWriteTools(
         if (noteBlocked) return noteBlocked;
         const pinned = await pinProposal(parsed);
         if (!pinned.ok) return { saved: false, outcome: pinned.outcome };
-        const decision = await decide({
-          title: "Add this note to the chart?",
-          // Free text is JSON-quoted so an embedded newline cannot forge a
-          // summary line the reviewer misreads as a separate field.
-          summary: renderApproval(
-            [
-              `Patient: Patient/${patientId}`,
-              `Resource: Communication`,
-              `Note: ${JSON.stringify(text)}`,
-            ].join("\n"),
-            {
+        const title = "Add this note to the chart?";
+        // Free text is JSON-quoted so an embedded newline cannot forge a
+        // summary line the reviewer misreads as a separate field.
+        const summary = renderApproval(
+          [
+            `Patient: Patient/${patientId}`,
+            `Resource: Communication`,
+            `Note: ${JSON.stringify(text)}`,
+          ].join("\n"),
+          {
+            resourceType: "Communication",
+            status: "completed",
+            subject: { reference: `Patient/${patientId}` },
+            sent: "<server time when approved>",
+            payload: [{ contentString: text }],
+          },
+          parsed,
+        );
+        // Built at commit time so the timestamp is the moment of the
+        // approved save, matching the web demo; every field the human saw
+        // comes from the same parsed values.
+        const commit = () =>
+          commitPrepared(proposal, pinned.pins, async () => {
+            const resource: Communication = {
               resourceType: "Communication",
               status: "completed",
               subject: { reference: `Patient/${patientId}` },
-              sent: "<server time when approved>",
+              sent: new Date().toISOString(),
               payload: [{ contentString: text }],
-            },
-            parsed,
-          ),
-        });
+              meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
+            };
+            const created = await client.createResource(resource);
+            await emitWriteProvenance("Communication", created.id);
+            return {
+              saved: true,
+              resourceType: "Communication",
+              id: created.id,
+              ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
+            };
+          });
+        const held = holdForBatch(
+          parsed,
+          {
+            patientId,
+            toolName: "add_note",
+            resourceType: "Communication",
+            title,
+            summary,
+            uncited: parseCitedEvidence(parsed).length === 0,
+            pins: pinned.pins,
+          },
+          commit,
+        );
+        if (held) return held;
+        const decision = await decide({ title, summary });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
         }
-        // Deny-only re-check at commit time: closes the window where
-        // policy tightened while the reviewer deliberated.
-        const policyAtCommit = await checkWritePolicy(proposal);
-        if (policyAtCommit.deny) {
-          return policyDeniedResult(policyAtCommit.reason);
-        }
-        const staleEvidence = await recheckPins(pinned.pins);
-        if (staleEvidence) return staleEvidence;
-        // Built AFTER the approval so the timestamp is the moment of the
-        // approved save, matching the web demo; every field the human saw
-        // comes from the same parsed values.
-        const resource: Communication = {
-          resourceType: "Communication",
-          status: "completed",
-          subject: { reference: `Patient/${patientId}` },
-          sent: new Date().toISOString(),
-          payload: [{ contentString: text }],
-          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
-        };
-        const created = await client.createResource(resource);
-        await emitWriteProvenance("Communication", created.id);
-        return {
-          saved: true,
-          resourceType: "Communication",
-          id: created.id,
-          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
-        };
+        return commit();
       },
     },
     {
       name: "record_observation",
       proposesWrite: true,
       description:
-        `Propose recording a vital sign or lab value on a patient's chart. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
+        `Propose recording a vital sign or lab value on a patient's chart. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. ${HOLD_FOR_REVIEW_SENTENCE} ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: recordObservationSchema,
       async execute(input: unknown) {
         const parsed = recordObservationSchema.parse(input);
@@ -593,57 +673,69 @@ export function createWriteTools(
           .join(", ");
         const observationBody: Record<string, unknown> = { ...resource };
         delete observationBody.meta;
-        const decision = await decide({
-          title: "Record this observation?",
-          summary: renderApproval(
-            [
-              `Patient: Patient/${patientId}`,
-              `Resource: Observation`,
-              `Label: ${JSON.stringify(label)}`,
-              `Value: ${value} ${JSON.stringify(resource.valueQuantity?.unit ?? unit)}`,
-              ...(codingSummary ? [`Codes: ${codingSummary}`] : []),
-              ...(resource.encounter?.reference
-                ? [`Encounter: ${resource.encounter.reference}`]
-                : []),
-              ...(resource.performer?.[0]?.reference
-                ? [`Performer: ${resource.performer[0].reference} (legal authenticator)`]
-                : []),
-              "Effective time is set when this is approved.",
-            ].join("\n"),
-            {
-              ...observationBody,
-              effectiveDateTime: "<server time when approved>",
-            },
-            parsed,
-          ),
-        });
+        const title = "Record this observation?";
+        const summary = renderApproval(
+          [
+            `Patient: Patient/${patientId}`,
+            `Resource: Observation`,
+            `Label: ${JSON.stringify(label)}`,
+            `Value: ${value} ${JSON.stringify(resource.valueQuantity?.unit ?? unit)}`,
+            ...(codingSummary ? [`Codes: ${codingSummary}`] : []),
+            ...(resource.encounter?.reference
+              ? [`Encounter: ${resource.encounter.reference}`]
+              : []),
+            ...(resource.performer?.[0]?.reference
+              ? [`Performer: ${resource.performer[0].reference} (legal authenticator)`]
+              : []),
+            "Effective time is set when this is approved.",
+          ].join("\n"),
+          {
+            ...observationBody,
+            effectiveDateTime: "<server time when approved>",
+          },
+          parsed,
+        );
+        const prepared = resource;
+        const commit = () =>
+          commitPrepared(proposal, pinned.pins, async () => {
+            const saving = { ...prepared, effectiveDateTime: new Date().toISOString() };
+            const created = await client.createResource(saving);
+            await emitWriteProvenance("Observation", created.id);
+            const readBack = await readBackAfterCreate(saving, created);
+            return {
+              saved: true,
+              resourceType: "Observation",
+              id: created.id,
+              ...(readBack ? { readBack } : {}),
+              ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
+            };
+          });
+        const held = holdForBatch(
+          parsed,
+          {
+            patientId,
+            toolName: "record_observation",
+            resourceType: "Observation",
+            title,
+            summary,
+            uncited: parseCitedEvidence(parsed).length === 0,
+            pins: pinned.pins,
+          },
+          commit,
+        );
+        if (held) return held;
+        const decision = await decide({ title, summary });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
         }
-        const policyAtCommit = await checkWritePolicy(proposal);
-        if (policyAtCommit.deny) {
-          return policyDeniedResult(policyAtCommit.reason);
-        }
-        const staleEvidence = await recheckPins(pinned.pins);
-        if (staleEvidence) return staleEvidence;
-        resource = { ...resource, effectiveDateTime: new Date().toISOString() };
-        const created = await client.createResource(resource);
-        await emitWriteProvenance("Observation", created.id);
-        const readBack = await readBackAfterCreate(resource, created);
-        return {
-          saved: true,
-          resourceType: "Observation",
-          id: created.id,
-          ...(readBack ? { readBack } : {}),
-          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
-        };
+        return commit();
       },
     },
     {
       name: "record_superseding_observation",
       proposesWrite: true,
       description:
-        `Propose a new observation that supersedes an earlier one on the same chart, for when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes; the earlier entry is NOT changed, NOT deleted, and NOT marked as an error. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. The observation being superseded is read again after approval, whether or not it is cited. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
+        `Propose a new observation that supersedes an earlier one on the same chart, for when a previously recorded value was wrong. The new value is filed as an ADDITIONAL entry linked to the one it supersedes; the earlier entry is NOT changed, NOT deleted, and NOT marked as an error. The human operator reviews the exact values in an approval prompt; nothing is saved unless they approve. The observation being superseded is read again after approval, whether or not it is cited. ${HOLD_FOR_REVIEW_SENTENCE} ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: supersedingObservationSchema,
       async execute(input: unknown) {
         const parsed = supersedingObservationSchema.parse(input);
@@ -693,91 +785,102 @@ export function createWriteTools(
           also: [{ reference: supersedeReference, role: "supersedes" }],
         });
         if (!pinned.ok) return { saved: false, outcome: pinned.outcome };
-        const decision = await decide({
-          title: "File a superseding observation?",
-          summary: renderApproval(
-            [
-              `Patient: Patient/${patientId}`,
-              `Resource: Observation`,
-              `Supersedes: Observation/${supersedes} — ${JSON.stringify(`${priorLabel} ${priorValue}`)}`,
-              `New value: ${value} ${JSON.stringify(unit)}`,
-              "The earlier entry stays on the chart as a final result. This does not mark it as an error and does not delete it.",
-            ].join("\n"),
-            {
+        const title = "File a superseding observation?";
+        const summary = renderApproval(
+          [
+            `Patient: Patient/${patientId}`,
+            `Resource: Observation`,
+            `Supersedes: Observation/${supersedes} — ${JSON.stringify(`${priorLabel} ${priorValue}`)}`,
+            `New value: ${value} ${JSON.stringify(unit)}`,
+            "The earlier entry stays on the chart as a final result. This does not mark it as an error and does not delete it.",
+          ].join("\n"),
+          {
+            resourceType: "Observation",
+            status: "final",
+            code: original.code ?? { text: priorLabel },
+            ...(original.category ? { category: original.category } : {}),
+            subject: { reference: `Patient/${patientId}` },
+            ...(original.effectiveDateTime
+              ? { effectiveDateTime: original.effectiveDateTime }
+              : {}),
+            issued: "<server time when approved>",
+            valueQuantity: { value, unit },
+            extension: [
+              {
+                url: OBSERVATION_REPLACES_EXTENSION,
+                valueReference: { reference: `Observation/${supersedes}` },
+              },
+            ],
+          },
+          parsed,
+        );
+        const commit = () =>
+          commitPrepared(proposal, pinned.pins, async () => {
+            const coded = codeObservation(priorLabel, unit);
+            // One create: the supersession link rides the resource, so there is
+            // no second write that could fail and leave two contradictory values
+            // with nothing joining them.
+            const resource: Observation = {
               resourceType: "Observation",
               status: "final",
               code: original.code ?? { text: priorLabel },
               ...(original.category ? { category: original.category } : {}),
               subject: { reference: `Patient/${patientId}` },
+              // The original's measurement time; `issued` marks the correction.
               ...(original.effectiveDateTime
                 ? { effectiveDateTime: original.effectiveDateTime }
                 : {}),
-              issued: "<server time when approved>",
-              valueQuantity: { value, unit },
+              issued: new Date().toISOString(),
+              valueQuantity: {
+                value,
+                unit,
+                ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
+              },
               extension: [
                 {
                   url: OBSERVATION_REPLACES_EXTENSION,
                   valueReference: { reference: `Observation/${supersedes}` },
                 },
               ],
-            },
-            parsed,
-          ),
-        });
+              meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
+            };
+            const created = await client.createResource(resource);
+            await emitWriteProvenance("Observation", created.id);
+            return {
+              saved: true,
+              resourceType: "Observation",
+              id: created.id,
+              supersedes,
+              outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
+              ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
+            };
+          });
+        const held = holdForBatch(
+          parsed,
+          {
+            patientId,
+            toolName: "record_superseding_observation",
+            resourceType: "Observation",
+            title,
+            summary,
+            uncited: parseCitedEvidence(parsed).length === 0,
+            pins: pinned.pins,
+          },
+          commit,
+        );
+        if (held) return held;
+        const decision = await decide({ title, summary });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
         }
-        const policyAtCommit = await checkWritePolicy(proposal);
-        if (policyAtCommit.deny) {
-          return policyDeniedResult(policyAtCommit.reason);
-        }
-        const staleEvidence = await recheckPins(pinned.pins);
-        if (staleEvidence) return staleEvidence;
-        const coded = codeObservation(priorLabel, unit);
-        // One create: the supersession link rides the resource, so there is
-        // no second write that could fail and leave two contradictory values
-        // with nothing joining them.
-        const resource: Observation = {
-          resourceType: "Observation",
-          status: "final",
-          code: original.code ?? { text: priorLabel },
-          ...(original.category ? { category: original.category } : {}),
-          subject: { reference: `Patient/${patientId}` },
-          // The original's measurement time; `issued` marks the correction.
-          ...(original.effectiveDateTime
-            ? { effectiveDateTime: original.effectiveDateTime }
-            : {}),
-          issued: new Date().toISOString(),
-          valueQuantity: {
-            value,
-            unit,
-            ...(coded.ucum ? { system: UCUM_SYSTEM, code: coded.ucum } : {}),
-          },
-          extension: [
-            {
-              url: OBSERVATION_REPLACES_EXTENSION,
-              valueReference: { reference: `Observation/${supersedes}` },
-            },
-          ],
-          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
-        };
-        const created = await client.createResource(resource);
-        await emitWriteProvenance("Observation", created.id);
-        return {
-          saved: true,
-          resourceType: "Observation",
-          id: created.id,
-          supersedes,
-          outcome: `Saved as a new observation that supersedes Observation/${supersedes}. The earlier entry stays on the chart as a final result — this does not mark it as an error. Retracting it requires the EHR's own correction workflow.`,
-          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
-        };
+        return commit();
       },
     },
     {
       name: "create_task",
       proposesWrite: true,
       description:
-        `Propose creating a follow-up task on a patient's chart (what needs to happen, optionally by when). The human operator reviews the exact task in an approval prompt; nothing is saved unless they approve. ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
+        `Propose creating a follow-up task on a patient's chart (what needs to happen, optionally by when). The human operator reviews the exact task in an approval prompt; nothing is saved unless they approve. ${HOLD_FOR_REVIEW_SENTENCE} ${EVIDENCE_TOOL_SENTENCE} ${EVIDENCE_RECHECK_SENTENCE}`,
       inputSchema: createTaskSchema,
       async execute(input: unknown) {
         const parsed = createTaskSchema.parse(input);
@@ -793,61 +896,94 @@ export function createWriteTools(
         if (taskBlocked) return taskBlocked;
         const pinned = await pinProposal(parsed);
         if (!pinned.ok) return { saved: false, outcome: pinned.outcome };
-        const decision = await decide({
-          title: "Create this task?",
-          summary: renderApproval(
-            [
-              `Patient: Patient/${patientId}`,
-              `Resource: Task`,
-              `Task: ${JSON.stringify(description)}`,
-              // The exact stored value, so the reviewer sees the end-of-day
-              // UTC normalization rather than discovering it on the chart.
-              ...(dueDate ? [`Due: ${dueDate} (saves as ${dueDate}T23:59:59Z)`] : []),
-            ].join("\n"),
-            {
+        const title = "Create this task?";
+        const summary = renderApproval(
+          [
+            `Patient: Patient/${patientId}`,
+            `Resource: Task`,
+            `Task: ${JSON.stringify(description)}`,
+            // The exact stored value, so the reviewer sees the end-of-day
+            // UTC normalization rather than discovering it on the chart.
+            ...(dueDate ? [`Due: ${dueDate} (saves as ${dueDate}T23:59:59Z)`] : []),
+          ].join("\n"),
+          {
+            resourceType: "Task",
+            status: "requested",
+            intent: "order",
+            description,
+            for: { reference: `Patient/${patientId}` },
+            authoredOn: "<server time when approved>",
+            ...(dueDate
+              ? { restriction: { period: { end: `${dueDate}T23:59:59Z` } } }
+              : {}),
+          },
+          parsed,
+        );
+        const commit = () =>
+          commitPrepared(proposal, pinned.pins, async () => {
+            const resource: Task = {
               resourceType: "Task",
               status: "requested",
               intent: "order",
               description,
               for: { reference: `Patient/${patientId}` },
-              authoredOn: "<server time when approved>",
+              authoredOn: new Date().toISOString(),
               ...(dueDate
                 ? { restriction: { period: { end: `${dueDate}T23:59:59Z` } } }
                 : {}),
-            },
-            parsed,
-          ),
-        });
+              meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
+            };
+            const created = await client.createResource(resource);
+            await emitWriteProvenance("Task", created.id);
+            return {
+              saved: true,
+              resourceType: "Task",
+              id: created.id,
+              ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
+            };
+          });
+        const held = holdForBatch(
+          parsed,
+          {
+            patientId,
+            toolName: "create_task",
+            resourceType: "Task",
+            title,
+            summary,
+            uncited: parseCitedEvidence(parsed).length === 0,
+            pins: pinned.pins,
+          },
+          commit,
+        );
+        if (held) return held;
+        const decision = await decide({ title, summary });
         if (decision !== "approved") {
           return decision === "denied" ? DENIED_RESULT : UNAVAILABLE_RESULT;
         }
-        const policyAtCommit = await checkWritePolicy(proposal);
-        if (policyAtCommit.deny) {
-          return policyDeniedResult(policyAtCommit.reason);
-        }
-        const staleEvidence = await recheckPins(pinned.pins);
-        if (staleEvidence) return staleEvidence;
-        // Built AFTER the approval; see the note on add_note above.
-        const resource: Task = {
-          resourceType: "Task",
-          status: "requested",
-          intent: "order",
-          description,
-          for: { reference: `Patient/${patientId}` },
-          authoredOn: new Date().toISOString(),
-          ...(dueDate
-            ? { restriction: { period: { end: `${dueDate}T23:59:59Z` } } }
-            : {}),
-          meta: { tag: [MCP_WRITE_TAG], security: [AIAST_LABEL] },
-        };
-        const created = await client.createResource(resource);
-        await emitWriteProvenance("Task", created.id);
-        return {
-          saved: true,
-          resourceType: "Task",
-          id: created.id,
-          ...(options.memoryNotice ? { notice: options.memoryNotice } : {}),
-        };
+        return commit();
+      },
+    },
+  ];
+  const offered = tools.filter((tool) => !disabled.has(tool.name));
+  if (offered.length === 0) return offered;
+  const batchTools: McpWriteTool[] = [
+    {
+      name: "list_pending_proposals",
+      description:
+        "List proposals held for batch review, grouped by patient. Includes each proposal's diff and whether it cited a chart resource. Does not approve, decline, or save anything. There is no approve-all.",
+      inputSchema: z.object({}).strict(),
+      async execute() {
+        return inbox.listView();
+      },
+    },
+    {
+      name: "review_pending_proposals",
+      proposesWrite: true,
+      description:
+        "Ask a person to decide each proposal held for batch review. The form has one approve-or-decline field per proposal and a decline-all control for the ones left unset. There is no approve-all. Only proposals the person sets to approve are saved, and each one is checked again at that moment. A proposal left unset stays pending. One item failing does not change the others. Arguments cannot carry decisions; the person's form does.",
+      inputSchema: z.object({}).strict(),
+      async execute() {
+        return inbox.review(options.requestForm);
       },
     },
   ];
@@ -855,5 +991,5 @@ export function createWriteTools(
   // callable (a call falls into the server's Unknown-tool branch) — rather
   // than listed-but-denied, which would invite proposals that can never
   // commit. Dynamic per-call decisions belong in `policy`.
-  return tools.filter((tool) => !disabled.has(tool.name));
+  return [...offered, ...batchTools];
 }

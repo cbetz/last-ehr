@@ -20,7 +20,7 @@ import { createOAuthTokenVerifier } from "./oauth-verifier.js";
 import { READ_TOOL_NAMES } from "./read-tools.js";
 import { startRemoteMcpServer, type StartedRemoteMcpServer } from "./remote-server.js";
 import type { ExchangedFhirToken } from "./token-exchange.js";
-import { MCP_WRITE_TAG, WRITE_TOOL_NAMES, type FhirWriteClient } from "./write-tools.js";
+import { BATCH_REVIEW_TOOL_NAMES, MCP_WRITE_TAG, WRITE_TOOL_NAMES, type FhirWriteClient } from "./write-tools.js";
 
 // Loopback end to end, with the real SDK Client over real HTTP on 127.0.0.1:0.
 // The verifier is the real one over a local JWKS; the exchange and the FHIR
@@ -283,7 +283,9 @@ describe("remote MCP over HTTP: the write path", () => {
       },
     });
 
-    expect(await toolNames(client)).toEqual([...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES].sort());
+    expect(await toolNames(client)).toEqual(
+      [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES, ...BATCH_REVIEW_TOOL_NAMES].sort(),
+    );
 
     const result = await client.callTool({
       name: "add_note",

@@ -474,7 +474,7 @@ Only the public Epic FHIR sandbox, and only with the experimental adapter flag L
 
 ### How does human approval of agent writes work?
 
-Writes are off until LASTEHR_MCP_WRITES=proposal. That profile can create a note (Communication), a measurement or a linked correction (Observation), or a follow-up task (Task). Each write pauses until a person approves it in a client that supports MCP elicitation. Approve sends that proposal to the FHIR server. Cancel, or no answer, saves nothing. A client that cannot show the prompt is not offered the write tools. The web app shows the same decision on an approval card. The FHIR server can still reject the write. Approving saves the proposal. It does not review the proposal for clinical correctness.
+Writes are off until LASTEHR_MCP_WRITES=proposal. That profile can create a note (Communication), a measurement or a linked correction (Observation), or a follow-up task (Task). Each write pauses until a person approves it in a client that supports MCP elicitation. Approve sends that proposal to the FHIR server. Cancel, or no answer, saves nothing. A client that cannot show the prompt is not offered the write tools. The web app shows the same decision on an approval card. When several proposals are waiting, the web app lists them together: the reviewer decides each one, and submit saves only the ones they approved. Undecided proposals stay pending. There is no approve-all. On the MCP server, `holdForReview: true` holds a proposal for that same batch review. The FHIR server can still reject the write. Approving saves the proposal. It does not review the proposal for clinical correctness.
 
 ### Does it use real patient data?
 

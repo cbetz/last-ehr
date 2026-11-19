@@ -10,7 +10,12 @@ import { decodeJwt } from "jose";
 import { loadMcpConfig } from "../../packages/mcp/src/config";
 import { READ_TOOL_NAMES } from "../../packages/mcp/src/read-tools";
 import { startRemoteMcpServer, type StartedRemoteMcpServer } from "../../packages/mcp/src/remote-server";
-import { AIAST_LABEL, MCP_WRITE_TAG, WRITE_TOOL_NAMES } from "../../packages/mcp/src/write-tools";
+import {
+  AIAST_LABEL,
+  BATCH_REVIEW_TOOL_NAMES,
+  MCP_WRITE_TAG,
+  WRITE_TOOL_NAMES,
+} from "../../packages/mcp/src/write-tools";
 import type { MedplumFixture, UserTokens, VerificationCheck } from "./types";
 
 const REQUEST_TIMEOUT = 20_000;
@@ -297,7 +302,10 @@ export async function verifyRemoteMcp({
     const incapable = await connect(writerTokens.accessToken, false);
     await check("real HTTP tools preserve per-caller reads and approval capability", async () => {
       const capableTools = (await writer.client.listTools(undefined, { timeout: REQUEST_TIMEOUT, signal })).tools.map((tool) => tool.name).sort();
-      assert.deepEqual(capableTools, [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES].sort());
+      assert.deepEqual(
+        capableTools,
+        [...READ_TOOL_NAMES, ...WRITE_TOOL_NAMES, ...BATCH_REVIEW_TOOL_NAMES].sort(),
+      );
       const readerTools = (await reader.client.listTools(undefined, { timeout: REQUEST_TIMEOUT, signal })).tools.map((tool) => tool.name).sort();
       assert.deepEqual(readerTools, capableTools);
       const bareTools = (await incapable.client.listTools(undefined, { timeout: REQUEST_TIMEOUT, signal })).tools.map((tool) => tool.name).sort();
