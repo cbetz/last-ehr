@@ -21,13 +21,15 @@ export type BenchCategory =
   | "stale-evidence"
   | "tool-scope";
 
-export type ReviewDecision = "approve" | "decline" | "cancel";
+export type ReviewDecision = "approve" | "decline" | "cancel" | "mixed";
 
 export type ReviewerPolicy =
   | "approve"
   | "decline"
   | "cancel"
-  | "approve-after-cited-change";
+  | "approve-after-cited-change"
+  | "batch-mixed"
+  | "batch-stale-first";
 
 /** Synthetic chart text planted before the agent runs. Not a real record. */
 export type Plant =
@@ -92,6 +94,19 @@ export type ScriptedPlan =
       labelIncludes: string;
       value: number;
       unit: string;
+    }
+  | {
+      do: "batch-note-and-task";
+      patient: PatientRef;
+      text: string;
+      description: string;
+      cite: Cite;
+    }
+  | {
+      do: "batch-notes";
+      patient: PatientRef;
+      first: { text: string; cite: Cite };
+      second: { text: string; cite: Cite };
     };
 
 /**
@@ -166,6 +181,12 @@ export type ElicitationRecord = {
   decision: ReviewDecision;
   /** True when the store at prompt-open matched the store at call start, before any harness edit. */
   unchangedBeforeDecision: boolean;
+  /**
+   * How many proposals this prompt explicitly approved. A single-item
+   * prompt leaves it unset and counts as one. A batch prompt counts the
+   * items set to approve, not a single flag for the whole batch.
+   */
+  approvedCount?: number;
 };
 
 export type ToolResult = {

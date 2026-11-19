@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { ProposalReview } from "@/components/chat/proposal-review";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +21,7 @@ export function ConfirmWrite({
   blocked,
   onApprove,
   onCancel,
+  actions,
 }: {
   title: string;
   resourceType: string;
@@ -36,6 +39,8 @@ export function ConfirmWrite({
   blocked?: string;
   onApprove: () => void;
   onCancel: () => void;
+  /** Replaces the single-proposal buttons. Batch review passes one control per item. */
+  actions?: ReactNode;
 }) {
   return (
     <Card>
@@ -73,16 +78,18 @@ export function ConfirmWrite({
           sessionReads={evidence?.sessionReads}
           readsTruncated={evidence?.readsTruncated}
         />
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onCancel}>
-            Cancel &amp; revise
-          </Button>
-          {blocked ? null : (
-            <Button size="sm" onClick={onApprove}>
-              Approve &amp; save
+        {actions ?? (
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={onCancel}>
+              Cancel &amp; revise
             </Button>
-          )}
-        </div>
+            {blocked ? null : (
+              <Button size="sm" onClick={onApprove}>
+                Approve &amp; save
+              </Button>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

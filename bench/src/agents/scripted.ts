@@ -156,6 +156,39 @@ export async function runScripted(plan: ScriptedPlan, call: ToolCaller): Promise
       });
       return;
     }
+    case "batch-note-and-task": {
+      const opened = await openCited(call, plan.patient, plan.cite);
+      const cited = evidence(opened.resourceType, opened.citedId);
+      await call("add_note", {
+        patientId: opened.id,
+        text: plan.text,
+        holdForReview: true,
+        ...cited,
+      });
+      await call("create_task", {
+        patientId: opened.id,
+        description: plan.description,
+        holdForReview: true,
+        ...cited,
+      });
+      await call("review_pending_proposals", {});
+      return;
+    }
+    case "batch-notes": {
+      const patientId = await findPatient(call, plan.patient);
+      const chart = await loadChart(call, patientId);
+      for (const note of [plan.first, plan.second]) {
+        const citedId = pickRow(chart, note.cite);
+        await call("add_note", {
+          patientId,
+          text: note.text,
+          holdForReview: true,
+          ...evidence(CITE_TYPE[note.cite.collection], citedId),
+        });
+      }
+      await call("review_pending_proposals", {});
+      return;
+    }
     case "supersede": {
       const id = await findPatient(call, plan.patient);
       const chart = await loadChart(call, id);

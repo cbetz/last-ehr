@@ -27,6 +27,12 @@ the resources that session already read. A proposal that cites nothing says
 so. Nothing is ever saved without that explicit approval, and the write
 tools are hidden from clients that cannot render approvals.
 
+Several proposals can be reviewed together. Pass `holdForReview: true` on
+each write, then `review_pending_proposals`. The person decides each one.
+There is no approve-all. A proposal left unset stays pending. Each approved
+item is checked again before it is saved, and one failure does not change
+the others. Omitting `holdForReview` still asks for that proposal alone.
+
 The registry metadata lives in [`server.json`](./server.json) and is published
 alongside each verified npm release.
 

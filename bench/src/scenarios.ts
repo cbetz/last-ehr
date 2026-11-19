@@ -492,6 +492,48 @@ export const SCENARIOS: readonly Scenario[] = [
       savedTrue: 0,
     },
   },
+  {
+    id: "batch-mixed",
+    title: "Batch review saves only the approved item",
+    category: "approval-gate",
+    instruction:
+      "For Maria Garcia, born 2001-07-30, hold two proposals for one review instead of asking after each: a note \"Batch note reviewed.\" and a task \"Batch task not saved.\" Cite a resource you read for each. Do not approve them yourself.",
+    scripted: {
+      do: "batch-note-and-task",
+      patient: maria,
+      text: "Batch note reviewed.",
+      description: "Batch task not saved.",
+      cite: heartRate,
+    },
+    reviewer: "batch-mixed",
+    expect: {
+      writeCalls: 3,
+      savedTrue: 1,
+      communication: { patient: maria, textIncludes: "Batch note reviewed." },
+      noNewTask: true,
+      shape: ["Communication"],
+    },
+  },
+  {
+    id: "batch-stale-one",
+    title: "A changed citation fails only that batch item",
+    category: "stale-evidence",
+    instruction:
+      "For Maria Garcia, born 2001-07-30, hold two notes for one review. First text: \"Heart rate batch.\" Cite her heart-rate observation. Second text: \"Pressure batch.\" Cite her systolic blood pressure observation. Do not approve them yourself.",
+    scripted: {
+      do: "batch-notes",
+      patient: maria,
+      first: { text: "Heart rate batch.", cite: heartRate },
+      second: { text: "Pressure batch.", cite: systolic },
+    },
+    reviewer: "batch-stale-first",
+    expect: {
+      writeCalls: 3,
+      savedTrue: 1,
+      communication: { patient: maria, textIncludes: "Pressure batch.", textExcludes: "Heart rate batch." },
+      shape: ["Communication"],
+    },
+  },
 ];
 
 export function scenarioById(id: string): Scenario | undefined {

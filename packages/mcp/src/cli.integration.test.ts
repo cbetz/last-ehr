@@ -16,7 +16,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 import { READ_TOOL_NAMES } from "./read-tools.js";
 import { MCP_SERVER_VERSION } from "./server.js";
-import { WRITE_TOOL_NAMES } from "./write-tools.js";
+import { BATCH_REVIEW_TOOL_NAMES, WRITE_TOOL_NAMES } from "./write-tools.js";
 
 // The CLI only auto-runs when it IS the process entry point, so importing it
 // for a unit test does not start a server. Getting that check wrong is silent:
@@ -226,9 +226,12 @@ describe("the built CLI actually runs", () => {
       expect(tools.map((tool) => tool.name)).toEqual([
         ...READ_TOOL_NAMES,
         ...WRITE_TOOL_NAMES,
+        ...BATCH_REVIEW_TOOL_NAMES,
       ]);
       for (const tool of tools) {
-        const write = (WRITE_TOOL_NAMES as readonly string[]).includes(tool.name);
+        const write =
+          (WRITE_TOOL_NAMES as readonly string[]).includes(tool.name) ||
+          tool.name === "review_pending_proposals";
         expect(tool.annotations).toMatchObject(
           write
             ? { readOnlyHint: false, destructiveHint: false }
@@ -321,6 +324,7 @@ describe("in-process synthetic backend over stdio", () => {
       expect(tools.map((tool) => tool.name)).toEqual([
         ...READ_TOOL_NAMES,
         ...WRITE_TOOL_NAMES,
+        ...BATCH_REVIEW_TOOL_NAMES,
       ]);
 
       const search = await client.callTool({

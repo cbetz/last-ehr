@@ -124,9 +124,24 @@ try {
       await client.connect(transport, { timeout: 10_000 });
       assert.equal(client.getServerVersion().version, manifest.version);
       const tools = (await client.listTools()).tools;
-      const reads = tools.filter(tool => tool.annotations?.readOnlyHint);
-      assert.equal(reads.length, 4);
-      assert.equal(tools.length, approvalCapable && writesEnabled ? 8 : 4);
+      const names = tools.map(tool => tool.name).sort();
+      const reads = tools.filter(tool => tool.annotations?.readOnlyHint).map(tool => tool.name).sort();
+      const chartReads = ["read_chart_section", "read_document", "search_patients", "show_patient_info"];
+      if (approvalCapable && writesEnabled) {
+        assert.deepEqual(reads, ["list_pending_proposals", ...chartReads].sort());
+        assert.deepEqual(names, [
+          ...chartReads,
+          "add_note",
+          "create_task",
+          "list_pending_proposals",
+          "record_observation",
+          "record_superseding_observation",
+          "review_pending_proposals",
+        ].sort());
+      } else {
+        assert.deepEqual(reads, chartReads);
+        assert.deepEqual(names, chartReads);
+      }
       const result = await client.callTool({ name: "search_patients", arguments: { name: "PackageSmoke" } }, undefined, { timeout: 10_000 });
       assert(!result.isError);
       const patients = JSON.parse(result.content.find(part => part.type === "text").text).patients;
@@ -146,7 +161,7 @@ try {
     source: args.includes("--published") ? "npm" : "workspace",
     checks: ["isolated installation", "CLI bin", "client config", "exact-version client pinning", "remote exports", "read-only doctor", "MCP read", "approval capability gate"],
   }, null, 2) + "\n");
-  console.log(`Verified ${manifest.name}@${manifest.version}: isolated install, CLI, read-only connectivity, 4 reads and capability-gated proposals.`);
+  console.log(`Verified ${manifest.name}@${manifest.version}: isolated install, CLI, read-only connectivity, 4 chart reads, and capability-gated proposals including batch review.`);
   console.log(`Tarball: artifacts/mcp-release/${packed.filename}`);
 } finally {
   await new Promise(resolve => { fixture.close(resolve); fixture.closeAllConnections(); });

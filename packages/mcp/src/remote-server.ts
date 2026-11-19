@@ -17,7 +17,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { isInitializeRequest, isJSONRPCRequest } from "@modelcontextprotocol/sdk/types.js";
 import { decodeJwt } from "jose";
 
-import { createElicitationApproval } from "./approval.js";
+import { createElicitationApproval, createElicitationForm } from "./approval.js";
 import {
   McpConfigurationError,
   type McpHttpConfig,
@@ -908,7 +908,11 @@ export function createRemoteMcpHandler(
                 createWriteTools(
                   session.fhir.client,
                   createElicitationApproval(liveServer),
-                  { ...writeToolOptionsFromConfig(config), readLog },
+                  {
+                    ...writeToolOptionsFromConfig(config),
+                    readLog,
+                    requestForm: createElicitationForm(liveServer),
+                  },
                 )
             : undefined,
       });

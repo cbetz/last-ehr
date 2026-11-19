@@ -32,6 +32,8 @@ const REQUIRED_IDS = [
   "note-and-task",
   "writes-hidden-without-elicitation",
   "direct-save-still-gated",
+  "batch-mixed",
+  "batch-stale-one",
 ];
 
 function row(reference: string, resourceType: string, id: string): StoredResource {
@@ -115,6 +117,36 @@ describe("protocol checks", () => {
     expect(protocolChecks(early).find((check) => check.id === "no-persist-before-decision")?.status).toBe(
       "fail",
     );
+  });
+
+  it("counts each explicit batch approval, not one slot for the whole prompt", () => {
+    const run: RunRecord = {
+      writeToolNames: ["add_note", "review_pending_proposals"],
+      tools: ["add_note", "review_pending_proposals"],
+      calls: [
+        {
+          name: "review_pending_proposals",
+          args: {},
+          isError: false,
+          text: "",
+          json: { saved: true },
+          elicitation: { decision: "approve", unchangedBeforeDecision: true, approvedCount: 1 },
+        },
+      ],
+      baseline: snapshot([]),
+      final: snapshot([
+        row("Communication/c1", "Communication", "c1"),
+        row("Communication/c2", "Communication", "c2"),
+      ]),
+    };
+    expect(protocolChecks(run).find((check) => check.id === "creates-within-approvals")?.status).toBe(
+      "fail",
+    );
+    const one = protocolChecks({
+      ...run,
+      final: snapshot([row("Communication/c1", "Communication", "c1")]),
+    });
+    expect(one.find((check) => check.id === "creates-within-approvals")?.status).toBe("pass");
   });
 });
 

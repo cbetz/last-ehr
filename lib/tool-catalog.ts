@@ -10,6 +10,24 @@
  * CI rather than quietly shipping an out-of-date manifest.
  */
 
+/**
+ * MCP-only batch review tools. They are not web-agent tools: the web app
+ * reviews pending cards in the chat. Kept here so a new MCP tool name cannot
+ * ship without a one-line description.
+ */
+export const MCP_BATCH_REVIEW_TOOLS: readonly { name: string; detail: string }[] = [
+  {
+    name: "list_pending_proposals",
+    detail:
+      "List proposals held for batch review, grouped by patient, with each diff and citation flag. Listing does not approve or save.",
+  },
+  {
+    name: "review_pending_proposals",
+    detail:
+      "Ask a person to approve or decline each held proposal. There is no approve-all. Items left unset stay pending. Each approved item is checked again when it is saved.",
+  },
+];
+
 /** A read executes freely; a proposal cannot commit without a human decision. */
 export type ToolKind = "read" | "proposal";
 

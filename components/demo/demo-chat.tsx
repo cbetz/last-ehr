@@ -18,7 +18,12 @@ import {
   UserMessage,
 } from "@/components/chat";
 import { PatientCard } from "@/components/chat/patient";
+import { BatchReview } from "@/components/chat/batch-review";
 import { ConfirmWrite } from "@/components/chat/confirm-write";
+import {
+  pendingWritesInLastMessage,
+  splitPendingParts,
+} from "@/components/chat/pending-writes";
 import {
   collectSessionReads,
   parseCitedEvidence,
@@ -296,6 +301,8 @@ export function DemoChat() {
   // ensureSession is in flight (a backend switch clears the conversation);
   // answering a no-longer-present approval must be a no-op, not an
   // unhandled rejection.
+  const parkedApprovals = useRef<{ id: string; parts: ChatMessage["parts"] } | null>(null);
+
   const respondToApproval = async (
     tool: DemoWriteTool,
     approvalId: string,
@@ -310,6 +317,19 @@ export function DemoChat() {
     }
   };
 
+  // A batch submit removes the proposals the reviewer left unset, sends the
+  // ones they decided, then puts the unset ones back so they stay pending.
+  useEffect(() => {
+    const parked = parkedApprovals.current;
+    if (!parked) return;
+    if (status === "submitted" || status === "streaming") return;
+    parkedApprovals.current = null;
+    setMessages((current) => {
+      if (current.some((message) => message.id === parked.id)) return current;
+      return [...current, { id: parked.id, role: "assistant", parts: parked.parts }];
+    });
+  }, [status, setMessages]);
+
   // The card renders before the write executes, so the read log is the tool
   // results already in this conversation, not a second fetch.
   const proposalEvidence = (input: unknown, toolCallId: string) => {
@@ -319,6 +339,33 @@ export function DemoChat() {
       sessionReads: recorded.reads,
       readsTruncated: recorded.truncated,
     };
+  };
+
+  const submitBatch = async (
+    chosen: { approvalId: string; tool: DemoWriteTool; approved: boolean }[],
+  ) => {
+    if (chosen.length === 0) return;
+    if (!(await ensureSession())) return;
+    const decided = new Set(chosen.map((item) => item.approvalId));
+    const last = messages[messages.length - 1];
+    if (last?.role === "assistant") {
+      const { kept, parked } = splitPendingParts(last.parts, decided);
+      if (parked.length > 0) {
+        parkedApprovals.current = { id: `batch-pending-${last.id}`, parts: parked };
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === last.id ? { ...message, parts: kept } : message,
+          ),
+        );
+      }
+    }
+    for (const item of chosen) {
+      try {
+        await addToolApprovalResponse({ id: item.approvalId, approved: item.approved });
+      } catch {
+        // The conversation was cleared out from under the review.
+      }
+    }
   };
 
   // Re-arm the server session cookie before every send and approval response.
@@ -386,6 +433,8 @@ export function DemoChat() {
   // surface; the pre-chat pick lives in the EmptyScreen card, so the two
   // never show at once (messages.length gates them). The row reserves
   // bottom padding in the textarea so it never overlaps the placeholder.
+  const batchItems = pendingWritesInLastMessage(messages, vendorWrite, proposalEvidence);
+  const showBatch = batchItems.length >= 2;
   const showModelPicker = !SCRIPTED_DEMO && DEMO_MODELS.length > 0;
   const showBackendSelect = backendPickerEnabled && messages.length > 0;
   const showDevToggle = DEV_OUTPUT && !smartSession;
@@ -675,6 +724,7 @@ export function DemoChat() {
 
                       case "tool-add_note":
                         if (part.state === "approval-requested") {
+                          if (showBatch) return null;
                           return (
                             <BotCard key={part.toolCallId} showAvatar={false}>
                               <ConfirmWrite
@@ -743,6 +793,7 @@ export function DemoChat() {
 
                       case "tool-record_observation":
                         if (part.state === "approval-requested") {
+                          if (showBatch) return null;
                           const approval = buildObservationApproval({
                             patientId: part.input.patientId,
                             label: part.input.label,
@@ -800,6 +851,7 @@ export function DemoChat() {
 
                       case "tool-record_superseding_observation":
                         if (part.state === "approval-requested") {
+                          if (showBatch) return null;
                           return (
                             <BotCard key={part.toolCallId} showAvatar={false}>
                               <ConfirmWrite
@@ -895,6 +947,7 @@ export function DemoChat() {
 
                       case "tool-create_task":
                         if (part.state === "approval-requested") {
+                          if (showBatch) return null;
                           return (
                             <BotCard key={part.toolCallId} showAvatar={false}>
                               <ConfirmWrite
@@ -989,6 +1042,9 @@ export function DemoChat() {
               );
             })}
 
+            {showBatch && (
+              <BatchReview items={batchItems} onSubmit={(chosen) => void submitBatch(chosen)} />
+            )}
             {showConversion && !smartSession && (
               <div ref={conversionRef} className="scroll-mb-[200px] pb-4">
                 <ConversionCard onDismiss={() => setShowConversion(false)} />
