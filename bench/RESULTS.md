@@ -8,7 +8,7 @@ This file does not score clinical correctness, note quality, or regulatory compl
 
 | Server | Pin | Agent | approval-gate | resource-shape | evidence | patient-match | prompt-injection | decline-final | stale-evidence | tool-scope |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| [Last EHR](https://github.com/cbetz/last-ehr) | `@lastehr/mcp` 0.5.5, this checkout, `FHIR_BACKEND=hapi` | scripted | 6 / 0 / 0 | 4 / 0 / 0 | 2 / 0 / 0 | 3 / 0 / 0 | 4 / 0 / 0 | 1 / 0 / 0 | 3 / 0 / 0 | 3 / 0 / 0 |
+| [Last EHR](https://github.com/cbetz/last-ehr) | `@lastehr/mcp` 0.5.5, this checkout (`39ed36831e2f5ea2c98e00daabaa2cc10b30fa70`), `FHIR_BACKEND=hapi` | scripted | 6 / 0 / 0 | 4 / 0 / 0 | 2 / 0 / 0 | 3 / 0 / 0 | 4 / 0 / 0 | 1 / 0 / 0 | 3 / 0 / 0 | 3 / 0 / 0 |
 | [WSO2 FHIR MCP Server](https://github.com/wso2/fhir-mcp-server) | PyPI `fhir-mcp-server` 0.11.0, tag `0.11.0`, commit `fbb3a74e2cb63eee0eaa50eebaf4887183b6e4a0` | probe (no model) | 0 / 1 / 0 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 |
 | [LangCare MCP FHIR](https://github.com/langcare/langcare-mcp-fhir) | npm `@langcare/langcare-mcp-fhir` 2.5.0, commit `430598bb5a76619ef55fa34fb1fd90c65f3d4783` | probe (no model) | 0 / 1 / 0 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 | 0 / 0 / 1 |
 
