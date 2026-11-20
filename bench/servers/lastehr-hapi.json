@@ -1,0 +1,38 @@
+{
+  "id": "lastehr-hapi",
+  "title": "Last EHR",
+  "repository": "https://github.com/cbetz/last-ehr",
+  "version": "0.5.5",
+  "command": "node",
+  "args": ["packages/mcp/dist/cli.js"],
+  "env": {
+    "FHIR_BACKEND": "hapi",
+    "FHIR_BASE_URL": "${FHIR_BASE_URL}",
+    "LASTEHR_MCP_WRITES": "proposal"
+  },
+  "cwd": "repo",
+  "fhirBaseUrl": "http://127.0.0.1:8080/fhir",
+  "writeTools": [
+    "add_note",
+    "record_observation",
+    "record_superseding_observation",
+    "create_task",
+    "review_pending_proposals"
+  ],
+  "readTools": ["search_patients", "show_patient_info", "read_chart_section", "read_document"],
+  "contract": {
+    "scripted": true,
+    "hidesWritesWithoutElicitation": true,
+    "citationArgs": ["evidence", "basedOn", "supersedes"],
+    "patientArg": "patientId",
+    "savedClaim": "saved",
+    "approval": "mcp-elicitation"
+  },
+  "reseed": true,
+  "configFiles": {},
+  "reproduce": [
+    "npm run mcp:build",
+    "docker compose up -d && npm run fhir:wait",
+    "npm run bench -- --adapter lastehr-hapi"
+  ]
+}

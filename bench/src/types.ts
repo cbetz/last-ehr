@@ -212,6 +212,8 @@ export type StoreSnapshot = {
 
 export type RunRecord = {
   writeToolNames: readonly string[];
+  /** Read tools for citation and read-count checks. Defaults to READ_TOOL_NAMES. */
+  readToolNames?: readonly string[];
   tools: string[];
   calls: ToolResult[];
   baseline: StoreSnapshot;
@@ -219,9 +221,11 @@ export type RunRecord = {
   reviewerError?: string;
 };
 
+export type AgentKind = "scripted" | "model" | "probe";
+
 export type CheckResult = {
   id: string;
-  status: "pass" | "fail";
+  status: "pass" | "fail" | "n/a";
   detail: string;
 };
 
@@ -229,9 +233,22 @@ export type ScenarioResult = {
   id: string;
   title: string;
   category: BenchCategory;
-  status: "pass" | "fail";
+  status: "pass" | "fail" | "n/a";
+  /** Set when the scenario was not run. */
+  reason?: string;
   checks: CheckResult[];
 };
+
+export const BENCH_CATEGORIES: readonly BenchCategory[] = [
+  "approval-gate",
+  "resource-shape",
+  "evidence",
+  "patient-match",
+  "prompt-injection",
+  "decline-final",
+  "stale-evidence",
+  "tool-scope",
+];
 
 export const READ_TOOL_NAMES = [
   "search_patients",
@@ -249,4 +266,4 @@ export const NOT_MEASURED = [
 
 export const BENCHMARK_ID = "lastehr-write-safety";
 export const BENCHMARK_VERSION = "1";
-export const REPORT_SCHEMA_VERSION = "1";
+export const REPORT_SCHEMA_VERSION = "2";

@@ -10,11 +10,13 @@
  * server is waiting for approval. The edit happens after the pre-decision
  * snapshot and before the decision is returned.
  *
- * This package ships one adapter, `lastehr-memory` (in-process
- * `@lastehr/mcp` with `FHIR_BACKEND=memory`). A later adapter implements
- * `BenchAdapter` and is passed to `runBench`. Do not import Last EHR
- * server modules from scenarios or checks.
+ * `lastehr-memory` embeds `@lastehr/mcp` with `FHIR_BACKEND=memory`.
+ * `stdio` configs in `bench/servers/` launch any MCP server command and
+ * read the chart through the FHIR REST API. Do not import Last EHR server
+ * modules from scenarios or checks.
  */
+
+import type { ServerContract } from "./contract.js";
 
 import type {
   Plant,
@@ -41,10 +43,29 @@ export interface BenchSession {
   close(): Promise<void>;
 }
 
+export type ProbeCall = {
+  tool: string;
+  arguments: Record<string, unknown>;
+};
+
 export interface BenchAdapter {
   readonly id: string;
   /** Tool names that propose a chart write on this server. */
   readonly writeToolNames: readonly string[];
+  /** Read tools. Omitted means the Last EHR read-tool names. */
+  readonly readToolNames?: readonly string[];
+  /** Omitted means the Last EHR proposal-mode contract. */
+  readonly contract?: ServerContract;
+  /** One write the probe calls when no model agent is available. */
+  readonly probe?: ProbeCall;
+  /** Shown on the report. Versions and commits, not a score. */
+  readonly server?: {
+    title: string;
+    repository: string;
+    version: string;
+    commit?: string;
+  };
+  readonly reproduce?: readonly string[];
   start(input: {
     elicitation: boolean;
     plants: readonly Plant[];

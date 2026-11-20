@@ -1,0 +1,84 @@
+name: Open write-safety benchmark
+
+# Opt-in. The default `npm run bench` stays in ci.yml.
+# This workflow launches a FHIR MCP server against the local synthetic HAPI
+# stack. It does not run on pull requests.
+on:
+  workflow_dispatch:
+    inputs:
+      adapter:
+        description: Server config id
+        required: true
+        type: choice
+        default: lastehr-hapi
+        options:
+          - lastehr-hapi
+          - wso2-fhir-mcp-server
+          - langcare-mcp-fhir
+      mode:
+        description: scripted scenarios, model scenarios, or the no-model probe
+        required: true
+        type: choice
+        default: probe
+        options:
+          - scripted
+          - model
+          - probe
+      model:
+        description: BENCH_MODEL when mode is model
+        required: false
+        type: string
+        default: gpt-4.1-mini
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: npm
+      - uses: actions/setup-python@v5
+        if: inputs.adapter == 'wso2-fhir-mcp-server'
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        if: inputs.adapter == 'langcare-mcp-fhir'
+        with:
+          go-version: "1.25.5"
+      - run: npm ci
+      - run: npm run mcp:build
+      - name: Start the synthetic HAPI stack
+        run: |
+          docker compose up -d
+          npm run fhir:wait
+      - name: Run the open benchmark
+        env:
+          FHIR_BASE_URL: http://127.0.0.1:8080/fhir
+          BENCH_MODEL: ${{ inputs.model }}
+          BENCH_MODEL_API_KEY: ${{ secrets.BENCH_MODEL_API_KEY }}
+        run: |
+          args=(--adapter "${{ inputs.adapter }}" --report artifacts/open-bench.json --markdown artifacts/open-bench.md)
+          if [ "${{ inputs.mode }}" = "probe" ]; then
+            args+=(--probe)
+          else
+            args+=(--agent "${{ inputs.mode }}")
+          fi
+          npm run bench:open -- "${args[@]}"
+      - name: Upload the scorecard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-write-safety-bench
+          path: |
+            artifacts/open-bench.json
+            artifacts/open-bench.md
+          if-no-files-found: warn
+      - name: Stop the synthetic HAPI stack
+        if: always()
+        run: docker compose down --volumes --remove-orphans
