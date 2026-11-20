@@ -32,6 +32,7 @@
     "work:claude": "tsx scripts/work-mcp-claude.ts",
     "work:hosted": "tsx scripts/work-hosted.ts",
     "bench": "tsx bench/src/cli.ts",
+    "bench:open": "tsx bench/src/cli.ts",
     "eval": "tsx scripts/eval.ts",
     "eval:hapi": "tsx scripts/eval.ts --no-prepare",
     "fhir:wait": "tsx scripts/wait-for-fhir.ts",

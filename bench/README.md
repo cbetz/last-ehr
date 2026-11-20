@@ -22,7 +22,7 @@ npm run bench -- --scenario note-declined
 npm run bench -- --help
 ```
 
-A model run is optional. It uses one OpenAI-compatible chat-completions endpoint. The harness still answers approval prompts; the model cannot approve itself.
+A model run is optional. It uses one OpenAI-compatible chat-completions endpoint. The harness still answers approval prompts; the model cannot approve itself. For any server other than Last EHR, the model run is the scenario run: the scripted plan calls Last EHR tool names.
 
 ```bash
 export BENCH_MODEL_API_KEY=...          # or OPENAI_API_KEY
@@ -32,6 +32,27 @@ npm run bench -- --agent model --report model-results.json
 ```
 
 The scripted scorecard is a harness check. It is not a language-model score. Model results depend on the system prompt in `src/agents/model.ts`; the JSON report includes that prompt's SHA-256.
+
+Published runs, including other FHIR MCP servers, are in [RESULTS.md](./RESULTS.md).
+
+## Other FHIR MCP servers
+
+`bench/servers/*.json` points the same scenarios at any stdio MCP server. The harness starts the command, answers MCP elicitation if the server sends it, and reads the chart through the FHIR REST API. A write that lands with no approval prompt is what the scorecard records. A scenario that cannot apply (no write tools, or the scripted plan's tool names) is **n/a**, not a fail. A server with no write tools is not a lower score. The benchmark only measures what happens when an agent writes.
+
+```bash
+npm run mcp:build
+docker compose up -d && npm run fhir:wait
+npm run bench -- --adapter lastehr-hapi
+npm run bench:open -- --adapter wso2-fhir-mcp-server --probe
+npm run bench:open -- --adapter langcare-mcp-fhir --probe
+npm run bench:open -- --adapter wso2-fhir-mcp-server --agent model
+```
+
+`--probe` needs no model key. It lists tools, calls the one write named in the server config, declines an elicitation if one arrives, and compares the synthetic chart. The other categories stay n/a until `--agent model`.
+
+Third-party commands are pinned in the config (`prepare` installs that version under `bench/.cache/`, which is gitignored). The exact commands are also in each config's `reproduce` list and in [RESULTS.md](./RESULTS.md). Add a server by opening a pull request that adds `bench/servers/<id>.json`. Synthetic data only.
+
+The default `npm run bench` does not start Docker or another project. The GitHub workflow `.github/workflows/bench-open.yml` runs a chosen config on `workflow_dispatch` only.
 
 ## Scenarios
 
@@ -69,23 +90,17 @@ Scenarios and checks do not import the MCP server. They see tool calls and a FHI
 - `mutate` changes one existing resource, same id, while a prompt is open, so a stale-evidence scenario can run.
 - `writeToolNames` tells the checker which calls are proposals.
 
-`src/adapters/lastehr-memory.ts` is the only adapter. It embeds `@lastehr/mcp` with `FHIR_BACKEND=memory` and `LASTEHR_MCP_WRITES=proposal`. Its snapshot covers Patient, Observation, Communication, Task, AllergyIntolerance, Condition, MedicationRequest, DocumentReference, Immunization, Provenance, Encounter, CarePlan, and Goal.
+`src/adapters/lastehr-memory.ts` embeds `@lastehr/mcp` with `FHIR_BACKEND=memory` and `LASTEHR_MCP_WRITES=proposal`. Its snapshot covers Patient, Observation, Communication, Task, AllergyIntolerance, Condition, MedicationRequest, DocumentReference, Immunization, Provenance, Encounter, CarePlan, and Goal.
 
-To add a server later, implement `BenchAdapter` and pass it to `runBench`. The scripted plans in `src/scenarios.ts` call this server's tool names (`add_note`, `record_observation`, `record_superseding_observation`, `create_task`, and the read tools). A different tool surface needs its own plans or a model run. Checks that look at the store, at `saved: true`, and at approval prompts stay the same. There is no second adapter in this package.
+`src/adapters/stdio-mcp.ts` launches a command from `bench/servers/<id>.json`. Snapshot, plant, mutate, and reseed use the FHIR REST base URL in that config. The config names write tools, read tools, whether writes wait on MCP elicitation, and which argument would carry a citation or a patient id. Checks that need an argument the server does not declare are n/a. Checks that read the chart still run on a model or probe run.
 
-`npm run bench -- --adapter` accepts `lastehr-memory` only.
+The scripted plans in `src/scenarios.ts` call Last EHR tool names. A different tool surface uses `--agent model` or `--probe`.
 
 ## Submit results
 
-Run the benchmark, keep the JSON from `--report`, and open a pull request that adds it at:
+The table in [RESULTS.md](./RESULTS.md) is the published record of runs made from this repository. Add a server with a config pull request. A model run can be added the same way: keep the JSON from `--report`, name the model, and link the system-prompt hash the report already carries.
 
-```text
-bench/results/<adapter>-<agent>-<YYYY-MM-DD>.json
-```
-
-Use the report unchanged. In the pull request, name the agent and model, and link the system-prompt hash the report already carries. Do not describe the score as clinical accuracy, safety certification, or regulatory compliance. The scripted run is the reproducibility check; it does not belong in `bench/results/`.
-
-Results people add are community runs. This repository does not rank them.
+Do not describe a score as clinical accuracy, safety certification, or regulatory compliance. The scripted Last EHR run checks that the harness still passes. It is not a language-model score, and it is not a ranking.
 
 ## License
 

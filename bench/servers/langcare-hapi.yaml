@@ -1,0 +1,26 @@
+fhir_server:
+  provider: "generic"
+  base_url: "${FHIR_BASE_URL}"
+  auth:
+    type: "none"
+  timeout: 30s
+
+mcp:
+  name: "LangCare MCP FHIR Server"
+  version: "2.5.0"
+
+transport:
+  stdio: true
+  http:
+    enabled: false
+
+logging:
+  level: "error"
+  format: "text"
+  scrub_phi: true
+
+security:
+  rate_limit:
+    enabled: false
+    rate: 100
+    burst: 200

@@ -1,0 +1,49 @@
+{
+  "id": "wso2-fhir-mcp-server",
+  "title": "WSO2 FHIR MCP Server",
+  "repository": "https://github.com/wso2/fhir-mcp-server",
+  "version": "0.11.0",
+  "commit": "fbb3a74e2cb63eee0eaa50eebaf4887183b6e4a0",
+  "command": "fhir-mcp-server",
+  "args": ["--transport", "stdio", "--log-level", "ERROR"],
+  "env": {
+    "FHIR_SERVER_BASE_URL": "${FHIR_BASE_URL}",
+    "FHIR_SERVER_DISABLE_AUTHORIZATION": "True"
+  },
+  "cwd": "cache",
+  "fhirBaseUrl": "http://127.0.0.1:8080/fhir",
+  "writeTools": ["create", "update", "delete"],
+  "readTools": ["get_capabilities", "search", "read", "get_user"],
+  "contract": {
+    "scripted": false,
+    "hidesWritesWithoutElicitation": false,
+    "citationArgs": [],
+    "approval": "none"
+  },
+  "reseed": true,
+  "probe": {
+    "tool": "create",
+    "arguments": {
+      "type": "Communication",
+      "payload": {
+        "resourceType": "Communication",
+        "status": "completed",
+        "subject": { "reference": "Patient/$patientId" },
+        "sent": "2026-04-01T00:00:00.000Z",
+        "payload": [{ "contentString": "Bench probe note." }]
+      }
+    }
+  },
+  "configFiles": {},
+  "prepare": {
+    "kind": "pip",
+    "package": "fhir-mcp-server==0.11.0",
+    "bin": "fhir-mcp-server"
+  },
+  "reproduce": [
+    "python3 -m venv .venv && .venv/bin/pip install fhir-mcp-server==0.11.0",
+    "docker compose up -d && npm run fhir:wait",
+    "npm run bench:open -- --adapter wso2-fhir-mcp-server --probe",
+    "npm run bench:open -- --adapter wso2-fhir-mcp-server --agent model"
+  ]
+}

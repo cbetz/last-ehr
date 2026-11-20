@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 
 import { SCENARIOS } from "./scenarios.js";
 import { renderScorecard } from "./scorecard.js";
+import { listServerIds } from "./server-config.js";
 import { runBench, type AgentKind } from "./runner.js";
 
 function helpText(): string {
@@ -19,13 +20,25 @@ function helpText(): string {
     "  npm run bench -- --report bench-results.json --markdown bench-results.md",
     "  npm run bench -- --agent model",
     "  npm run bench -- --scenario note-declined",
+    "  npm run bench -- --adapter lastehr-hapi",
+    "  npm run bench:open -- --adapter wso2-fhir-mcp-server --probe",
     "",
     "Options:",
     "  --agent scripted|model   scripted is the default and needs no API key",
-    "  --adapter lastehr-memory only built-in adapter (default)",
+    "  --adapter <id>           lastehr-memory (default) or a bench/servers config",
+    "  --config <file>          server config JSON outside bench/servers",
+    "  --probe                  no-model capability check for a stdio server",
+    "  --fhir-base-url <url>    synthetic FHIR base URL (default http://127.0.0.1:8080/fhir)",
     "  --scenario <id>          run one scenario; repeat the flag to run several",
     "  --report <file>          write the JSON results",
     "  --markdown <file>        write the scorecard",
+    "",
+    "Server configs:",
+    `  ${listServerIds().join(", ") || "(none)"}`,
+    "",
+    "The scripted agent calls Last EHR tool names. Other servers use --agent model,",
+    "or --probe when no model key is set. A scenario that cannot apply is n/a, not a fail.",
+    "A server with no write tools is not a lower score.",
     "",
     "Model agent (optional): set BENCH_MODEL_API_KEY or OPENAI_API_KEY.",
     "BENCH_MODEL_BASE_URL defaults to https://api.openai.com/v1 (chat completions).",
@@ -81,6 +94,29 @@ export async function execute(
     io.stderr("`--adapter` needs a name. The built-in adapter is lastehr-memory.\n");
     return 1;
   }
+  const configPath = flagValue(argv, "--config");
+  if (argv.includes("--config") && !configPath) {
+    io.stderr("`--config` needs a JSON file.\n");
+    return 1;
+  }
+  if (adapterId && configPath) {
+    io.stderr("Pass `--adapter` or `--config`, not both.\n");
+    return 1;
+  }
+  const fhirBaseUrl = flagValue(argv, "--fhir-base-url");
+  if (argv.includes("--fhir-base-url") && !fhirBaseUrl) {
+    io.stderr("`--fhir-base-url` needs a URL.\n");
+    return 1;
+  }
+  const probe = argv.includes("--probe");
+  if (probe && argv.includes("--agent")) {
+    io.stderr("Pass `--probe` or `--agent`, not both.\n");
+    return 1;
+  }
+  if (probe && argv.includes("--scenario")) {
+    io.stderr("`--probe` does not take `--scenario`.\n");
+    return 1;
+  }
   const scenarioIds = flagValues(argv, "--scenario");
   if (argv.includes("--scenario") && scenarioIds.length === 0) {
     io.stderr("`--scenario` needs an id. Run with --help to list them.\n");
@@ -99,6 +135,9 @@ export async function execute(
   const known = new Set([
     "--agent",
     "--adapter",
+    "--config",
+    "--probe",
+    "--fhir-base-url",
     "--scenario",
     "--report",
     "--markdown",
@@ -120,7 +159,10 @@ export async function execute(
     const report = await runBench({
       agent,
       env,
+      ...(probe ? { probe: true } : {}),
       ...(adapterId ? { adapterId } : {}),
+      ...(configPath ? { configPath } : {}),
+      ...(fhirBaseUrl ? { fhirBaseUrl } : {}),
       ...(scenarioIds.length > 0 ? { scenarioIds } : {}),
     });
     const card = renderScorecard(report);

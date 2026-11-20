@@ -160,7 +160,7 @@ describe("scripted agent run", () => {
       });
       const failed = report.scenarios.filter((scenario) => scenario.status === "fail");
       expect(failed, JSON.stringify(failed, null, 2)).toEqual([]);
-      expect(report.summary).toEqual({ pass: SCENARIOS.length, fail: 0, total: SCENARIOS.length });
+      expect(report.summary).toEqual({ pass: SCENARIOS.length, fail: 0, na: 0, total: SCENARIOS.length });
       expect(report.data).toBe("synthetic-fixtures-only");
       expect(report.notMeasured).toContain("clinical correctness");
       expect(report.adapter).toBe("lastehr-memory");
