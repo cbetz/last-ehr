@@ -5,6 +5,7 @@
 [![npm: @lastehr/mcp](https://img.shields.io/npm/v/%40lastehr%2Fmcp?label=%40lastehr%2Fmcp)](https://www.npmjs.com/package/@lastehr/mcp)
 [![npm: @lastehr/agent-write-conformance](https://img.shields.io/npm/v/%40lastehr%2Fagent-write-conformance?label=%40lastehr%2Fagent-write-conformance)](https://www.npmjs.com/package/@lastehr/agent-write-conformance)
 [![Official MCP Registry](https://img.shields.io/badge/Official%20MCP%20Registry-active-2563eb)](https://registry.modelcontextprotocol.io/?q=io.github.cbetz%2Flast-ehr)
+[![cbetz/last-ehr MCP server](https://glama.ai/mcp/servers/cbetz/last-ehr/badges/score.svg)](https://glama.ai/mcp/servers/cbetz/last-ehr)
 
 **Status: early / alpha.** Use synthetic data only. License: [Apache-2.0](./LICENSE).
 
