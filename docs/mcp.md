@@ -1,13 +1,11 @@
 # FHIR MCP Server
 
-npm `latest` stays `@lastehr/mcp@0.5.4`. The Official MCP Registry record for
-`io.github.cbetz/last-ehr` marks `0.5.4` `isLatest`. This checkout prepares
-`0.5.5`. That version is not published.
+One-click install for the in-process synthetic store is in the [repository README](https://github.com/cbetz/last-ehr#try-it-in-30-seconds).
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 init --demo
-npx -y @lastehr/mcp@0.5.5 init --demo --client claude-code
-npx -y @lastehr/mcp@0.5.5 init --demo --client cursor
+npx -y @lastehr/mcp init --demo
+npx -y @lastehr/mcp init --demo --client claude-code
+npx -y @lastehr/mcp init --demo --client cursor
 ```
 
 `init --demo` runs synthetic seed patients in-process, and approved writes vanish when the process exits. Synthetic data only. This is not a clinical or compliance claim.
@@ -130,10 +128,9 @@ to stdout. Keep the local stack running while the client is connected; use
 The zero-setup command is at the top of this page. The commands below are a
 Medplum credential. They generate a local stdio configuration. They do not
 install the server into your client or configure remote OAuth automatically.
-Since `0.4.1`, `init` pins the generated package command to its own version,
-so these commands produce a configuration that starts `@lastehr/mcp@0.5.5`.
-Confirm it with `npx -y @lastehr/mcp@0.5.5 --version`. Older releases do not
-include `init --demo`, HTTP transport, or `doctor --connect`.
+Since `0.4.1`, `init` pins the generated package command to its own version.
+Confirm the installed package with `npx -y @lastehr/mcp --version`. Older
+releases do not include `init --demo`, HTTP transport, or `doctor --connect`.
 
 ### Claude Code
 
@@ -141,7 +138,7 @@ Configure a least-privilege Medplum credential using [Auth](#auth), then print
 the registration command:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 init --client claude-code
+npx -y @lastehr/mcp init --client claude-code
 ```
 
 Run the generated `claude mcp add` command, then launch Claude Code from an
@@ -156,18 +153,19 @@ covers registration, credential configuration, and installation scope.
 Print the Cursor configuration:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 init --client cursor
+npx -y @lastehr/mcp init --client cursor
 ```
 
 The default command prints the same server fields without `"type"`:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 init
+npx -y @lastehr/mcp init
 ```
 
 Replace the placeholder with a least-privilege Medplum token, then add the
-`lastehr` entry to your client's MCP configuration. The Cursor output below
-declares `"type": "stdio"`. Save the configuration in
+`lastehr` entry to your client's MCP configuration. The Cursor output
+declares `"type": "stdio"`. The sample below leaves off the version pin
+`init` prints on `args`. Save the configuration in
 `~/.cursor/mcp.json` for personal use or `.cursor/mcp.json` for this project.
 See [Cursor's MCP documentation](https://cursor.com/docs/mcp#configuration-locations)
 for its configuration fields and locations.
@@ -180,7 +178,7 @@ for its configuration fields and locations.
       "command": "npx",
       "args": [
         "-y",
-        "@lastehr/mcp@0.5.5"
+        "@lastehr/mcp"
       ],
       "env": {
         "MEDPLUM_ACCESS_TOKEN": "<replace-with-a-least-privilege-token>"
@@ -190,7 +188,7 @@ for its configuration fields and locations.
 }
 ```
 
-Start the server directly with `npx -y @lastehr/mcp@0.5.5` when you want to inspect a
+Start the server directly with `npx -y @lastehr/mcp` when you want to inspect a
 stdio connection yourself. These setup commands do not establish write
 compatibility: the optional write profile checks the connected client's
 elicitation capability at runtime.
@@ -219,7 +217,7 @@ The stdio server answers `initialize` and `tools/list` when these are missing or
 `doctor` validates configuration without making a network request:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 doctor
+npx -y @lastehr/mcp doctor
 ```
 
 Add `--connect` to check FHIR R4 metadata and make a count-only Patient
@@ -227,7 +225,7 @@ search with your configured stdio credentials. That check has been in the
 package since `0.4.0`:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 doctor --connect
+npx -y @lastehr/mcp doctor --connect
 ```
 
 The check makes no chart write and prints no patient data or counts. A
@@ -447,7 +445,7 @@ LASTEHR_MCP_OAUTH_JWKS_URI=https://auth.example.org/.well-known/jwks.json
 LASTEHR_MCP_REQUIRED_SCOPES=chart.read
 LASTEHR_MCP_EXCHANGE_CLIENT_ID=<ClientApplication id with the identity provider>
 LASTEHR_MCP_TOKEN_ENDPOINT=https://api.medplum.com/oauth2/token
-npx -y @lastehr/mcp@0.5.5
+npx -y @lastehr/mcp
 ```
 
 The metadata document is served unauthenticated at
