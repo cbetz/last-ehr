@@ -38,14 +38,12 @@ alongside each verified npm release.
 
 ## Zero-setup demo
 
-npm `latest` stays `@lastehr/mcp@0.5.4`. The Official MCP Registry record for
-`io.github.cbetz/last-ehr` marks `0.5.4` `isLatest`. This checkout prepares
-`0.5.5`. That version is not published.
+One-click install for this store is in the [repository README](https://github.com/cbetz/last-ehr#try-it-in-30-seconds).
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 init --demo
-npx -y @lastehr/mcp@0.5.5 init --demo --client claude-code
-npx -y @lastehr/mcp@0.5.5 init --demo --client cursor
+npx -y @lastehr/mcp init --demo
+npx -y @lastehr/mcp init --demo --client claude-code
+npx -y @lastehr/mcp init --demo --client cursor
 ```
 
 `init --demo` runs synthetic seed patients in-process, and approved writes
@@ -72,29 +70,29 @@ multi-word `name` matches when each word is a prefix of some HumanName part.
 
 ## Install
 
-These commands install `@lastehr/mcp@0.5.5`.
+These commands install `@lastehr/mcp`. `init` pins the generated package argument to the version that ran it.
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 init
+npx -y @lastehr/mcp init
 ```
 
 The command prints a portable MCP configuration. For Claude Code, print the
 registration command instead:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 init --client claude-code
+npx -y @lastehr/mcp init --client claude-code
 ```
 
 Start the stdio server with:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5
+npx -y @lastehr/mcp
 ```
 
 Check the installed package version without configuring a backend:
 
 ```bash
-npx -y @lastehr/mcp@0.5.5 --version
+npx -y @lastehr/mcp --version
 ```
 
 ## Configuration
@@ -115,7 +113,7 @@ MEDPLUM_CLIENT_SECRET=...
 Set `MEDPLUM_BASE_URL` for a self-hosted Medplum deployment. For the
 repository's local no-auth HAPI stack, set `FHIR_BACKEND=hapi` and
 `FHIR_BASE_URL` (or `HAPI_BASE_URL`) instead — local, synthetic data only.
-Run `npx -y @lastehr/mcp@0.5.5 doctor` to validate configuration without starting
+Run `npx -y @lastehr/mcp doctor` to validate configuration without starting
 MCP.
 
 When stdout and stderr are both terminals, `init` prints next steps on

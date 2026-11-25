@@ -1,9 +1,12 @@
 # Last EHR MCP 0.5.5: write-safety benchmark and init next steps
 
-Pending publication. Merging the version bump does not publish the package,
-cut a tag, or open a GitHub release. npm `latest` stays
-`@lastehr/mcp@0.5.4` until the [release process](../releasing-mcp.md) runs
-on purpose. `mcpName` stays `io.github.cbetz/last-ehr`.
+Published November 17, 2026. npm `latest` is `@lastehr/mcp@0.5.5`. The
+Official MCP Registry record for `io.github.cbetz/last-ehr` marks `0.5.5`
+`isLatest` (checked 2026-11-25 against registry.modelcontextprotocol.io).
+The [GitHub release](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.5)
+is tag `mcp-v0.5.5` at
+`4e4fc22400d8791a1936596d415dba9262f0ff61`. `mcpName` stays
+`io.github.cbetz/last-ehr`.
 
 The package changes are
 [PR #238](https://github.com/cbetz/last-ehr/pull/238), merged as
@@ -46,4 +49,6 @@ when stdout or stderr is not a terminal. `CI=false` and `CI=0` still
 print it. A failed `init` does not print it. The stdio server does not
 print it.
 
-After publication the install pin is `@lastehr/mcp@0.5.5`.
+The install pin for this release is `@lastehr/mcp@0.5.5`. Quickstart
+commands in the repository README use the unpinned `@lastehr/mcp` package
+name. `init` still prints a pin for the version that ran it.

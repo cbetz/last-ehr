@@ -3,15 +3,18 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
-## 0.5.5 — prepared, not published
+## 0.5.5 — published (2026-11-17)
 
-`@lastehr/mcp` `0.5.5` adds a synthetic write-safety benchmark
+`@lastehr/mcp` `0.5.5` is published. npm `latest` is
+`@lastehr/mcp@0.5.5`. The Official MCP Registry record for
+`io.github.cbetz/last-ehr` marks `0.5.5` `isLatest` (checked 2026-11-25
+against registry.modelcontextprotocol.io). Git tag
+[`mcp-v0.5.5`](https://github.com/cbetz/last-ehr/releases/tag/mcp-v0.5.5)
+is `4e4fc22400d8791a1936596d415dba9262f0ff61`. `mcpName` stays
+`io.github.cbetz/last-ehr`. It adds a synthetic write-safety benchmark
 ([#238](https://github.com/cbetz/last-ehr/pull/238)) and prints init next
 steps on a terminal ([#239](https://github.com/cbetz/last-ehr/pull/239)).
-This version bump is not on npm, and there is no git tag. npm `latest`
-stays `@lastehr/mcp@0.5.4`. `mcpName` stays `io.github.cbetz/last-ehr`.
-Publication stays on the [release process](./docs/releasing-mcp.md). Draft
-notes: [docs/releases/mcp-0.5.5.md](./docs/releases/mcp-0.5.5.md).
+Notes: [docs/releases/mcp-0.5.5.md](./docs/releases/mcp-0.5.5.md).
 
 - `npm run bench` runs 24 scripted scenarios against an in-process
   synthetic chart. The checks cover approval before a save, citations that
