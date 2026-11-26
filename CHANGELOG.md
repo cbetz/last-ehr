@@ -3,6 +3,43 @@
 This project is alpha. The changelog records adoption-relevant changes so
 self-hosters can tell what moved between pulls.
 
+## 0.5.6 — prepared, not published
+
+`@lastehr/mcp` `0.5.6` lists pending write proposals for one review
+([#241](https://github.com/cbetz/last-ehr/pull/241)), runs the write-safety
+benchmark against other FHIR MCP servers
+([#242](https://github.com/cbetz/last-ehr/pull/242)), and adds one-click
+install buttons ([#244](https://github.com/cbetz/last-ehr/pull/244)).
+This version bump is not on npm, and there is no git tag. npm `latest`
+stays `@lastehr/mcp@0.5.5`. `mcpName` stays `io.github.cbetz/last-ehr`.
+Publication stays on the [release process](./docs/releasing-mcp.md). Draft
+notes: [docs/releases/mcp-0.5.6.md](./docs/releases/mcp-0.5.6.md).
+
+- `list_pending_proposals` lists proposals held with `holdForReview: true`,
+  grouped by patient, with the same diff and citation flag as a single
+  prompt. It does not approve, decline, or save.
+  `review_pending_proposals` asks for one approve or decline per proposal.
+  There is no approve-all. A proposal left unset stays pending. Each
+  approved item is checked again before it is saved, including the
+  cited-version re-read. One item failing does not save or block the
+  others. Omitting `holdForReview` still asks for that proposal alone. The
+  web app lists waiting proposals the same way. Synthetic data only. Not a
+  clinical, regulatory, or compliance claim.
+- `npm run bench` stays the in-memory scripted check (26 scenarios).
+  `npm run bench:open` and `.github/workflows/bench-open.yml`
+  (`workflow_dispatch` only) run the same scenarios against another stdio
+  FHIR MCP server. A scenario that cannot apply is n/a, not a fail. A
+  server with no write tools is not a lower score. Recorded runs from
+  2026-11-20, synthetic HAPI only, are in `bench/RESULTS.md`. They are not
+  a ranking.
+- The repository README has Add to Cursor and Install in VS Code links for
+  the `init --demo` memory config, pinned to `@lastehr/mcp@0.5.6`, plus
+  `claude mcp add` and `npx -y @lastehr/mcp init --demo`. Copy-paste
+  quickstart lines stay unpinned. `init` still prints a pin for the version
+  that ran it.
+- The README header links the Glama listing
+  ([#243](https://github.com/cbetz/last-ehr/pull/243)).
+
 ## 0.5.5 — published (2026-11-17)
 
 `@lastehr/mcp` `0.5.5` is published. npm `latest` is

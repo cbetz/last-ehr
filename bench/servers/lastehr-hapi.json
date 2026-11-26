@@ -2,7 +2,7 @@
   "id": "lastehr-hapi",
   "title": "Last EHR",
   "repository": "https://github.com/cbetz/last-ehr",
-  "version": "0.5.5",
+  "version": "0.5.6",
   "command": "node",
   "args": ["packages/mcp/dist/cli.js"],
   "env": {
