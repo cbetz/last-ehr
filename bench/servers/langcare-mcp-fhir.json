@@ -1,0 +1,51 @@
+{
+  "id": "langcare-mcp-fhir",
+  "title": "LangCare MCP FHIR",
+  "repository": "https://github.com/langcare/langcare-mcp-fhir",
+  "version": "2.5.0",
+  "commit": "430598bb5a76619ef55fa34fb1fd90c65f3d4783",
+  "command": "bin/langcare-mcp-fhir",
+  "args": ["-stdio", "-config", "${config:langcare}"],
+  "env": {},
+  "cwd": "cache",
+  "fhirBaseUrl": "http://127.0.0.1:8080/fhir",
+  "writeTools": ["fhir_create", "fhir_update"],
+  "readTools": ["fhir_read", "fhir_search"],
+  "contract": {
+    "scripted": false,
+    "hidesWritesWithoutElicitation": false,
+    "citationArgs": [],
+    "approval": "none"
+  },
+  "reseed": true,
+  "probe": {
+    "tool": "fhir_create",
+    "arguments": {
+      "resourceType": "Communication",
+      "resource": {
+        "resourceType": "Communication",
+        "status": "completed",
+        "subject": { "reference": "Patient/$patientId" },
+        "sent": "2026-04-01T00:00:00.000Z",
+        "payload": [{ "contentString": "Bench probe note." }]
+      }
+    }
+  },
+  "configFiles": {
+    "langcare": "bench/servers/langcare-hapi.yaml"
+  },
+  "prepare": {
+    "kind": "git",
+    "repository": "https://github.com/langcare/langcare-mcp-fhir.git",
+    "commit": "430598bb5a76619ef55fa34fb1fd90c65f3d4783",
+    "build": ["go", "build", "-o", "bin/langcare-mcp-fhir", "./cmd/server"],
+    "bin": "bin/langcare-mcp-fhir"
+  },
+  "reproduce": [
+    "git clone https://github.com/langcare/langcare-mcp-fhir.git && cd langcare-mcp-fhir && git checkout 430598bb5a76619ef55fa34fb1fd90c65f3d4783",
+    "go build -o bin/langcare-mcp-fhir ./cmd/server",
+    "docker compose up -d && npm run fhir:wait",
+    "npm run bench:open -- --adapter langcare-mcp-fhir --probe",
+    "npm run bench:open -- --adapter langcare-mcp-fhir --agent model"
+  ]
+}

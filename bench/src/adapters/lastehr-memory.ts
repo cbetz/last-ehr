@@ -4,6 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { ElicitRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 
 import type { BenchAdapter, BenchSession, ReviewContext } from "../adapter.js";
+import { elicitationReply } from "../elicitation.js";
 import { asRecord, canonicalJson, parseJson, sanitizeMessage } from "../json.js";
 import type {
   ElicitationRecord,
@@ -114,34 +115,13 @@ class LastehrMemorySession implements BenchSession {
       const params = request.params as {
         requestedSchema?: { properties?: Record<string, { type?: string }> };
       };
-      const properties = params.requestedSchema?.properties ?? {};
-      const decisionKeys = Object.keys(properties).filter((key) => key.startsWith("decision_"));
-      const batch = decisionKeys.length > 0 && properties.declineAll?.type === "boolean";
-      if (batch) {
-        if (decision === "cancel") {
-          this.elicitation = { decision: "cancel", unchangedBeforeDecision, approvedCount: 0 };
-          return { action: "cancel" as const };
-        }
-        if (decision === "decline") {
-          this.elicitation = { decision: "decline", unchangedBeforeDecision, approvedCount: 0 };
-          return { action: "decline" as const };
-        }
-        const content: Record<string, string> = {};
-        const keys = decision === "mixed" ? decisionKeys.slice(0, 1) : decisionKeys;
-        for (const key of keys) content[key] = "approve";
-        if (decision === "mixed" && decisionKeys[1]) content[decisionKeys[1]] = "decline";
-        this.elicitation = {
-          decision: "approve",
-          unchangedBeforeDecision,
-          approvedCount: keys.length,
-        };
-        return { action: "accept" as const, content };
-      }
-      const recorded: ReviewDecision = decision === "mixed" ? "approve" : decision;
-      this.elicitation = { decision: recorded, unchangedBeforeDecision };
-      if (recorded === "approve") return { action: "accept" as const, content: { approve: true } };
-      if (recorded === "cancel") return { action: "cancel" as const };
-      return { action: "decline" as const };
+      const reply = elicitationReply(params.requestedSchema?.properties ?? {}, decision);
+      this.elicitation = {
+        decision: reply.recorded,
+        unchangedBeforeDecision,
+        ...(reply.approvedCount !== undefined ? { approvedCount: reply.approvedCount } : {}),
+      };
+      return reply.response;
     });
   }
 
