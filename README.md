@@ -17,8 +17,8 @@ Agents read freely; every write waits for human approval.
 
 ## Try it in 30 seconds
 
-[![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=lastehr&config=eyJ0eXBlIjoic3RkaW8iLCJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBsYXN0ZWhyL21jcEAwLjUuNSJdLCJlbnYiOnsiRkhJUl9CQUNLRU5EIjoibWVtb3J5IiwiTEFTVEVIUl9NQ1BfV1JJVEVTIjoicHJvcG9zYWwifX0%3D)
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20Server&color=0098FF)](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522lastehr%2522%252C%2522type%2522%253A%2522stdio%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522-y%2522%252C%2522%2540lastehr%252Fmcp%25400.5.5%2522%255D%252C%2522env%2522%253A%257B%2522FHIR_BACKEND%2522%253A%2522memory%2522%252C%2522LASTEHR_MCP_WRITES%2522%253A%2522proposal%2522%257D%257D)
+[![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=lastehr&config=eyJ0eXBlIjoic3RkaW8iLCJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIkBsYXN0ZWhyL21jcEAwLjUuNiJdLCJlbnYiOnsiRkhJUl9CQUNLRU5EIjoibWVtb3J5IiwiTEFTVEVIUl9NQ1BfV1JJVEVTIjoicHJvcG9zYWwifX0%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-VS_Code?style=flat-square&label=Install%20Server&color=0098FF)](https://vscode.dev/redirect?url=vscode%3Amcp%2Finstall%3F%257B%2522name%2522%253A%2522lastehr%2522%252C%2522type%2522%253A%2522stdio%2522%252C%2522command%2522%253A%2522npx%2522%252C%2522args%2522%253A%255B%2522-y%2522%252C%2522%2540lastehr%252Fmcp%25400.5.6%2522%255D%252C%2522env%2522%253A%257B%2522FHIR_BACKEND%2522%253A%2522memory%2522%252C%2522LASTEHR_MCP_WRITES%2522%253A%2522proposal%2522%257D%257D)
 
 ```bash
 claude mcp add lastehr --env FHIR_BACKEND=memory --env LASTEHR_MCP_WRITES=proposal -- npx -y @lastehr/mcp

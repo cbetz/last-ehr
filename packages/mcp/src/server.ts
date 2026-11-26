@@ -41,7 +41,7 @@ import {
   type McpWriteTool,
 } from "./write-tools.js";
 
-export const MCP_SERVER_VERSION = "0.5.5";
+export const MCP_SERVER_VERSION = "0.5.6";
 
 export type McpServerOptions = {
   /**
